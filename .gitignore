@@ -1,9 +1,9 @@
 # Secrets and runtime data
 .env
-data/
-backups/
-whisper-cache/
-server/data/
+/data/
+/backups/
+/whisper-cache/
+/server/data/
 
 # Node
 node_modules/
