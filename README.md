@@ -203,6 +203,10 @@ Everything under `/api` except `/api/server`, `/api/join` and `/api/link` needs 
 
 WebSocket `/ws`: the server sends `message.new`, `message.updated`, `typing`, `presence`, `member.*`, `group.*`, `user.updated`, `livedraw`, `live`, `story.*`, `sticker.*`, `game.updated`; clients send `typing` and `live` (strokes of the shared canvas and Pictionary).
 
+## License
+
+Papote is free software under the [GNU Affero General Public License v3.0 or later](LICENSE). If you run a modified version as a service for others, you must offer them its source code.
+
 ## Credits
 
 Designed with Claude Design, built with Claude Code. Fonts: Baloo 2, Nunito and Noto Color Emoji (SIL Open Font License, see `server/public/fonts`). Voice transcription uses [whisper-asr-webservice](https://github.com/ahmetoner/whisper-asr-webservice). GIFs powered by GIPHY.

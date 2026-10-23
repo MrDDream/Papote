@@ -41,6 +41,7 @@ jobs:
           labels: |
             org.opencontainers.image.title=Papote
             org.opencontainers.image.description=Self-hosted messenger for family and friends
+            org.opencontainers.image.licenses=AGPL-3.0-or-later
 
       - uses: docker/build-push-action@v6
         with:

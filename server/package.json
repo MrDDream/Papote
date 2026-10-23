@@ -9,7 +9,7 @@
     "dev": "node --watch src/index.js",
     "test": "vitest run"
   },
-  "license": "MIT",
+  "license": "AGPL-3.0-or-later",
   "engines": {
     "node": ">=24"
   },
