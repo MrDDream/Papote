@@ -54,7 +54,8 @@ services:
     container_name: papote
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3000:3000"        # "3000:3000" si le reverse proxy est sur une autre machine
+      - "127.0.0.1:3000:3000"        # port de l'hôte à gauche : change-le si 3000 est déjà pris ;
+                                     # "3000:3000" si le reverse proxy est sur une autre machine
     environment:
       ADMIN_PASSWORD: ${ADMIN_PASSWORD}  # dans .env, 12 caractères ou plus
       TZ: Europe/Paris
