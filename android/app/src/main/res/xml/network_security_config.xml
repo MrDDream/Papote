@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Un serveur auto-hébergé peut tourner en HTTP sur le réseau local : on l'autorise,
+     l'écran de connexion prévient quand l'adresse n'est pas en https. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

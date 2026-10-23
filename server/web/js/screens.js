@@ -1,0 +1,1435 @@
+import { api, live, ApiError } from './api.js';
+import { session, go, back, loggedIn, install, getTheme, setTheme, getStyle, setStyle } from './app.js';
+import { pushState, enablePush, disablePush } from './push.js';
+import {
+  h,
+  clear,
+  icon,
+  iconButton,
+  primaryButton,
+  button,
+  topBar,
+  swatches,
+  segmented,
+  toggle,
+  errorBox,
+  confirmDialog,
+  mascot,
+  avatar,
+  groupBadge,
+  groupAvatar,
+  infoButton,
+  tint,
+  surfaceOf,
+  shortWhen,
+  preview,
+  lastSeen,
+  roleLabel,
+  resizeImage,
+  GROUP_ICONS,
+  sheet,
+} from './ui.js';
+import { qrScanner, canScan } from './qr.js';
+
+const CODE_CHARS = /[A-HJ-NP-Z2-9]/;
+const cleanCode = (s, length = 6) => [...(s ?? '').toUpperCase()].filter((c) => CODE_CHARS.test(c)).join('').slice(0, length);
+
+/** Every screen returns { el, destroy? }. */
+function screen(...children) {
+  return h('div', { class: 'screen' }, ...children);
+}
+
+// --- join -----------------------------------------------------------------------
+
+export function joinScreen(query) {
+  const already = !!session.me;
+  // "J'ai déjà un compte": a one-time code from another of my devices instead of an invitation.
+  const linking = !already && query.get('link') === '1';
+  const codeLength = linking ? 8 : 6;
+  let code = cleanCode(query.get('code'), codeLength);
+  let name = '';
+  let color = 'rose';
+  const err = errorBox();
+
+  const input = h('input', {
+    type: 'text',
+    inputmode: 'text',
+    autocapitalize: 'characters',
+    autocomplete: 'one-time-code',
+    spellcheck: 'false',
+    'aria-label': `${linking ? 'Code personnel' : 'Code d’invitation'}, ${codeLength} caractères`,
+    value: code,
+  });
+  // The cells are redrawn on each keystroke; the hidden input is never moved, or it would lose focus.
+  const cellsEl = h('span', { style: { display: 'contents' } });
+  const boxes = h('div', { class: 'code-boxes' }, cellsEl, input);
+  const renderBoxes = () => {
+    const cells = [];
+    for (let i = 0; i < codeLength; i++) {
+      if (i === codeLength / 2) cells.push(h('span', { class: 'code-dash', 'aria-hidden': 'true' }));
+      cells.push(h('span', { class: `code-box${i === Math.min(code.length, codeLength - 1) ? ' active' : ''}${codeLength > 6 ? ' narrow' : ''}`, 'aria-hidden': 'true' }, code[i] ?? ''));
+    }
+    clear(cellsEl, cells);
+  };
+  input.addEventListener('input', () => {
+    code = cleanCode(input.value, codeLength);
+    input.value = code;
+    renderBoxes();
+    refresh();
+  });
+  input.addEventListener('focus', () => boxes.classList.add('focused'));
+  input.addEventListener('blur', () => boxes.classList.remove('focused'));
+  renderBoxes();
+
+  const nameInput = h('input', { class: 'field', id: 'name', placeholder: 'Lou', maxlength: 40, autocomplete: 'nickname' });
+  const totpWrap = h('div', { class: 'col', hidden: true });
+  const totpInput = h('input', { class: 'field', id: 'totp', autocomplete: 'one-time-code', placeholder: '123456 ou code de secours' });
+  totpWrap.append(h('label', { class: 'label', for: 'totp' }, 'Code de ton application d’authentification'), totpInput);
+  nameInput.addEventListener('input', () => {
+    name = nameInput.value;
+    refresh();
+  });
+
+  const submit = primaryButton('Rejoindre', null, { iconName: 'forward', type: 'submit' });
+  const refresh = () => (submit.disabled = code.length !== codeLength || (!already && !linking && !name.trim()));
+  refresh();
+
+  const form = h(
+    'form',
+    {
+      class: 'scroll',
+      onsubmit: async (e) => {
+        e.preventDefault();
+        submit.disabled = true;
+        err.show(null);
+        try {
+          if (linking) {
+            loggedIn((await api.link(code, totpInput.value.trim() || undefined)).user);
+            go('/groups', { replace: true });
+            return;
+          }
+          const res = await api.join(code, name.trim() || null, color);
+          if (!already) loggedIn(res.user);
+          if (res.pending) sessionStorage.setItem('papote.pendingNote', '1');
+          go(res.groupId ? `/chat/${res.groupId}` : '/groups', { replace: true });
+        } catch (e2) {
+          if (e2.code === 'totp_required' || e2.code === 'totp_invalid') {
+            totpWrap.hidden = false;
+            totpInput.focus();
+          }
+          err.show(e2.message);
+          refresh();
+        }
+      },
+    },
+    h('div', { class: 'blob', style: { width: '220px', height: '220px', top: '-60px', right: '-70px', background: '#FFE3C7' } }),
+    h('div', { class: 'blob', style: { width: '110px', height: '110px', top: '120px', left: '-50px', background: '#CDEFE0' } }),
+    already && iconButton('back', 'Retour', () => back()),
+    h(
+      'div',
+      { class: 'hero' },
+      mascot(),
+      h('h1', {}, 'Papote'),
+      h(
+        'p',
+        {},
+        already
+          ? 'Entre le code qu’on t’a donné pour rejoindre un groupe.'
+          : linking
+            ? 'Retrouve ton compte avec ton code personnel : il est dans Paramètres → « Mon code personnel » sur ton autre appareil.'
+            : 'Tes petits groupes à toi, sur ton propre serveur.',
+      ),
+    ),
+    h(
+      'div',
+      { class: 'card', style: { position: 'relative' } },
+      h('div', { class: 'col' }, h('span', { class: 'label', 'aria-hidden': 'true' }, linking ? 'Mon code personnel' : 'Code d’invitation'), boxes),
+      linking && totpWrap,
+      !already && !linking && h('div', { class: 'col' }, h('label', { class: 'label', for: 'name' }, 'Ton petit nom'), nameInput),
+      !already && !linking && h('div', { class: 'col', style: { gap: '8px' } }, h('span', { class: 'label' }, 'Ta frimousse'), swatches(color, (c) => (color = c), { face: true })),
+      err,
+    ),
+    h('div', { class: 'grow' }),
+    submit,
+    canScan() &&
+      button('Scanner un QR code', () =>
+        qrScanner((text) => {
+          // An invitation (…/web/#/join?code=K7P2Q9) or a personal code (…&link=1).
+          try {
+            const q = new URLSearchParams(new URL(text).hash.split('?')[1] ?? '');
+            if (q.get('code')) return go(`/join?${q.get('link') === '1' ? 'link=1&' : ''}code=${encodeURIComponent(q.get('code'))}`, { replace: true });
+          } catch {
+            /* not a link: maybe the bare code */
+          }
+          const raw = cleanCode(text, 8);
+          if (raw.length === 6 || raw.length === 8) go(`/join?${raw.length === 8 ? 'link=1&' : ''}code=${raw}`, { replace: true });
+          else err.show('Ce QR code n’est pas une invitation Papote');
+        }),
+      { iconName: 'scan' }),
+    !already &&
+      h(
+        'button',
+        { type: 'button', class: 'link-btn', onclick: () => go(linking ? '/join' : '/join?link=1', { replace: true }) },
+        linking ? 'Je suis nouveau·elle ici' : 'J’ai déjà un compte sur un autre appareil',
+      ),
+  );
+  if (linking) submit.firstChild.textContent = 'Me connecter';
+  if (!code) input.setAttribute('autofocus', '');
+  return { el: screen(form) };
+}
+
+// --- groups -----------------------------------------------------------------------
+
+export function groupsScreen() {
+  let activeId = null;
+  const list = h('div', { class: 'col', style: { gap: '12px' } });
+  const status = h('span', { class: 'small muted row ellipsis', style: { gap: '6px' } });
+  const err = errorBox();
+  const searchWrap = h('div', { class: 'search' });
+  const FILTERS = [['all', 'Tous'], ['groups', 'Groupes'], ['direct', 'Discussions'], ['unread', 'Non lus']];
+  let filter = 'all';
+  const chips = h('div', { class: 'chips', role: 'radiogroup', 'aria-label': 'Filtrer' });
+  const search = h('input', { class: 'field', type: 'search', placeholder: 'Chercher…', 'aria-label': 'Chercher un groupe ou une discussion' });
+  searchWrap.append(icon('search', 20), search);
+  let groups = [];
+  let waiting = []; // groups that still have to approve me
+  const waitingEl = h('div', { class: 'col', style: { gap: '8px' } });
+
+  const renderStatus = () =>
+    clear(status, h('span', { class: `dot${live.connected ? ' on' : ''}` }), live.connected ? `Connecté·e à ${location.host}` : `Connexion à ${location.host}…`);
+
+  function renderList() {
+    clear(
+      waitingEl,
+      waiting.map((g) =>
+        h('div', { class: 'waiting-card' }, groupBadge(g, 40), h('div', { class: 'col grow', style: { gap: 0 } }, h('b', {}, g.name), h('span', { class: 'small muted' }, 'En attente : un·e admin du groupe doit valider ton arrivée'))),
+      ),
+    );
+    const q = search.value.trim().toLowerCase();
+    const keep = { all: () => true, groups: (g) => !g.direct, direct: (g) => g.direct, unread: (g) => g.unread > 0 }[filter];
+    const visible = groups.filter((g) => (!q || g.name.toLowerCase().includes(q)) && keep(g));
+    const unreadCount = groups.filter((g) => g.unread > 0).length;
+    clear(
+      chips,
+      FILTERS.map(([key, label]) =>
+        h(
+          'button',
+          { type: 'button', role: 'radio', class: 'chip-filter', 'aria-checked': String(key === filter), onclick: () => ((filter = key), renderList()) },
+          key === 'unread' && unreadCount ? `${label} · ${unreadCount}` : label,
+        ),
+      ),
+    );
+
+    if (groups.length && !visible.length) {
+      clear(list, h('p', { class: 'muted', style: { textAlign: 'center', margin: '24px 0' } }, 'Rien ici avec ce filtre.'));
+      return;
+    }
+    if (!groups.length) {
+      clear(
+        list,
+        h('div', { class: 'empty' }, mascot(96), h('h2', { class: 'title', style: { fontSize: '20px' } }, 'Pas encore de groupe'), h('p', { class: 'muted', style: { margin: 0 } }, 'Crée le tien et partage son code, ou entre celui qu’on t’a donné.')),
+      );
+      return;
+    }
+    clear(
+      list,
+      visible.map((g) => {
+        const t = tint(g.color);
+        const last = g.lastMessage;
+        const author = last?.authorId && last.authorId === session.me?.id ? 'Toi' : g.lastAuthorName;
+        const line = last
+          ? g.direct && author !== 'Toi' && last.type === 'text'
+            ? last.text
+            : preview(last, author)
+          : g.direct
+            ? 'Dis bonjour !'
+            : `${g.memberCount} membre${g.memberCount > 1 ? 's' : ''}`;
+        const kind = { drawing: 'pencil', voice: 'mic', photo: 'photo', gif: 'gif', sticker: 'sticker', poll: 'poll', location: 'location', game: 'game', recap: 'sparkles' }[last?.type] ?? 'text';
+        const active = g.id === activeId;
+        return h(
+          'button',
+          {
+            type: 'button',
+            class: `group-card${active ? ' active' : ''}`,
+            style: { background: surfaceOf(t) },
+            'aria-current': active ? 'page' : null,
+            onclick: () => go(`/chat/${g.id}`),
+          },
+          groupAvatar(g),
+          h(
+            'div',
+            { class: 'col grow', style: { gap: '2px', minWidth: 0 } },
+            h('div', { class: 'row', style: { gap: '8px' } }, h('span', { class: 'name grow ellipsis' }, g.name), h('span', { class: 'small muted', style: { fontWeight: 700 } }, shortWhen(last?.createdAt ?? g.createdAt))),
+            h(
+              'div',
+              { class: 'row', style: { gap: '6px' } },
+              h('span', { class: 'muted', style: { display: 'flex' } }, icon(kind, 16)),
+              h('span', { class: 'muted grow ellipsis' }, line),
+              g.unread > 0 && !active && h('span', { class: 'unread', 'aria-label': `${g.unread} non lus` }, g.unread > 99 ? '99+' : String(g.unread)),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  let timer;
+  async function load() {
+    try {
+      [groups, waiting] = await Promise.all([api.groups(), api.pendingGroups().catch(() => [])]);
+      err.show(null);
+    } catch (e) {
+      err.show(e.message);
+    }
+    renderList();
+  }
+  const soon = () => {
+    clearTimeout(timer);
+    timer = setTimeout(load, 300);
+  };
+  search.addEventListener('input', renderList);
+
+  const head = h('div', { class: 'groups-head' });
+  const renderHead = () =>
+    clear(
+      head,
+      h('div', { style: { padding: '3px', background: 'var(--card)', borderRadius: '50%' } }, avatar(session.me, 42)),
+      h('div', { class: 'col grow', style: { gap: 0, minWidth: 0 } }, h('h1', { class: 'ellipsis' }, `Coucou ${session.me.name} !`), status),
+      iconButton('chatPlus', 'Nouvelle discussion avec quelqu’un', () => go('/contacts')),
+      iconButton('settings', 'Paramètres', () => go('/profile')),
+    );
+  const onMe = () => {
+    renderHead();
+    soon();
+  };
+  window.addEventListener('papote:me', onMe);
+  renderHead();
+
+  const banner = h('div', {}, installBanner(), pushBanner());
+  const offs = [
+    ...['message.new', 'message.updated', 'group.updated', 'group.removed', 'group.approved', 'member.joined', 'member.left', 'group.read', 'group.refresh', 'reconnected'].map((t) => live.on(t, soon)),
+    live.on('connection', renderStatus),
+    live.on('user.updated', (e) => {
+      if (e.user.id === session.me.id) session.setMe({ ...session.me, ...e.user });
+    }),
+  ];
+  renderStatus();
+  load();
+
+  return {
+    el: screen(
+      h('div', { class: 'scroll' }, head, searchWrap, chips, err, waitingEl, list),
+      banner,
+      h('div', { class: 'bottom-actions' }, primaryButton('Nouveau groupe', () => go('/new')), button('Rejoindre', () => go('/join'), { iconName: 'keypad' })),
+    ),
+    destroy: () => {
+      clearTimeout(timer);
+      offs.forEach((off) => off());
+      window.removeEventListener('papote:me', onMe);
+    },
+    // Sidebar mode: highlight the open group, and refresh its badge once the chat has marked it read.
+    setActive(id) {
+      if (id === activeId) return;
+      activeId = id;
+      renderList();
+      soon();
+    },
+  };
+}
+
+/** Once, on the groups list: offer notifications when they're available but off. */
+function pushBanner() {
+  const wrap = h('div');
+  let dismissed = false;
+  try {
+    dismissed = localStorage.getItem('papote.pushPromptOff') === '1';
+  } catch {
+    /* ignore */
+  }
+  const hide = () => {
+    try {
+      localStorage.setItem('papote.pushPromptOff', '1');
+    } catch {
+      /* ignore */
+    }
+    clear(wrap);
+  };
+  if (!dismissed) {
+    pushState().then((state) => {
+      if (state !== 'off') return;
+      const close = iconButton('close', 'Masquer', hide, { size: 18 });
+      close.style.width = close.style.height = '36px';
+      clear(
+        wrap,
+        h(
+          'div',
+          { class: 'install' },
+          h('span', { style: { display: 'flex', color: 'var(--primary)' } }, icon('bell', 24)),
+          h('span', { class: 'grow' }, 'Être prévenu·e des nouveaux messages ?'),
+          button('Activer', async () => {
+            await enablePush().catch(() => false);
+            hide();
+          }, { small: true }),
+          close,
+        ),
+      );
+    });
+  }
+  return wrap;
+}
+
+/** On a phone, offer to install the PWA (Android/Chrome prompt, or the iOS share-sheet hint). */
+function installBanner() {
+  const wrap = h('div');
+  let dismissed = false;
+  try {
+    dismissed = localStorage.getItem('papote.installDismissed') === '1';
+  } catch {
+    /* ignore */
+  }
+  const render = () => {
+    if (dismissed || install.standalone || !install.mobile || (!install.available && !install.ios)) return clear(wrap);
+    const close = iconButton('close', 'Masquer', () => {
+      dismissed = true;
+      try {
+        localStorage.setItem('papote.installDismissed', '1');
+      } catch {
+        /* ignore */
+      }
+      render();
+    }, { size: 18 });
+    close.style.width = close.style.height = '36px';
+    clear(
+      wrap,
+      h(
+        'div',
+        { class: 'install' },
+        mascot(36),
+        install.available
+          ? [h('span', { class: 'grow' }, 'Installe Papote sur ton écran d’accueil.'), button('Installer', async () => (await install.prompt(), render()), { small: true })]
+          : h('span', { class: 'grow' }, 'Pour l’installer : touche Partager, puis « Sur l’écran d’accueil ».'),
+        close,
+      ),
+    );
+  };
+  window.addEventListener('papote:installable', render);
+  render();
+  return wrap;
+}
+
+// --- new two-person conversation ---------------------------------------------------
+
+export function contactsScreen() {
+  const body = h('div', { class: 'scroll' });
+  const list = h('div', { class: 'col', style: { gap: '8px' } });
+  const err = errorBox();
+  const search = h('input', { class: 'field', type: 'search', placeholder: 'Chercher quelqu’un…', 'aria-label': 'Chercher quelqu’un' });
+  let contacts = null;
+  const render = () => {
+    if (!contacts) return clear(list, h('p', { class: 'muted' }, 'Chargement…'));
+    if (!contacts.length) return clear(list, h('p', { class: 'muted' }, 'Personne pour l’instant : invite quelqu’un dans un groupe, puis tu pourras lui écrire ici.'));
+    const q = search.value.trim().toLowerCase();
+    clear(
+      list,
+      contacts
+        .filter((u) => !q || u.name.toLowerCase().includes(q))
+        .map((u) =>
+          h(
+            'button',
+            {
+              type: 'button',
+              class: 'contact',
+              onclick: async () => {
+                try {
+                  const g = await api.direct(u.id);
+                  go(`/chat/${g.id}`, { replace: true });
+                } catch (e) {
+                  err.show(e.message);
+                }
+              },
+            },
+            avatar(u, 44, { online: u.online }),
+            h('div', { class: 'col grow', style: { gap: 0, minWidth: 0 } }, h('span', { class: 'title', style: { fontSize: '18px' } }, u.name), u.bio && h('span', { class: 'small muted ellipsis' }, u.bio)),
+          ),
+        ),
+    );
+  };
+  search.addEventListener('input', render);
+  const wrap = h('div', { class: 'search' }, icon('search', 20), search);
+  clear(body, topBar('Nouvelle discussion', () => back(), { subtitle: 'Avec une personne de tes groupes' }), wrap, err, list);
+  api
+    .contacts()
+    .then((c) => ((contacts = c), render()))
+    .catch((e) => err.show(e.message));
+  render();
+  search.setAttribute('autofocus', '');
+  return { el: screen(body) };
+}
+
+// --- new group / invite -----------------------------------------------------------
+
+const EXPIRIES = [['1h', '1 h'], ['24h', '24 h'], ['7d', '7 jours'], ['never', 'Jamais']];
+
+function expiryText(inv) {
+  const uses = inv.maxUses ? `${inv.uses}/${inv.maxUses} utilisation` : inv.uses ? `${inv.uses} utilisation${inv.uses > 1 ? 's' : ''}` : 'illimité';
+  if (!inv.expiresAt) return `sans date limite · ${uses}`;
+  const mins = Math.round((inv.expiresAt - Date.now()) / 60_000);
+  const exp = mins < 60 ? `expire dans ${mins} min` : mins < 48 * 60 ? `expire dans ${Math.round(mins / 60)} h` : `expire dans ${Math.round(mins / 1440)} jours`;
+  return `${exp} · ${uses}`;
+}
+
+export function shareText(groupName, code) {
+  const raw = code.replace('-', '');
+  return `Rejoins « ${groupName} » sur Papote !\nServeur : ${location.origin}\nCode : ${code}\n\nSur ordinateur ou iPhone : ${location.origin}/web/#/join?code=${raw}\nSur Android : papote://join?server=${encodeURIComponent(location.origin)}&code=${raw}`;
+}
+
+/** Icon grid plus "own picture", used when creating a group and in its settings. */
+function groupLookPicker({ iconKey, onIcon, hasImage, onImage, onClearImage }) {
+  const file = h('input', { type: 'file', accept: 'image/*', hidden: true });
+  file.addEventListener('change', () => {
+    const f = file.files?.[0];
+    file.value = '';
+    if (f) onImage(f);
+  });
+  return h(
+    'div',
+    { class: 'col', style: { gap: '10px' } },
+    h('span', { class: 'label' }, hasImage ? 'Image' : 'Icône ou image'),
+    h(
+      'div',
+      { class: 'row', style: { flexWrap: 'wrap' } },
+      button(hasImage ? 'Changer l’image' : 'Choisir une image', () => file.click(), { iconName: 'image', small: true }),
+      hasImage && button('Revenir à l’icône', onClearImage, { small: true }),
+      file,
+    ),
+    !hasImage &&
+      h(
+        'div',
+        { class: 'icon-grid', role: 'radiogroup', 'aria-label': 'Icône du groupe' },
+        GROUP_ICONS.map((k) =>
+          h('button', { type: 'button', class: 'icon-choice', 'aria-pressed': String(k === iconKey), 'aria-label': `Icône ${k}`, title: k, onclick: () => onIcon(k) }, icon(k, 22)),
+        ),
+      ),
+  );
+}
+
+export function inviteScreen(groupId) {
+  const creating = groupId == null;
+  let image = null; // { blob, url } picked for a new group
+  let group = null;
+  let name = '';
+  let color = 'rose';
+  let iconKey = 'heart';
+  let expiry = '24h';
+  let single = false;
+  let invite = null;
+  let active = [];
+  let busy = false;
+  const err = errorBox();
+  const body = h('div', { class: 'scroll' });
+
+  async function generate() {
+    busy = true;
+    render();
+    err.show(null);
+    try {
+      if (!group) {
+        group = await api.createGroup(name.trim(), color, iconKey);
+        // The picture goes up right after the group exists (it needs the group's id).
+        if (image) group = await api.setGroupPhoto(group.id, image.blob);
+      }
+      invite = await api.createInvite(group.id, expiry, single);
+      active = [invite, ...active];
+    } catch (e) {
+      err.show(e.message);
+    }
+    busy = false;
+    render();
+  }
+
+  async function share(inv) {
+    const text = shareText(group?.name ?? name, inv.code);
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Papote', text });
+        return;
+      } catch {
+        /* cancelled: fall back to copying */
+      }
+    }
+    await navigator.clipboard?.writeText(text);
+    err.show(null);
+  }
+
+  const nameInput = h('input', { class: 'field', id: 'gname', placeholder: 'Soirée jeux', maxlength: 40, style: { background: 'var(--card)' } });
+  nameInput.addEventListener('input', () => {
+    name = nameInput.value;
+    footer();
+  });
+  const footerEl = h('div', { style: { display: 'contents' } });
+  function footer() {
+    clear(
+      footerEl,
+      !group
+        ? primaryButton(busy ? 'Création…' : 'Créer le groupe', generate, { disabled: !name.trim() || busy })
+        : creating
+          ? primaryButton('Aller au groupe', () => go(`/chat/${group.id}`, { replace: true }), { iconName: 'forward' })
+          : !invite
+            ? primaryButton(busy ? 'Un instant…' : 'Générer un code', generate, { disabled: busy })
+            : primaryButton('C’est bon', () => back(`/chat/${group.id}`)),
+    );
+  }
+
+  function render() {
+    const t = tint(color);
+    const others = active.filter((a) => a.code !== invite?.code);
+    clear(
+      body,
+      topBar(creating ? 'Nouveau groupe' : 'Inviter', () => back(), { subtitle: !creating ? group?.name : null }),
+      creating &&
+        h(
+          'div',
+          { class: 'row', style: { background: surfaceOf(t), borderRadius: '24px', padding: '14px', gap: '14px' } },
+          groupBadge({ color, icon: iconKey, photo: group?.photo ?? image?.url }, 56),
+          h('div', { class: 'col grow' }, h('label', { class: 'label', for: 'gname' }, 'Nom du groupe'), group ? h('span', { class: 'title', style: { fontSize: '18px' } }, group.name) : nameInput),
+        ),
+      creating && !group && h('div', { class: 'col', style: { gap: '8px' } }, h('span', { class: 'label' }, 'Couleur'), swatches(color, (c) => ((color = c), render()))),
+      creating &&
+        !group &&
+        groupLookPicker({
+          iconKey,
+          onIcon: (k) => ((iconKey = k), render()),
+          hasImage: !!image,
+          onImage: async (f) => {
+            try {
+              const { blob } = await resizeImage(f, 1000);
+              if (image) URL.revokeObjectURL(image.url);
+              image = { blob, url: URL.createObjectURL(blob) };
+            } catch {
+              err.show('Cette image n’a pas pu être lue');
+            }
+            render();
+          },
+          onClearImage: () => {
+            if (image) URL.revokeObjectURL(image.url);
+            image = null;
+            render();
+          },
+        }),
+      h(
+        'div',
+        { class: 'card' },
+        h('div', { class: 'row between' }, h('h2', { class: 'title', style: { fontSize: '18px' } }, 'Code d’invitation'), h('span', { class: 'small muted', style: { fontWeight: 800 } }, 'Généré par ton serveur')),
+        invite && [
+          h('div', { class: 'code-display' }, h('div', { class: 'code' }, invite.code), h('div', { class: 'small muted' }, expiryText(invite))),
+          qrBlock(inviteLink(invite.code), 'Fais scanner ce QR code avec l’appareil photo : il ouvre l’invitation directement.'),
+          h(
+            'div',
+            { class: 'row' },
+            copyButton(invite.code),
+            button('Partager', () => share(invite), { iconName: 'share', wide: true }),
+          ),
+        ],
+        h('div', { class: 'col', style: { gap: '8px' } }, h('span', { class: 'label' }, 'Le code expire'), segmented(EXPIRIES, expiry, (v) => (expiry = v), 'Durée de validité du code')),
+        h(
+          'div',
+          { class: 'row' },
+          h('div', { class: 'col grow', style: { gap: 0 } }, h('span', { class: 'label' }, 'Usage unique'), h('span', { class: 'small muted' }, 'Le code ne marche qu’une fois')),
+          toggle(single, (v) => (single = v), 'Usage unique'),
+        ),
+        group && button(invite ? 'Générer un autre code' : 'Générer un code', generate, { iconName: 'plus', disabled: busy }),
+      ),
+      !creating &&
+        others.length > 0 &&
+        h(
+          'div',
+          { class: 'card' },
+          h('h2', { class: 'title', style: { fontSize: '18px' } }, 'Codes encore valables'),
+          others.map((a) =>
+            h(
+              'div',
+              { class: 'row' },
+              h('div', { class: 'col grow', style: { gap: 0 } }, h('span', { class: 'title', style: { fontSize: '18px', letterSpacing: '1px' } }, a.code), h('span', { class: 'small muted' }, expiryText(a))),
+              iconButton('qr', `QR code de ${a.code}`, () => sheet(() => [h('h2', { class: 'title', style: { fontSize: '20px', textAlign: 'center' } }, a.code), h('img', { class: 'qr big', src: api.qrUrl(inviteLink(a.code)), alt: `QR code de l’invitation ${a.code}` })])),
+              button('Révoquer', async () => {
+                try {
+                  await api.revokeInvite(a.code);
+                  active = active.filter((x) => x !== a);
+                  render();
+                } catch (e) {
+                  err.show(e.message);
+                }
+              }, { danger: true, small: true }),
+            ),
+          ),
+        ),
+      err,
+      h('div', { class: 'grow' }),
+      footerEl,
+    );
+    footer();
+  }
+
+  if (!creating) {
+    Promise.all([api.group(groupId), api.invites(groupId)])
+      .then(([g, inv]) => {
+        group = g;
+        active = inv;
+        render();
+      })
+      .catch((e) => err.show(e.message));
+  }
+  render();
+  if (creating) nameInput.setAttribute('autofocus', '');
+  return { el: screen(body) };
+}
+
+const inviteLink = (code, link = false) => `${location.origin}/web/#/join?${link ? 'link=1&' : ''}code=${code.replace('-', '')}`;
+
+/** The QR code is drawn by the server (no outside service). Tap it to make it bigger. */
+function qrBlock(data, hint) {
+  const img = h('img', { class: 'qr', src: api.qrUrl(data), alt: 'QR code', width: 168, height: 168 });
+  return h(
+    'button',
+    { type: 'button', class: 'qr-wrap', 'aria-label': 'Afficher le QR code en grand', onclick: () => sheet(() => [h('img', { class: 'qr big', src: api.qrUrl(data), alt: 'QR code' }), h('p', { class: 'small muted', style: { textAlign: 'center', margin: 0 } }, hint)]) },
+    img,
+    h('span', { class: 'small muted' }, hint),
+  );
+}
+
+function copyButton(text) {
+  const b = button('Copier', async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      clear(b, icon('check', 20), 'Copié !');
+    } catch {
+      clear(b, 'Copie impossible');
+    }
+  }, { iconName: 'copy', wide: true });
+  return b;
+}
+
+// --- members & group settings ---------------------------------------------------------
+
+export function membersScreen(groupId) {
+  let group = null;
+  let members = [];
+  let open = null;
+  const err = errorBox();
+  const body = h('div', { class: 'scroll' });
+
+  async function load() {
+    try {
+      [group, members] = await Promise.all([api.group(groupId), api.members(groupId)]);
+      render();
+    } catch (e) {
+      if (e.code === 'group_not_found') go('/groups', { replace: true });
+      else err.show(e.message);
+    }
+  }
+
+  const act = (fn) => async () => {
+    err.show(null);
+    try {
+      await fn();
+      await load();
+    } catch (e) {
+      err.show(e.message);
+    }
+  };
+
+  function render() {
+    const me = members.find((m) => m.id === session.me.id);
+    const isOwner = me?.role === 'owner';
+    const isAdmin = isOwner || me?.role === 'admin';
+    const direct = !!group.direct;
+    let gName = group.name;
+    let gColor = group.color;
+    let gIcon = group.icon;
+    const saveWrap = h('div');
+    const renderSave = () =>
+      clear(
+        saveWrap,
+        (gName.trim() !== group.name || gColor !== group.color || gIcon !== group.icon) &&
+          gName.trim() &&
+          button('Enregistrer', act(() => api.updateGroup(groupId, { name: gName.trim(), color: gColor, icon: gIcon })), { iconName: 'check' }),
+      );
+    const nameField = h('input', { class: 'field', value: group.name, maxlength: 40, 'aria-label': 'Nom du groupe' });
+    nameField.addEventListener('input', () => ((gName = nameField.value), renderSave()));
+
+    const waiting = members.filter((m) => m.status === 'pending');
+    const active = members.filter((m) => m.status !== 'pending');
+    const rules = group.settings ?? {};
+    const muteMenu = (m) =>
+      sheet((close) => [
+        h('h2', { class: 'title', style: { fontSize: '20px' } }, `Rendre ${m.name} muet·te`),
+        h('p', { class: 'small muted', style: { margin: 0 } }, `${m.name} pourra lire le groupe, mais pas y écrire.`),
+        [['1h', 'Pendant 1 heure'], ['24h', 'Pendant 24 heures'], ['7d', 'Pendant 7 jours'], ['forever', 'Jusqu’à nouvel ordre']].map(([d, l]) =>
+          button(l, () => (close(), act(() => api.mute(groupId, m.id, d))()), { iconName: 'mute' }),
+        ),
+      ]);
+
+    clear(
+      body,
+      topBar(direct ? 'Discussion' : 'Membres', () => back(`/settings/${groupId}`), {
+        subtitle: group.name + (isOwner && !direct ? ' · tu l’as créé' : ''),
+      }),
+      !direct && (rules.anyoneInvites !== false || isAdmin) && button('Inviter quelqu’un dans le groupe', () => go(`/invite/${groupId}`), { iconName: 'personPlus' }),
+      isAdmin &&
+        waiting.length > 0 &&
+        h(
+          'div',
+          { class: 'card pending-card' },
+          h('h2', { class: 'title', style: { fontSize: '18px' } }, 'Veulent rejoindre'),
+          waiting.map((m) =>
+            h(
+              'div',
+              { class: 'row' },
+              avatar(m, 40, { initial: true }),
+              h('div', { class: 'col grow', style: { gap: 0 } }, h('b', {}, m.name), h('span', { class: 'small muted' }, 'attend que tu valides')),
+              button('Refuser', act(() => api.refuse(groupId, m.id)), { small: true }),
+              button('Accepter', act(() => api.approve(groupId, m.id)), { small: true, iconName: 'check' }),
+            ),
+          ),
+        ),
+      h('h2', { class: 'title', style: { fontSize: '18px' } }, direct ? 'Avec' : 'Membres'),
+      h(
+        'div',
+        { class: 'card', style: { padding: '8px', gap: '0' }, role: 'list' },
+        active.map((m) => {
+          const self = m.id === me?.id;
+          const canManage = me && !self && m.role !== 'owner' && (isOwner || (isAdmin && m.role === 'member'));
+          const expanded = open === m.id;
+          return h(
+            'div',
+            { role: 'listitem' },
+            h(
+              'button',
+              { type: 'button', class: 'member', disabled: !(canManage || (isOwner && !self)), 'aria-expanded': String(expanded), onclick: () => ((open = expanded ? null : m.id), render()) },
+              avatar(m, 44, { online: m.online }),
+              h(
+                'div',
+                { class: 'col grow', style: { gap: 0, minWidth: 0 } },
+                h('span', { class: 'title ellipsis', style: { fontSize: '18px' } }, m.name + (self ? ' (toi)' : '')),
+                h('span', { class: 'small muted ellipsis' }, [m.mutedUntil ? 'en sourdine' : null, lastSeen(m), m.bio].filter(Boolean).join(' · ')),
+              ),
+              h('span', { class: `role${m.role !== 'member' ? ' admin' : ''}` }, m.role === 'owner' && icon('crown', 14), roleLabel(m.role)),
+            ),
+            expanded &&
+              h(
+                'div',
+                { class: 'member-actions' },
+                isOwner && button(m.role === 'admin' ? 'Retirer admin' : 'Nommer admin', act(() => api.setRole(groupId, m.id, m.role === 'admin' ? 'member' : 'admin')), { small: true }),
+                isOwner &&
+                  button('Lui confier le groupe', async () => {
+                    if (await confirmDialog(`Confier le groupe à ${m.name} ?`, `Tu deviendras admin, et ${m.name} aura le dernier mot sur le groupe.`)) act(() => api.setRole(groupId, m.id, 'owner'))();
+                  }, { small: true }),
+                canManage &&
+                  !direct &&
+                  (m.mutedUntil
+                    ? button('Rendre la parole', act(() => api.unmute(groupId, m.id)), { small: true })
+                    : button('Rendre muet·te', () => muteMenu(m), { small: true, iconName: 'mute' })),
+                canManage &&
+                  button('Retirer du groupe', async () => {
+                    if (await confirmDialog(`Retirer ${m.name} ?`, `${m.name} ne verra plus les messages du groupe.`)) act(() => api.removeMember(groupId, m.id))();
+                  }, { small: true, danger: true }),
+              ),
+          );
+        }),
+      ),
+      isAdmin &&
+        !direct &&
+        h(
+          'div',
+          { class: 'card' },
+          h('div', { class: 'row' }, h('h2', { class: 'title grow', style: { fontSize: '18px' } }, 'Règles du groupe'), h('span', { class: 'small muted' }, '(admins seulement)')),
+          [
+            ['anyoneInvites', 'Tout le monde peut inviter', rules.anyoneInvites !== false],
+            ['adminsTheme', 'Seuls les admins changent le thème', !!rules.adminsTheme],
+            ['approval', 'Valider les nouveaux membres', !!rules.approval],
+          ].map(([k, label, on]) => h('div', { class: 'row' }, h('span', { class: 'grow' }, label), toggle(on, (v) => act(() => api.groupSettings(groupId, { [k]: v }))(), label))),
+        ),
+      isAdmin &&
+        !direct &&
+        h(
+          'div',
+          { class: 'card' },
+          h('div', { class: 'row' }, groupBadge(group, 48), h('h2', { class: 'title', style: { fontSize: '18px' } }, 'Le groupe')),
+          h('div', { class: 'col' }, h('span', { class: 'label' }, 'Nom'), nameField),
+          h('div', { class: 'col', style: { gap: '8px' } }, h('span', { class: 'label' }, 'Couleur'), swatches(gColor, (c) => ((gColor = c), renderSave()))),
+          groupLookPicker({
+            iconKey: gIcon,
+            onIcon: (k) => {
+              gIcon = k;
+              renderSave();
+              for (const b of body.querySelectorAll('.icon-grid .icon-choice')) b.setAttribute('aria-pressed', String(b.title === k));
+            },
+            hasImage: !!group.photo,
+            onImage: async (f) => {
+              try {
+                const { blob } = await resizeImage(f, 1000);
+                group = await api.setGroupPhoto(groupId, blob);
+                render();
+              } catch (e) {
+                err.show(e instanceof ApiError ? e.message : 'Cette image n’a pas pu être lue');
+              }
+            },
+            onClearImage: act(() => api.deleteGroupPhoto(groupId)),
+          }),
+          saveWrap,
+        ),
+      err,
+      button(direct ? 'Quitter la discussion' : 'Quitter le groupe', async () => {
+        const msg = direct
+          ? 'Tu pourras en recommencer une depuis « Nouvelle discussion ».'
+          : (isOwner ? 'Le groupe sera confié à un autre membre. ' : '') + 'Il te faudra un nouveau code pour revenir.';
+        if (!(await confirmDialog(direct ? 'Quitter la discussion ?' : 'Quitter le groupe ?', msg))) return;
+        try {
+          await api.leaveGroup(groupId);
+          go('/groups', { replace: true });
+        } catch (e) {
+          err.show(e.message);
+        }
+      }, { iconName: 'exit', danger: true }),
+      isOwner &&
+        !direct &&
+        button('Supprimer le groupe pour tout le monde', async () => {
+          if (!(await confirmDialog('Supprimer le groupe ?', 'Le groupe disparaîtra pour tout le monde. L’admin du serveur pourra encore le restaurer pendant 30 jours, puis il sera effacé avec ses messages et ses médias.', 'Supprimer'))) return;
+          try {
+            await api.deleteGroup(groupId);
+            go('/groups', { replace: true });
+          } catch (e) {
+            err.show(e.message);
+          }
+        }, { iconName: 'trash', danger: true }),
+    );
+  }
+
+  const offs = [
+    ...['member.joined', 'member.left', 'member.updated', 'member.pending', 'group.updated', 'group.refresh'].map((t) => live.on(t, (e) => (e.groupId ?? e.group?.id) === groupId && load())),
+    live.on('presence', (e) => {
+      const m = members.find((x) => x.id === e.userId);
+      if (m && group) {
+        m.online = e.online;
+        render();
+      }
+    }),
+    live.on('group.removed', (e) => e.groupId === groupId && go('/groups', { replace: true })),
+  ];
+  body.append(topBar('Réglages', () => back(`/chat/${groupId}`)), err);
+  load();
+  return { el: screen(body), destroy: () => offs.forEach((off) => off()) };
+}
+
+// --- profile ------------------------------------------------------------------------
+
+const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+
+const birthdayToField = (b) => {
+  const m = /-(\d{2})-(\d{2})$/.exec(b ?? '');
+  return m ? `${m[2]}/${m[1]}` : '';
+};
+
+function fieldToBirthday(s) {
+  const t = s.trim();
+  if (!t) return { ok: true, value: null };
+  const m = /^(\d{1,2})\s*[/.\- ]\s*(\d{1,2})$/.exec(t);
+  if (!m) return { ok: false };
+  const day = Number(m[1]);
+  const month = Number(m[2]);
+  if (month < 1 || month > 12 || day < 1 || day > 31) return { ok: false };
+  return { ok: true, value: `--${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`, day, month };
+}
+
+export function profileScreen() {
+  let me = session.me;
+  let color = me.color;
+  const err = errorBox();
+  const body = h('div', { class: 'scroll' });
+  const name = h('input', { class: 'field', id: 'pn', maxlength: 40, value: me.name });
+  const bio = h('input', { class: 'field', id: 'bio', maxlength: 140, value: me.bio ?? '', placeholder: 'Fan de pop-corn et de dessins ratés' });
+  const bday = h('input', { class: 'field', id: 'bd', maxlength: 5, inputmode: 'numeric', value: birthdayToField(me.birthday), placeholder: 'JJ/MM' });
+  const bdayHint = h('span', { class: 'small muted' });
+  const photoWrap = h('div', { class: 'row', style: { gap: '16px' } });
+  const save = primaryButton('Enregistrer', null);
+
+  const dirty = () =>
+    name.value.trim() !== me.name || bio.value.trim() !== (me.bio ?? '') || bday.value !== birthdayToField(me.birthday) || color !== me.color;
+  const refresh = () => {
+    save.disabled = !dirty() || !name.value.trim();
+    save.hidden = !dirty() && save.textContent !== 'Enregistré !';
+    const b = fieldToBirthday(bday.value);
+    bdayHint.textContent = b.ok && b.value ? `Le ${b.day} ${MONTHS[b.month - 1]}` : '';
+  };
+  // Digits only, "/" added after the day: 1 4 0 3 → "14/03".
+  bday.addEventListener('input', () => {
+    const d = bday.value.replace(/\D/g, '').slice(0, 4);
+    bday.value = d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d;
+  });
+  for (const el of [name, bio, bday]) el.addEventListener('input', refresh);
+
+  const fileInput = h('input', { type: 'file', accept: 'image/*', hidden: true });
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files?.[0];
+    fileInput.value = '';
+    if (!file) return;
+    try {
+      const { blob } = await resizeImage(file, 800);
+      update(await api.setPhoto(blob));
+    } catch (e) {
+      err.show(e instanceof ApiError ? e.message : 'Cette image n’a pas pu être lue');
+    }
+  });
+
+  function update(u) {
+    me = u;
+    session.setMe(u);
+    renderPhoto();
+    refresh();
+  }
+
+  function renderPhoto() {
+    clear(
+      photoWrap,
+      h('div', { class: 'profile-photo' }, avatar({ ...me, color }, 88), iconButton('photo', 'Changer la photo de profil', () => fileInput.click(), { cls: 'primary', size: 18 })),
+      h(
+        'div',
+        { class: 'col grow', style: { gap: '8px' } },
+        h('span', { class: 'label' }, 'Image de profil'),
+        me.photo
+          ? button('Revenir à la frimousse', async () => {
+              try {
+                update(await api.deletePhoto());
+              } catch (e) {
+                err.show(e.message);
+              }
+            }, { small: true })
+          : h('span', { class: 'small muted' }, 'Ta frimousse prend ta couleur. Touche l’appareil photo pour mettre une photo.'),
+      ),
+      fileInput,
+    );
+  }
+
+  save.addEventListener('click', async () => {
+    const b = fieldToBirthday(bday.value);
+    if (!b.ok) return err.show('Anniversaire : écris le jour puis le mois, par exemple 14/03');
+    save.disabled = true;
+    err.show(null);
+    try {
+      update(await api.updateMe({ name: name.value.trim(), bio: bio.value.trim(), birthday: b.value, color }));
+      save.textContent = 'Enregistré !';
+    } catch (e) {
+      err.show(e.message);
+      refresh();
+    }
+  });
+
+  renderPhoto();
+  refresh();
+  clear(
+    body,
+    topBar('Paramètres', () => back()),
+    h(
+      'div',
+      { class: 'settings-grid' },
+      h('div', { class: 'card' }, photoWrap),
+      settingsCard(
+        'Mon profil',
+        h('div', { class: 'col' }, h('label', { class: 'label', for: 'pn' }, 'Mon petit nom'), name),
+        h('div', { class: 'col' }, h('label', { class: 'label', for: 'bio' }, 'Ma petite phrase'), bio),
+        h('div', { class: 'col' }, h('label', { class: 'label', for: 'bd' }, 'Anniversaire'), bday, bdayHint),
+        h('div', { class: 'col', style: { gap: '8px' } }, h('span', { class: 'label' }, 'Ma couleur'), swatches(color, (c) => ((color = c), renderPhoto(), refresh()))),
+        err,
+        save,
+      ),
+      personalCodeCard(),
+      devicesCard(),
+      securityCard(),
+      settingsCard(
+        'Apparence',
+        h('span', { class: 'label' }, 'Style'),
+        stylePicker(),
+        h('span', { class: 'label' }, 'Mode'),
+        segmented([['light', 'Clair'], ['dark', 'Sombre'], ['auto', 'Auto']], getTheme(), setTheme, 'Mode clair ou sombre'),
+      ),
+      notificationsCard(),
+      settingsCard(
+        'Serveur',
+        h('div', { class: 'row' }, h('span', { class: 'dot on' }), h('div', { class: 'col grow', style: { gap: 0 } }, h('span', { class: 'label' }, location.host), h('span', { class: 'small muted' }, 'Papote auto-hébergé'))),
+        button('Se déconnecter', async () => {
+          await disablePush().catch(() => {});
+          await api.logout().catch(() => {});
+          window.dispatchEvent(new CustomEvent('papote:logout'));
+        }, { iconName: 'logout', danger: true }),
+      ),
+    ),
+  );
+  return { el: screen(body) };
+}
+
+const PUSH_TEXT = {
+  on: 'Activées sur ce navigateur',
+  off: 'Désactivées sur ce navigateur',
+  denied: 'Bloquées : autorise-les pour ce site dans les réglages du navigateur (icône à gauche de l’adresse).',
+  'ios-install': 'Sur iPhone, ajoute d’abord Papote à l’écran d’accueil (Partager → « Sur l’écran d’accueil »), puis ouvre-le depuis l’icône et active-les ici.',
+  insecure: 'Il faut ouvrir Papote en https (par son nom de domaine) pour recevoir des notifications.',
+  unsupported: 'Ce navigateur ne sait pas recevoir de notifications.',
+};
+
+/** Web Push: a notification for new messages when Papote isn't open in this browser. */
+function notificationsCard() {
+  const card = h('section', { class: 'card' });
+  const err = errorBox();
+  async function render() {
+    const state = await pushState();
+    clear(
+      card,
+      h(
+        'div',
+        { class: 'row between' },
+        h('h2', { class: 'title', style: { fontSize: '18px' } }, 'Notifications'),
+        infoButton(
+          'Notifications',
+          'Quand Papote n’est pas ouvert dans ce navigateur, un nouveau message s’affiche en notification, comme une app. Le contenu est chiffré pour ton navigateur : le service de notification (Google, Mozilla, Apple ou Microsoft) le transporte sans pouvoir le lire.\n\nÀ activer sur chaque navigateur ou téléphone.',
+        ),
+      ),
+      h(
+        'div',
+        { class: 'row' },
+        h('span', { style: { display: 'flex', color: state === 'on' ? 'var(--ok)' : 'var(--muted)' } }, icon('bell', 22)),
+        h('span', { class: 'small muted grow' }, PUSH_TEXT[state]),
+      ),
+      state === 'off' &&
+        button('Activer les notifications', async () => {
+          try {
+            if (!(await enablePush())) err.show('Les notifications n’ont pas été autorisées.');
+          } catch (e) {
+            err.show(e.message || 'Activation impossible');
+          }
+          render();
+        }, { iconName: 'bell' }),
+      state === 'on' && button('Désactiver sur ce navigateur', async () => (await disablePush(), render()), { small: true }),
+      err,
+    );
+  }
+  render();
+  return card;
+}
+
+function settingsCard(title, ...children) {
+  const head = Array.isArray(title) ? title : [h('h2', { class: 'title', style: { fontSize: '18px' } }, title)];
+  return h('section', { class: 'card' }, h('div', { class: 'row between' }, ...head), ...children);
+}
+
+const STYLES = [
+  ['papote', 'Papote', '#6A47D6', '#EDE6FF'],
+  ['menthe', 'Menthe', '#23845A', '#DDF4E9'],
+  ['ocean', 'Océan', '#2E6FD6', '#E2EEFF'],
+  ['corail', 'Corail', '#C23660', '#FFE0E8'],
+  ['soleil', 'Soleil', '#A65A05', '#FFEBD6'],
+  ['encre', 'Encre', '#3A3D52', '#E8E9EF'],
+];
+
+/** The complete looks (same as the Android app); Papote, the original, is the default. */
+function stylePicker() {
+  const wrap = h('div', { class: 'style-picker', role: 'radiogroup', 'aria-label': 'Style' });
+  const render = () =>
+    clear(
+      wrap,
+      STYLES.map(([key, label, primary, soft]) =>
+        h(
+          'button',
+          { type: 'button', role: 'radio', 'aria-checked': String(getStyle() === key), onclick: () => (setStyle(key), render()) },
+          h('span', { class: 'sw', style: { background: primary } }),
+          h('span', { class: 'sw small', style: { background: soft } }),
+          label,
+        ),
+      ),
+    );
+  render();
+  return wrap;
+}
+
+/** Account 2FA: asked when the personal code opens the account on a new device. */
+function securityCard() {
+  const card = h('section', { class: 'card' });
+  const err = errorBox();
+  const render = () => {
+    const on = !!session.me.totp;
+    clear(
+      card,
+      h(
+        'div',
+        { class: 'row between' },
+        h('h2', { class: 'title', style: { fontSize: '18px' } }, 'Sécurité'),
+        infoButton(
+          'Double authentification',
+          'Quand ton code personnel sert à ouvrir ton compte sur un nouvel appareil, Papote demande aussi le code à 6 chiffres de ton application d’authentification (Aegis, 2FAS, Google Authenticator…). Quelqu’un qui verrait ton code personnel ne pourrait donc pas s’en servir seul.',
+        ),
+      ),
+      h(
+        'div',
+        { class: 'row' },
+        h('span', { style: { display: 'flex', color: on ? 'var(--ok)' : 'var(--muted)' } }, icon('shield', 22)),
+        h('div', { class: 'col grow', style: { gap: 0 } }, h('span', { class: 'label' }, 'Double authentification'), h('span', { class: 'small muted' }, on ? 'Activée' : 'Désactivée')),
+      ),
+      on
+        ? button('Désactiver', () => disableTotpDialog(render), { danger: true, small: true })
+        : button('Activer la double authentification', () => totpSetupDialog(render), { iconName: 'shield' }),
+      err,
+    );
+  };
+  render();
+  return card;
+}
+
+function modal(title, build) {
+  const backdrop = h('div', { class: 'backdrop dialog-wrap' });
+  const close = () => {
+    backdrop.remove();
+    document.removeEventListener('keydown', onKey);
+  };
+  const onKey = (e) => e.key === 'Escape' && close();
+  backdrop.addEventListener('click', (e) => e.target === backdrop && close());
+  document.addEventListener('keydown', onKey);
+  const dialog = h('div', { class: 'dialog', role: 'dialog', 'aria-modal': 'true', 'aria-label': title }, h('h2', { class: 'title', style: { fontSize: '20px' } }, title));
+  backdrop.append(dialog);
+  document.body.append(backdrop);
+  build(dialog, close);
+  dialog.querySelector('input, button')?.focus();
+  return close;
+}
+
+function totpSetupDialog(onDone) {
+  modal('Double authentification', async (dialog, close) => {
+    const err = errorBox();
+    const code = h('input', { class: 'field', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: 6, placeholder: '123456', 'aria-label': 'Code à 6 chiffres' });
+    const confirm = button('Activer', null, { small: true });
+    dialog.append(h('p', { class: 'muted', style: { margin: 0 } }, 'Chargement…'));
+    let setup;
+    try {
+      setup = await api.startTotp();
+    } catch (e) {
+      clear(dialog, err);
+      err.show(e.message);
+      return;
+    }
+    // The QR comes from our own server, built from the otpauth link only: safe to show as SVG.
+    const qr = new DOMParser().parseFromString(setup.qrSvg, 'image/svg+xml').documentElement;
+    qr.setAttribute('role', 'img');
+    qr.setAttribute('aria-label', 'QR code à scanner avec ton application d’authentification');
+    confirm.addEventListener('click', async () => {
+      try {
+        const { recoveryCodes } = await api.confirmTotp(code.value.trim());
+        session.setMe({ ...session.me, totp: true });
+        clear(
+          dialog,
+          h('h2', { class: 'title', style: { fontSize: '20px' } }, 'Codes de secours'),
+          h('p', { class: 'muted', style: { margin: 0 } }, 'Note-les maintenant : ils ne seront plus affichés. Chacun remplace une fois le code de l’application.'),
+          h('pre', { class: 'recovery' }, recoveryCodes.join('\n')),
+          h(
+            'div',
+            { class: 'actions' },
+            button('Copier', () => navigator.clipboard?.writeText(recoveryCodes.join('\n')), { small: true, iconName: 'copy' }),
+            button('C’est noté', () => (close(), onDone()), { small: true }),
+          ),
+        );
+      } catch (e) {
+        err.show(e.message);
+      }
+    });
+    clear(
+      dialog,
+      h('h2', { class: 'title', style: { fontSize: '20px' } }, 'Double authentification'),
+      h('p', { class: 'muted', style: { margin: 0 } }, '1. Scanne ce QR code avec ton application d’authentification :'),
+      h('div', { class: 'qr' }, qr),
+      h('p', { class: 'small muted', style: { margin: 0 } }, 'ou saisis la clé : ', h('code', {}, setup.secret.match(/.{1,4}/g).join(' '))),
+      h('p', { class: 'muted', style: { margin: 0 } }, '2. Entre le code à 6 chiffres qu’elle affiche :'),
+      code,
+      err,
+      h('div', { class: 'actions' }, button('Annuler', close, { small: true }), confirm),
+    );
+    code.focus();
+  });
+}
+
+function disableTotpDialog(onDone) {
+  modal('Désactiver la double authentification', (dialog, close) => {
+    const err = errorBox();
+    const code = h('input', { class: 'field', autocomplete: 'one-time-code', placeholder: 'Code ou code de secours', 'aria-label': 'Code de l’application ou code de secours' });
+    dialog.append(
+      code,
+      err,
+      h(
+        'div',
+        { class: 'actions' },
+        button('Annuler', close, { small: true }),
+        button('Désactiver', async () => {
+          try {
+            await api.disableTotp(code.value.trim());
+            session.setMe({ ...session.me, totp: false });
+            close();
+            onDone();
+          } catch (e) {
+            err.show(e.message);
+          }
+        }, { small: true, danger: true }),
+      ),
+    );
+  });
+}
+
+// --- personal code & my devices -------------------------------------------------------
+
+function personalCodeCard() {
+  const codeEl = h('div', { class: 'code' }, '…');
+  const err = errorBox();
+  const copy = button('Copier', async () => {
+    try {
+      await navigator.clipboard.writeText(codeEl.textContent);
+      clear(copy, icon('check', 20), 'Copié !');
+    } catch {
+      clear(copy, 'Copie impossible');
+    }
+  }, { iconName: 'copy', small: true, wide: true });
+  const regen = button('Régénérer', async () => {
+    if (!(await confirmDialog('Régénérer ton code ?', 'L’ancien code ne marchera plus. Les appareils déjà connectés le restent : déconnecte-les dans « Mes appareils » si besoin.', 'Régénérer'))) return;
+    try {
+      codeEl.textContent = (await api.regeneratePersonalCode()).code;
+      showQr(codeEl.textContent);
+      clear(copy, icon('copy', 20), 'Copier');
+    } catch (e) {
+      err.show(e.message);
+    }
+  }, { small: true, wide: true });
+  const qrSlot = h('div');
+  const showQr = (code) => clear(qrSlot, qrBlock(inviteLink(code, true), 'Scanne-le depuis ton autre appareil (« J’ai déjà un compte ») pour ouvrir ton compte.'));
+  api
+    .personalCode()
+    .then(({ code }) => ((codeEl.textContent = code), showQr(code)))
+    .catch((e) => err.show(e.message));
+  return settingsCard(
+    [
+      h('h2', { class: 'title', style: { fontSize: '18px' } }, 'Mon code personnel'),
+      infoButton(
+        'Ton code personnel',
+        'Sur un autre appareil (téléphone, tablette, ordinateur), choisis « J’ai déjà un compte » puis entre l’adresse du serveur et ce code : c’est ton compte qui s’ouvre, avec tes groupes. Il sert aussi à fusionner un compte créé en double.\n\nGarde-le pour toi : il sert de mot de passe. Si quelqu’un l’a vu, régénère-le.',
+      ),
+    ],
+    h('div', { class: 'code-display' }, codeEl, h('div', { class: 'small muted' }, location.origin)),
+    h('div', { class: 'row' }, copy, regen),
+    qrSlot,
+    err,
+  );
+}
+
+function devicesCard() {
+  const card = h('section', { class: 'card' });
+  const err = errorBox();
+  let devices = [];
+
+  async function load() {
+    try {
+      devices = await api.devices();
+      err.show(null);
+    } catch (e) {
+      err.show(e.message);
+    }
+    render();
+  }
+
+  function render() {
+    clear(
+      card,
+      h('h2', { class: 'title', style: { fontSize: '18px' } }, 'Mes appareils'),
+      devices.map((d) =>
+        h(
+          'div',
+          { class: 'row' },
+          h('span', { class: `dot${d.current || d.online ? ' on' : ''}`, style: { width: '10px', height: '10px' } }),
+          h(
+            'div',
+            { class: 'col grow', style: { gap: 0, minWidth: 0 } },
+            h('span', { class: 'label ellipsis' }, d.label),
+            h('span', { class: 'small muted' }, d.current ? 'Cet appareil' : d.online ? 'Connecté en ce moment' : `Utilisé ${shortWhen(d.lastUsedAt).toLowerCase()}`),
+          ),
+          !d.current &&
+            button('Déconnecter', async () => {
+              if (!(await confirmDialog(`Déconnecter « ${d.label} » ?`, 'Il faudra ton code personnel pour revenir sur cet appareil.', 'Déconnecter'))) return;
+              try {
+                await api.revokeDevice(d.id);
+              } catch (e) {
+                err.show(e.message);
+              }
+              load();
+            }, { small: true, danger: true }),
+        ),
+      ),
+      h(
+        'div',
+        { class: 'row' },
+        button('Fusionner avec mon autre compte', () => mergeDialog(load), { iconName: 'personPlus', wide: true }),
+        infoButton(
+          'Fusionner deux comptes',
+          'Tu as rejoint avec une invitation sur un autre appareil et tu te retrouves avec deux comptes ? Depuis le compte en trop, entre le code personnel du bon compte : groupes, messages et appareils y seront regroupés.',
+        ),
+      ),
+      err,
+    );
+  }
+
+  load();
+  return card;
+}
+
+/** "Fusionner avec mon autre compte": this account is folded into the one whose personal code is typed. */
+function mergeDialog(onDone) {
+  const backdrop = h('div', { class: 'backdrop dialog-wrap' });
+  const err = errorBox();
+  const input = h('input', { class: 'field', placeholder: 'ABCD-EF23', maxlength: 9, autocapitalize: 'characters', spellcheck: 'false', 'aria-label': 'Code personnel de l’autre compte' });
+  const totp = h('input', { class: 'field', placeholder: 'Code de l’application d’authentification', autocomplete: 'one-time-code', hidden: true, 'aria-label': 'Code de double authentification' });
+  const confirmMerge = button('Fusionner', null, { small: true, danger: true, disabled: true });
+  const clean = () => cleanCode(input.value, 8);
+  const close = () => {
+    backdrop.remove();
+    document.removeEventListener('keydown', onKey);
+  };
+  const onKey = (e) => e.key === 'Escape' && close();
+  input.addEventListener('input', () => (confirmMerge.disabled = clean().length !== 8));
+  confirmMerge.addEventListener('click', async () => {
+    confirmMerge.disabled = true;
+    err.show(null);
+    try {
+      const { user } = await api.merge(clean(), totp.value.trim() || undefined);
+      session.setMe(user);
+      close();
+      onDone();
+      go('/groups', { replace: true });
+    } catch (e) {
+      if (e.code === 'totp_required') totp.hidden = false;
+      err.show(e.message);
+      confirmMerge.disabled = false;
+    }
+  });
+  backdrop.addEventListener('click', (e) => e.target === backdrop && close());
+  document.addEventListener('keydown', onKey);
+  backdrop.append(
+    h(
+      'div',
+      { class: 'dialog', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Fusionner avec mon autre compte' },
+      h('h2', { class: 'title', style: { fontSize: '20px' } }, 'Fusionner avec mon autre compte'),
+      h(
+        'p',
+        { class: 'muted', style: { margin: 0 } },
+        'Entre le code personnel de ton autre compte (dans son Profil). Ce compte-ci y sera fondu : groupes, messages, réactions et appareils. Tu garderas le nom et la photo de l’autre compte.',
+      ),
+      input,
+      totp,
+      h('p', { class: 'small', style: { margin: 0, fontWeight: 800, color: 'var(--danger)' } }, 'C’est définitif.'),
+      err,
+      h('div', { class: 'actions' }, button('Annuler', close, { small: true }), confirmMerge),
+    ),
+  );
+  document.body.append(backdrop);
+  input.focus();
+}

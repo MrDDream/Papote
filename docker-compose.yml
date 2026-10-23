@@ -1,0 +1,53 @@
+# Papote — self-hosted family & friends messenger.
+# Quick start: cp .env.example .env, set ADMIN_PASSWORD, then: docker compose up -d
+services:
+  papote:
+    image: ghcr.io/mrddream/papote:latest
+    container_name: papote
+    ports:
+      # 127.0.0.1 by default: only a reverse proxy on this machine can reach it. Set BIND_ADDRESS=0.0.0.0
+      # when the reverse proxy runs on another machine.
+      - "${BIND_ADDRESS:-127.0.0.1}:${PORT:-3000}:3000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # PORT in .env is the host port (above); inside the container the server always listens on 3000.
+      PORT: 3000
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ADMIN_ALLOWED_IPS: ${ADMIN_ALLOWED_IPS:-}
+      ADMIN_REQUIRE_2FA: ${ADMIN_REQUIRE_2FA:-false}
+      BACKUP_DIR: /backups
+      BACKUP_EVERY_HOURS: ${BACKUP_EVERY_HOURS:-24}
+      BACKUP_KEEP: ${BACKUP_KEEP:-14}
+      SERVER_NAME: ${SERVER_NAME:-Papote}
+      # Behind a reverse proxy serving HTTPS (recommended), keep these. TRUST_PROXY lists the proxy's
+      # addresses (never a hop count): only they may set X-Forwarded-For.
+      TRUST_PROXY: ${TRUST_PROXY:-loopback, uniquelocal}
+      SECURE_COOKIES: ${SECURE_COOKIES:-true}
+      # Local time for birthdays and the monthly recap.
+      TZ: ${TZ:-Europe/Paris}
+      # Optional: GIFs through GIPHY (always relayed by the server) and voice transcription.
+      GIPHY_API_KEY: ${GIPHY_API_KEY:-}
+      # COMPOSE_PROFILES=whisper in .env also starts the Whisper container and turns transcription on.
+      PAPOTE_PROFILES: ${COMPOSE_PROFILES:-}
+      WHISPER_URL: ${WHISPER_URL:-}
+      WHISPER_LANGUAGE: ${WHISPER_LANGUAGE:-fr}
+    volumes:
+      - ./data:/data
+      # Ideally another disk or a NAS mount: a backup on the same disk won't survive a disk failure.
+      - ${BACKUP_HOST_DIR:-./backups}:/backups
+    restart: unless-stopped
+
+  # Voice message transcription, on your machine (nothing leaves it). Optional and heavy (~1-2 GB RAM):
+  # COMPOSE_PROFILES=whisper in .env, then docker compose up -d (the image is only pulled in that case).
+  whisper:
+    image: onerahmet/openai-whisper-asr-webservice:v1.9.1
+    container_name: papote-whisper
+    profiles: ["whisper"]
+    environment:
+      ASR_MODEL: ${WHISPER_MODEL:-small}
+      ASR_ENGINE: faster_whisper
+    volumes:
+      - ./whisper-cache:/root/.cache
+    restart: unless-stopped
