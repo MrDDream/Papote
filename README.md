@@ -13,6 +13,13 @@ A cosy, self-hosted messenger for family and friends: an Android app, an install
 </p>
 
 <p align="center">
+<a href="https://github.com/MrDDream/Papote/pkgs/container/papote"><img alt="Docker image" src="https://img.shields.io/badge/docker-ghcr.io%2Fmrddream%2Fpapote-6a47d6?logo=docker&logoColor=white"></a>
+<a href="https://github.com/MrDDream/Papote/releases/latest"><img alt="Release" src="https://img.shields.io/github/v/release/MrDDream/Papote?color=6a47d6"></a>
+<a href="https://github.com/MrDDream/Papote/actions/workflows/tests.yml"><img alt="Tests" src="https://github.com/MrDDream/Papote/actions/workflows/tests.yml/badge.svg"></a>
+<a href="LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-6a47d6"></a>
+</p>
+
+<p align="center">
 <img src="docs/screens/home.png" width="23%" alt="Groups">
 <img src="docs/screens/chat.png" width="23%" alt="Chat">
 <img src="docs/screens/chat-poll.png" width="23%" alt="Polls and location">
@@ -36,7 +43,37 @@ People join a group with a 6-character invitation code (or a QR code). Messages,
 
 ## Quick start (Docker Compose)
 
-You need a machine with Docker and Docker Compose. The image is published for `linux/amd64` and `linux/arm64` (Raspberry Pi 4/5).
+You need a machine with Docker and Docker Compose. The image [`ghcr.io/mrddream/papote`](https://github.com/MrDDream/Papote/pkgs/container/papote) is published for `linux/amd64` and `linux/arm64` (Raspberry Pi 4/5).
+
+Create a folder with this `docker-compose.yml`:
+
+```yaml
+services:
+  papote:
+    image: ghcr.io/mrddream/papote:latest
+    container_name: papote
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"        # use "3000:3000" if the reverse proxy is on another machine
+    environment:
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}  # from .env, 12+ characters
+      TZ: Europe/Paris
+      BACKUP_DIR: /backups
+      TRUST_PROXY: loopback, uniquelocal
+      SECURE_COOKIES: "true"           # "false" only to test over plain HTTP
+      # GIPHY_API_KEY: your-key        # optional: GIFs
+    volumes:
+      - ./data:/data
+      - ./backups:/backups
+```
+
+and a `.env` next to it:
+
+```bash
+ADMIN_PASSWORD=a-long-password-of-your-own
+```
+
+The [full `docker-compose.yml`](docker-compose.yml) of this repository has every option (backups, admin IP allowlist, optional Whisper container…) with its [`.env.example`](.env.example). To use it directly:
 
 ```bash
 mkdir papote && cd papote
@@ -44,7 +81,7 @@ curl -LO https://raw.githubusercontent.com/MrDDream/Papote/main/docker-compose.y
 curl -L -o .env https://raw.githubusercontent.com/MrDDream/Papote/main/.env.example
 ```
 
-Edit `.env` and set at least `ADMIN_PASSWORD` (12 characters or more, not an example value). Then:
+Then start it and read the first access code:
 
 ```bash
 docker compose up -d
