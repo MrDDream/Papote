@@ -117,7 +117,8 @@ export function userDto(u, { online = false } = {}) {
 }
 
 export const MOODS = ['dispo', 'fatigue', 'jeu', 'cine', 'dnd'];
-export const PATTERNS = ['none', 'dots', 'stripes', 'grid'];
+// Chat backgrounds: simple ones drawn in CSS, illustrated ones as small repeated drawings.
+export const PATTERNS = ['none', 'dots', 'stripes', 'grid', 'hearts', 'stars', 'waves', 'leaves', 'confetti', 'clouds', 'paws', 'notes'];
 
 /** A group's settings with their defaults (stored as JSON, partial). */
 export function groupSettings(raw) {
@@ -144,6 +145,8 @@ export function groupDto(g) {
     color: g.color,
     icon: g.icon,
     photo: g.photo_media_id ? `/api/media/${g.photo_media_id}` : null,
+    // A picture behind the messages, chosen in the group's settings.
+    wallpaper: g.wallpaper_media_id ? `/api/media/${g.wallpaper_media_id}` : null,
     direct: !!g.direct,
     settings: groupSettings(g.settings),
     createdAt: g.created_at,

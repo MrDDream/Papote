@@ -116,6 +116,12 @@ export const api = {
     return call('PUT', `/api/groups/${id}/photo`, f);
   },
   deleteGroupPhoto: (id) => call('DELETE', `/api/groups/${id}/photo`),
+  setWallpaper: (id, blob) => {
+    const f = new FormData();
+    f.append('file', blob, 'fond.jpg');
+    return call('PUT', `/api/groups/${id}/wallpaper`, f);
+  },
+  deleteWallpaper: (id) => call('DELETE', `/api/groups/${id}/wallpaper`),
 
   members: (id) => call('GET', `/api/groups/${id}/members`),
   setRole: (id, uid, role) => call('PATCH', `/api/groups/${id}/members/${uid}`, { role }),

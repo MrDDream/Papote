@@ -181,6 +181,46 @@ export function surfaceOf(t) {
 }
 export const nameColor = (t) => (isDark() ? t.tint : t.text);
 
+// Illustrated chat backgrounds: one 48×48 tile repeated, drawn faintly in the group's colour
+// (same drawings as the Android app). Dots, stripes and grid are plain CSS.
+const circle = (cx, cy, r) => `M${cx - r} ${cy}a${r} ${r} 0 1 0 ${2 * r} 0a${r} ${r} 0 1 0 ${-2 * r} 0`;
+const paw = (x, y) => circle(x, y + 3, 3.5) + circle(x - 4.2, y - 1.5, 1.6) + circle(x - 1.4, y - 3.6, 1.6) + circle(x + 1.4, y - 3.6, 1.6) + circle(x + 4.2, y - 1.5, 1.6);
+export const BG_TILES = {
+  hearts: { fill: true, d: 'M12 19c-4-3-7-5-7-8a3.5 3.5 0 0 1 7-1 3.5 3.5 0 0 1 7 1c0 3-3 5-7 8zM36 43c-3-2.2-5-3.7-5-5.8a2.5 2.5 0 0 1 5-.8 2.5 2.5 0 0 1 5 .8c0 2.1-2 3.6-5 5.8z' },
+  stars: { fill: true, d: `M12 4l2.1 4.3 4.7.7-3.4 3.3.8 4.7-4.2-2.2-4.2 2.2.8-4.7L5.2 9l4.7-.7zM36 28l1.4 2.9 3.2.5-2.3 2.2.5 3.2-2.8-1.5-2.8 1.5.5-3.2-2.3-2.2 3.2-.5z${circle(38, 9, 1.5)}${circle(10, 38, 1.5)}` },
+  waves: { fill: false, d: 'M0 12q6-6 12 0t12 0 12 0 12 0M0 36q6-6 12 0t12 0 12 0 12 0' },
+  leaves: { fill: false, d: 'M8 20c0-8 6-12 13-12 0 8-6 12-13 12zM8 20l8-7M28 44c0-7 5-11 12-11 0 7-5 11-12 11zM28 44l7-6' },
+  confetti: { fill: false, d: 'M6 8l4 2M20 4l-2 4M34 9l4-1M42 21l-3 3M8 30l3 3M24 25l4 1M15 42l-2-3M36 38l3 2' },
+  clouds: { fill: false, d: 'M8 18a4 4 0 0 1 .5-8 5.5 5.5 0 0 1 10.5 1.5 3.3 3.3 0 0 1 0 6.5zM30 42a4 4 0 0 1 .5-8 5.5 5.5 0 0 1 10.5 1.5 3.3 3.3 0 0 1 0 6.5z' },
+  paws: { fill: true, d: paw(12, 12) + paw(36, 36) },
+  notes: { fill: false, d: 'M10 18V7l8-2v11M36 42V32l5 2' + circle(7.5, 18, 2.5) + circle(15.5, 16, 2.5) + circle(33.5, 42, 2.5) },
+};
+
+/** Inline background of a group's conversation: an illustrated pattern and/or its background picture. */
+export function chatBackground(group) {
+  const t = tint(group?.color);
+  const layers = [];
+  const sizes = [];
+  const repeats = [];
+  const tile = BG_TILES[group?.settings?.pattern];
+  if (tile) {
+    const color = isDark() ? t.tint : t.text;
+    const paint = tile.fill ? `fill='${color}'` : `fill='none' stroke='${color}' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'`;
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='48' height='48' viewBox='0 0 48 48'><path d='${tile.d}' ${paint} opacity='0.17'/></svg>`;
+    layers.push(`url("data:image/svg+xml,${encodeURIComponent(svg)}")`);
+    sizes.push('48px 48px');
+    repeats.push('repeat');
+  }
+  if (group?.wallpaper) {
+    // Dimmed in the app's background colour, so messages stay readable on any picture.
+    const veil = 'color-mix(in srgb, var(--ground) 45%, transparent)';
+    layers.push(`linear-gradient(${veil}, ${veil})`, `url("${group.wallpaper}")`);
+    sizes.push('auto', 'cover');
+    repeats.push('no-repeat', 'no-repeat');
+  }
+  return { backgroundImage: layers.join(', '), backgroundSize: sizes.join(', '), backgroundRepeat: repeats.join(', '), backgroundPosition: 'center' };
+}
+
 // --- shared widgets -------------------------------------------------------------
 
 // --- Bubu, the mascot: one face per mood of the group (mockup "Mascotte réactive") ---

@@ -1,5 +1,7 @@
 package fr.papote.app.ui.invite
 
+import fr.papote.app.ui.theme.pShape
+
 import fr.papote.app.tr
 
 import android.content.Intent
@@ -153,7 +155,7 @@ fun InviteScreen(groupId: Long?, onBack: () -> Unit, onDone: (Long) -> Unit) {
 
         if (creating) {
             Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.surfaceOf(tint(color))).padding(14.dp),
+                Modifier.fillMaxWidth().clip(pShape(24.dp)).background(c.surfaceOf(tint(color))).padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
@@ -184,7 +186,7 @@ fun InviteScreen(groupId: Long?, onBack: () -> Unit, onDone: (Long) -> Unit) {
 
         // The code card
         Column(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(c.card).padding(18.dp),
+            Modifier.fillMaxWidth().clip(pShape(28.dp)).background(c.card).padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -194,13 +196,13 @@ fun InviteScreen(groupId: Long?, onBack: () -> Unit, onDone: (Long) -> Unit) {
             val inv = invite
             if (inv != null) {
                 Column(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.soft).padding(vertical = 14.dp),
+                    Modifier.fillMaxWidth().clip(pShape(20.dp)).background(c.soft).padding(vertical = 14.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(inv.code, fontFamily = Baloo, fontWeight = FontWeight.ExtraBold, fontSize = 38.sp, letterSpacing = 4.sp, color = if (c.dark) c.ink else c.primaryDark)
                     Text(expiryText(inv), style = MaterialTheme.typography.bodySmall, color = c.muted)
                     // Scanned with any phone camera: opens the invitation (web), or Papote when scanned from Papote.
-                    fr.papote.app.ui.extras.QrCode(fr.papote.app.ui.extras.inviteLink(app.session.server.orEmpty(), inv.code), 168.dp, Modifier.padding(top = 10.dp).clip(RoundedCornerShape(14.dp)))
+                    fr.papote.app.ui.extras.QrCode(fr.papote.app.ui.extras.inviteLink(app.session.server.orEmpty(), inv.code), 168.dp, Modifier.padding(top = 10.dp).clip(pShape(14.dp)))
                     Text(tr("Fais scanner ce QR code pour rejoindre"), style = MaterialTheme.typography.bodySmall, color = c.muted)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -229,7 +231,7 @@ fun InviteScreen(groupId: Long?, onBack: () -> Unit, onDone: (Long) -> Unit) {
 
         if (!creating && active.size > (if (invite != null) 1 else 0)) {
             Column(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.card).padding(18.dp),
+                Modifier.fillMaxWidth().clip(pShape(24.dp)).background(c.card).padding(18.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 Text(tr("Codes encore valables"), style = MaterialTheme.typography.titleMedium, color = c.ink)

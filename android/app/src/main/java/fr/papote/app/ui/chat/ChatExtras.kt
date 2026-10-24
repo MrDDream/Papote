@@ -1,5 +1,7 @@
 package fr.papote.app.ui.chat
 
+import fr.papote.app.ui.theme.pShape
+
 import fr.papote.app.tr
 
 import android.Manifest
@@ -130,7 +132,7 @@ fun StoriesBar(stories: List<StoryGroup>, members: Map<Long, Member>, meId: Long
 private fun StoryItem(name: String, ring: Boolean, add: Boolean, label: String, onClick: () -> Unit, content: @Composable () -> Unit) {
     val c = Papote.colors
     Column(
-        Modifier.clip(RoundedCornerShape(12.dp)).clickable(role = Role.Button, onClick = onClick).semantics { contentDescription = label },
+        Modifier.clip(pShape(12.dp)).clickable(role = Role.Button, onClick = onClick).semantics { contentDescription = label },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
@@ -186,7 +188,7 @@ fun StoryViewer(stories: List<StoryGroup>, start: Int, meId: Long?, onClose: () 
             Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     g.stories.indices.forEach { i ->
-                        Box(Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(2.dp)).background(if (i <= si) Color.White else Color.White.copy(alpha = 0.3f)))
+                        Box(Modifier.weight(1f).height(4.dp).clip(pShape(2.dp)).background(if (i <= si) Color.White else Color.White.copy(alpha = 0.3f)))
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -225,7 +227,7 @@ fun StoryViewer(stories: List<StoryGroup>, start: Int, meId: Long?, onClose: () 
 @Composable
 private fun Banner(bg: Color, fg: Color, onClick: () -> Unit, label: String, content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit) {
     Row(
-        Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(RoundedCornerShape(18.dp)).background(bg).clickable(role = Role.Button, onClick = onClick)
+        Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(pShape(18.dp)).background(bg).clickable(role = Role.Button, onClick = onClick)
             .semantics { contentDescription = label }.padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -306,8 +308,8 @@ fun PollBubble(m: Message, members: Map<Long, Member>, meId: Long?, onVote: (Int
             val pct = if (total > 0) n * 100f / total else 0f
             val on = i in mine
             Box(
-                Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(RoundedCornerShape(14.dp)).background(c.field)
-                    .border(2.dp, if (on) c.primary else c.line, RoundedCornerShape(14.dp))
+                Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(pShape(14.dp)).background(c.field)
+                    .border(2.dp, if (on) c.primary else c.line, pShape(14.dp))
                     .clickable(enabled = !closed, role = Role.Button) { onVote(i) }
                     .semantics { contentDescription = "$label : ${pct.roundToInt()} %" + if (on) tr(", ton vote") else "" },
             ) {
@@ -335,7 +337,7 @@ fun LocationBubble(m: Message, mine: Boolean, onStop: () -> Unit) {
     val liveNow = until != null && until > System.currentTimeMillis()
     Column(Modifier.width(260.dp).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Box(
-            Modifier.fillMaxWidth().height(72.dp).clip(RoundedCornerShape(14.dp))
+            Modifier.fillMaxWidth().height(72.dp).clip(pShape(14.dp))
                 .background(Brush.linearGradient(listOf(Color(0xFFDDF4E9), Color(0xFFCDEFE0), Color(0xFFDDF4E9)))),
             contentAlignment = Alignment.Center,
         ) {
@@ -374,7 +376,7 @@ fun GifBubble(m: Message, onOpen: () -> Unit) {
             PapoteApp.instance.mediaUrl(m.media?.url),
             m.metaString("title")?.let { tr("GIF « {} »", it) } ?: "GIF",
             contentScale = ContentScale.Crop,
-            modifier = Modifier.width(220.dp).aspectRatio((w.toFloat() / h).coerceIn(0.6f, 1.8f)).clip(RoundedCornerShape(14.dp)).background(c.soft).clickable(onClick = onOpen),
+            modifier = Modifier.width(220.dp).aspectRatio((w.toFloat() / h).coerceIn(0.6f, 1.8f)).clip(pShape(14.dp)).background(c.soft).clickable(onClick = onOpen),
         )
         Row(Modifier.padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Icon(PIcons.Gif, null, tint = c.muted, modifier = Modifier.size(14.dp))
@@ -418,12 +420,12 @@ fun GameBubble(m: Message, members: Map<Long, Member>, meId: Long?, onOpen: (Lon
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = 0.7f)), contentAlignment = Alignment.Center) { Icon(info.icon, null, tint = InkColor) }
+        Box(Modifier.size(44.dp).clip(pShape(14.dp)).background(Color.White.copy(alpha = 0.7f)), contentAlignment = Alignment.Center) { Icon(info.icon, null, tint = InkColor) }
         Column(Modifier.weight(1f)) {
             Text(info.name, style = MaterialTheme.typography.titleMedium, color = InkColor)
             Text(line, style = MaterialTheme.typography.bodySmall, color = InkColor)
         }
-        Text(tr("Jouer"), style = MaterialTheme.typography.titleMedium, color = Color(0xFF4A2FA8), modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(Color.White).padding(horizontal = 12.dp, vertical = 8.dp))
+        Text(tr("Jouer"), style = MaterialTheme.typography.titleMedium, color = Color(0xFF4A2FA8), modifier = Modifier.clip(pShape(12.dp)).background(Color.White).padding(horizontal = 12.dp, vertical = 8.dp))
     }
 }
 
@@ -572,7 +574,7 @@ fun GifSheet(groupId: Long, gifsEnabled: Boolean, onDismiss: () -> Unit, onGif: 
             if (tab == "gif" && gifsEnabled) PapoteField(query, { query = it }, Modifier.fillMaxWidth(), placeholder = tr("Rechercher"), leading = PIcons.Search, label = tr("Rechercher un GIF"))
             @Composable
             fun Tile(label: String, kind: String, ref: String, data: kotlinx.serialization.json.JsonObject? = null, onPick: () -> Unit, content: @Composable () -> Unit) {
-                Box(Modifier.aspectRatio(1f).clip(RoundedCornerShape(14.dp)).background(c.soft).clickable(role = Role.Button, onClick = onPick).semantics { contentDescription = label }) {
+                Box(Modifier.aspectRatio(1f).clip(pShape(14.dp)).background(c.soft).clickable(role = Role.Button, onClick = onPick).semantics { contentDescription = label }) {
                     content()
                     val on = isFav(kind, ref)
                     Box(
@@ -646,7 +648,7 @@ fun VoiceFilterChips(selected: String, onPick: (String) -> Unit) {
                 label,
                 style = MaterialTheme.typography.labelLarge,
                 color = c.ink,
-                modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(if (on) c.soft else c.card).border(2.dp, if (on) c.primary else Color.Transparent, RoundedCornerShape(12.dp))
+                modifier = Modifier.clip(pShape(12.dp)).background(if (on) c.soft else c.card).border(2.dp, if (on) c.primary else Color.Transparent, pShape(12.dp))
                     .clickable(role = Role.RadioButton) { onPick(k) }.padding(horizontal = 12.dp, vertical = 6.dp),
             )
         }

@@ -1,5 +1,7 @@
 package fr.papote.app.ui.draw
 
+import fr.papote.app.ui.theme.pShape
+
 import fr.papote.app.tr
 
 import android.content.ContentValues
@@ -330,7 +332,7 @@ fun DrawBoard(
     val c = Papote.colors
     var live by remember { mutableStateOf<Pair<String, Op.Stroke>?>(null) }
     Box(
-        Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(24.dp)).border(3.dp, c.line, RoundedCornerShape(24.dp))
+        Modifier.fillMaxWidth().aspectRatio(1f).clip(pShape(24.dp)).border(3.dp, c.line, pShape(24.dp))
             .semantics { contentDescription = tr("Zone de dessin") }
             .then(
                 if (!editable) Modifier else Modifier.pointerInput(tool, ink, thickness) {
@@ -384,7 +386,7 @@ fun DrawBoard(
 fun ToolPanel(tool: Tool, onTool: (Tool) -> Unit, ink: Int, onInk: (Int) -> Unit, thickness: Int, onThickness: (Int) -> Unit, tools: Boolean = true) {
     val c = Papote.colors
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.card).padding(14.dp),
+        Modifier.fillMaxWidth().clip(pShape(24.dp)).background(c.card).padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         if (tools) Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -398,7 +400,7 @@ fun ToolPanel(tool: Tool, onTool: (Tool) -> Unit, ink: Int, onInk: (Int) -> Unit
                     Tool.Stamp -> PIcons.Stamp
                 }
                 Box(
-                    Modifier.size(56.dp, 48.dp).clip(RoundedCornerShape(16.dp)).background(if (on) c.primary else c.soft)
+                    Modifier.size(56.dp, 48.dp).clip(pShape(16.dp)).background(if (on) c.primary else c.soft)
                         .clickable(role = Role.RadioButton) { onTool(t) }
                         .semantics {
                             contentDescription = t.label
@@ -427,8 +429,8 @@ fun ToolPanel(tool: Tool, onTool: (Tool) -> Unit, ink: Int, onInk: (Int) -> Unit
             Sizes.forEachIndexed { i, _ ->
                 val on = i == thickness
                 Box(
-                    Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(if (on) c.soft else c.field)
-                        .border(2.dp, if (on) c.primary else c.line, RoundedCornerShape(14.dp))
+                    Modifier.size(44.dp).clip(pShape(14.dp)).background(if (on) c.soft else c.field)
+                        .border(2.dp, if (on) c.primary else c.line, pShape(14.dp))
                         .clickable(role = Role.RadioButton) { onThickness(i) }
                         .semantics {
                             contentDescription = "Taille ${i + 1}"
@@ -671,7 +673,7 @@ fun DrawingScreen(groupId: Long, messageId: Long, onBack: () -> Unit, onDrawOver
                 }
             }
         }
-        Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(24.dp)).semantics { contentDescription = tr("Dessin") }) {
+        Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(pShape(24.dp)).semantics { contentDescription = tr("Dessin") }) {
             Canvas(Modifier.fillMaxSize()) {
                 drawIntoCanvas { cv ->
                     val o = ops
@@ -696,8 +698,8 @@ fun DrawingScreen(groupId: Long, messageId: Long, onBack: () -> Unit, onDrawOver
         }
         if (ops != null) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Box(Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(6.dp)).background(c.soft)) {
-                    Box(Modifier.fillMaxWidth(progress).height(10.dp).clip(RoundedCornerShape(6.dp)).background(c.primary))
+                Box(Modifier.weight(1f).height(10.dp).clip(pShape(6.dp)).background(c.soft)) {
+                    Box(Modifier.fillMaxWidth(progress).height(10.dp).clip(pShape(6.dp)).background(c.primary))
                 }
                 SquareIconButton(PIcons.Play, tr("Rejouer le timelapse"), { run++ })
                 Segmented(listOf(1 to tr("×1"), 4 to tr("×4")), speed, { speed = it }, Modifier.size(120.dp, 44.dp))

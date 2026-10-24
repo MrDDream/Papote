@@ -105,6 +105,8 @@ data class GroupSummary(
     val lastMessage: Message? = null,
     val lastAuthorName: String? = null,
     val photo: String? = null,
+    /** A picture behind the messages, chosen in the group's settings. */
+    val wallpaper: String? = null,
     /** A two-person conversation: shown as [peer], no invitations or renaming. */
     val direct: Boolean = false,
     val peer: User? = null,

@@ -1221,6 +1221,13 @@ const STYLES = [
   ['corail', tr('Corail'), '#C23660', '#FFE0E8'],
   ['soleil', tr('Soleil'), '#A65A05', '#FFEBD6'],
   ['encre', tr('Encre'), '#3A3D52', '#E8E9EF'],
+  // Whole new looks: fonts and shapes change too.
+  ['nuit', tr('Nuit étoilée'), '#7C5CFF', '#FFD166'],
+  ['carnet', tr('Carnet'), '#2B2B2B', '#FFE98A'],
+  ['neopop', tr('Néo-pop'), '#FF5A5F', '#FFD23F'],
+  ['sobre', tr('Sobre'), '#2563EB', '#E8EDF5'],
+  ['arcade', tr('Arcade'), '#39D353', '#FF4FD8'],
+  ['foret', tr('Forêt'), '#2F5D3A', '#C66B3D'],
 ];
 
 /** The complete looks (same as the Android app); Papote, the original, is the default. */

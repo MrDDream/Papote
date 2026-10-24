@@ -1,5 +1,7 @@
 package fr.papote.app.ui.components
 
+import fr.papote.app.ui.theme.pShape
+
 import fr.papote.app.tr
 
 import androidx.compose.foundation.background
@@ -47,8 +49,8 @@ fun GroupLookPicker(icon: String, onIcon: (String) -> Unit, hasImage: Boolean, o
                 for (key in PIcons.GroupIcons) {
                     val on = key == icon
                     Box(
-                        Modifier.size(46.dp).clip(RoundedCornerShape(15.dp)).background(if (on) c.soft else c.card)
-                            .border(2.dp, if (on) c.primary else c.line, RoundedCornerShape(15.dp))
+                        Modifier.size(46.dp).clip(pShape(15.dp)).background(if (on) c.soft else c.card)
+                            .border(2.dp, if (on) c.primary else c.line, pShape(15.dp))
                             .clickable(role = Role.RadioButton) { onIcon(key) }
                             .semantics {
                                 contentDescription = tr("Icône {}", key)

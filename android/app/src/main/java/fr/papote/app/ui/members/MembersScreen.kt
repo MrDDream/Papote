@@ -1,5 +1,7 @@
 package fr.papote.app.ui.members
 
+import fr.papote.app.ui.theme.pShape
+
 import fr.papote.app.tr
 
 import androidx.compose.foundation.background
@@ -154,7 +156,7 @@ fun MembersScreen(groupId: Long, onBack: () -> Unit, onInvite: () -> Unit, onLef
         }
         val waiting = members.filter { it.pending }
         if (me?.isAdmin == true && waiting.isNotEmpty()) {
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.soft).padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.fillMaxWidth().clip(pShape(24.dp)).background(c.soft).padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(tr("Veulent rejoindre"), style = MaterialTheme.typography.titleMedium, color = c.ink)
                 for (m in waiting) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Avatar(m.name, m.color, m.photo, size = 40.dp, initialOnly = true)
@@ -173,12 +175,12 @@ fun MembersScreen(groupId: Long, onBack: () -> Unit, onInvite: () -> Unit, onLef
         }
         Text(if (direct) tr("Avec") else tr("Membres"), style = MaterialTheme.typography.titleMedium, color = c.ink)
 
-        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.card).padding(8.dp)) {
+        Column(Modifier.fillMaxWidth().clip(pShape(24.dp)).background(c.card).padding(8.dp)) {
             for (m in members.filter { !it.pending }) {
                 val isOpen = open == m.id
                 val canManage = me != null && m.id != meId && !m.isOwner && (me.isOwner || (me.isAdmin && m.role == "member"))
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp))
+                    Modifier.fillMaxWidth().clip(pShape(18.dp))
                         .clickable(enabled = canManage || me?.isOwner == true && m.id != meId, role = Role.Button) { open = if (isOpen) null else m.id }
                         .semantics { stateDescription = if (isOpen) tr("actions affichées") else "" }
                         .padding(10.dp),
@@ -196,7 +198,7 @@ fun MembersScreen(groupId: Long, onBack: () -> Unit, onInvite: () -> Unit, onLef
                         )
                     }
                     Row(
-                        Modifier.clip(RoundedCornerShape(10.dp)).background(if (m.isAdmin) c.soft else c.field).padding(horizontal = 10.dp, vertical = 4.dp),
+                        Modifier.clip(pShape(10.dp)).background(if (m.isAdmin) c.soft else c.field).padding(horizontal = 10.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
@@ -230,7 +232,7 @@ fun MembersScreen(groupId: Long, onBack: () -> Unit, onInvite: () -> Unit, onLef
 
         if (me?.isAdmin == true && g != null && !direct) {
             Column(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.card).padding(18.dp),
+                Modifier.fillMaxWidth().clip(pShape(24.dp)).background(c.card).padding(18.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -247,7 +249,7 @@ fun MembersScreen(groupId: Long, onBack: () -> Unit, onInvite: () -> Unit, onLef
                 }
             }
             Column(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.card).padding(18.dp),
+                Modifier.fillMaxWidth().clip(pShape(24.dp)).background(c.card).padding(18.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {

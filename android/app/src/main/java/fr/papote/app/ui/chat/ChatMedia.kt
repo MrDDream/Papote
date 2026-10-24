@@ -1,5 +1,7 @@
 package fr.papote.app.ui.chat
 
+import fr.papote.app.ui.theme.pShape
+
 import fr.papote.app.tr
 
 import android.app.DownloadManager
@@ -68,7 +70,7 @@ fun AttachSheet(onClose: () -> Unit, items: List<AttachItem>) {
                 Row(Modifier.fillMaxWidth()) {
                     for (item in row) {
                         Column(
-                            Modifier.weight(1f).clip(RoundedCornerShape(18.dp))
+                            Modifier.weight(1f).clip(pShape(18.dp))
                                 .clickable(role = Role.Button) {
                                     onClose()
                                     item.onClick()
@@ -77,7 +79,7 @@ fun AttachSheet(onClose: () -> Unit, items: List<AttachItem>) {
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
-                            Box(Modifier.size(56.dp).clip(RoundedCornerShape(20.dp)).background(item.color), contentAlignment = Alignment.Center) {
+                            Box(Modifier.size(56.dp).clip(pShape(20.dp)).background(item.color), contentAlignment = Alignment.Center) {
                                 Icon(item.icon, null, tint = Color(0xFF2E2442), modifier = Modifier.size(26.dp))
                             }
                             Text(item.label, style = MaterialTheme.typography.labelMedium, color = c.ink, textAlign = TextAlign.Center, maxLines = 2)
@@ -97,7 +99,7 @@ fun VideoBubble(m: Message) {
     val ratio = ((m.width ?: 16).toFloat() / (m.height ?: 9).coerceAtLeast(1)).coerceIn(0.56f, 1.8f)
     Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Box(
-            Modifier.width(220.dp).aspectRatio(ratio).clip(RoundedCornerShape(14.dp)).background(Color(0xFF1C1628)),
+            Modifier.width(220.dp).aspectRatio(ratio).clip(pShape(14.dp)).background(Color(0xFF1C1628)),
             contentAlignment = Alignment.Center,
         ) {
             Box(Modifier.size(52.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.9f)), contentAlignment = Alignment.Center) {
@@ -130,7 +132,7 @@ fun FileBubble(m: Message) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        Box(Modifier.size(42.dp).clip(RoundedCornerShape(12.dp)).background(Color(0xFFCFE3FF)), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(42.dp).clip(pShape(12.dp)).background(Color(0xFFCFE3FF)), contentAlignment = Alignment.Center) {
             Icon(PIcons.File, null, tint = Color(0xFF2E2442), modifier = Modifier.size(22.dp))
         }
         Column(Modifier.weight(1f)) {

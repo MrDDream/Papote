@@ -1,5 +1,7 @@
 package fr.papote.app.ui.photo
 
+import fr.papote.app.ui.theme.pShape
+
 import fr.papote.app.tr
 
 import android.graphics.Bitmap
@@ -247,7 +249,7 @@ fun PhotoEditScreen(groupId: Long, story: Boolean, onDone: () -> Unit) {
         if (b != null) {
             val r = cropRect(b, crop)
             Box(
-                Modifier.fillMaxWidth().aspectRatio(r.width() / r.height()).clip(RoundedCornerShape(24.dp))
+                Modifier.fillMaxWidth().aspectRatio(r.width() / r.height()).clip(pShape(24.dp))
                     .semantics { contentDescription = tr("Photo à décorer") }
                     .pointerInput(drawing, ink) {
                         awaitEachGesture {
@@ -285,7 +287,7 @@ fun PhotoEditScreen(groupId: Long, story: Boolean, onDone: () -> Unit) {
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             @Composable
             fun Tool(icon: ImageVector, short: String, label: String, on: Boolean = false, onClick: () -> Unit) = Column(
-                Modifier.clip(RoundedCornerShape(16.dp)).background(if (on) c.soft else c.card).border(2.dp, if (on) c.primary else c.line, RoundedCornerShape(16.dp))
+                Modifier.clip(pShape(16.dp)).background(if (on) c.soft else c.card).border(2.dp, if (on) c.primary else c.line, pShape(16.dp))
                     .clickable(role = Role.Button, onClick = onClick).semantics { contentDescription = label }.padding(horizontal = 12.dp, vertical = 8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -320,8 +322,8 @@ fun PhotoEditScreen(groupId: Long, story: Boolean, onDone: () -> Unit) {
         ErrorText(error)
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             if (!story) Row(
-                Modifier.clip(RoundedCornerShape(20.dp)).background(if (ephemeral) Color(0xFFFFE0E8) else c.card)
-                    .border(2.dp, if (ephemeral) Color(0xFFE0456A) else c.line, RoundedCornerShape(20.dp))
+                Modifier.clip(pShape(20.dp)).background(if (ephemeral) Color(0xFFFFE0E8) else c.card)
+                    .border(2.dp, if (ephemeral) Color(0xFFE0456A) else c.line, pShape(20.dp))
                     .clickable(role = Role.Switch) { ephemeral = !ephemeral }.padding(horizontal = 14.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -360,7 +362,7 @@ fun PhotoEditScreen(groupId: Long, story: Boolean, onDone: () -> Unit) {
             Text(tr("Ajouter un sticker"), style = MaterialTheme.typography.titleLarge, color = c.ink)
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (st in BuiltinStickers) Box(
-                    Modifier.size(72.dp).clip(RoundedCornerShape(14.dp)).background(c.field).clickable(role = Role.Button) {
+                    Modifier.size(72.dp).clip(pShape(14.dp)).background(c.field).clickable(role = Role.Button) {
                         stickers.getOrPut(st.key) { stickerBitmap(st.key) }
                         items += Item("sticker", key = st.key, s = 1.2f)
                         selected = items.lastIndex

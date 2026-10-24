@@ -1,5 +1,7 @@
 package fr.papote.app.ui.join
 
+import fr.papote.app.ui.theme.pShape
+
 import fr.papote.app.tr
 
 import androidx.compose.foundation.background
@@ -181,7 +183,7 @@ fun JoinScreen(initialServer: String, initialCode: String, onBack: (() -> Unit)?
             }
 
             Column(
-                Modifier.fillMaxWidth().shadow(0.dp).clip(RoundedCornerShape(28.dp)).background(c.card).padding(horizontal = 18.dp, vertical = 20.dp),
+                Modifier.fillMaxWidth().shadow(0.dp).clip(pShape(28.dp)).background(c.card).padding(horizontal = 18.dp, vertical = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -245,7 +247,7 @@ fun JoinScreen(initialServer: String, initialCode: String, onBack: (() -> Unit)?
                     style = MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp),
                     color = if (c.dark) c.ink else c.primaryDark,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp))
+                    modifier = Modifier.fillMaxWidth().clip(pShape(18.dp))
                         .clickable(role = Role.Button) {
                             linking = !linking
                             needsTotp = false
@@ -276,12 +278,12 @@ private fun CodeInput(code: String, onChange: (String) -> Unit, length: Int = 6)
         decorationBox = {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 for (i in 0 until length) {
-                    if (i == length / 2) Box(Modifier.size(10.dp, 4.dp).clip(RoundedCornerShape(2.dp)).background(c.line))
+                    if (i == length / 2) Box(Modifier.size(10.dp, 4.dp).clip(pShape(2.dp)).background(c.line))
                     val active = i == code.length.coerceAtMost(length - 1)
                     Box(
-                        Modifier.size(if (length > 6) 32.dp else 40.dp, 52.dp).clip(RoundedCornerShape(14.dp))
+                        Modifier.size(if (length > 6) 32.dp else 40.dp, 52.dp).clip(pShape(14.dp))
                             .background(if (active) c.soft else c.field)
-                            .border(2.dp, if (active) c.primary else c.line, RoundedCornerShape(14.dp)),
+                            .border(2.dp, if (active) c.primary else c.line, pShape(14.dp)),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(

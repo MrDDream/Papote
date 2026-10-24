@@ -1,5 +1,7 @@
 package fr.papote.app.ui.profile
 
+import fr.papote.app.ui.theme.pShape
+
 import fr.papote.app.tr
 
 import android.content.ActivityNotFoundException
@@ -308,8 +310,8 @@ fun StylePicker(selected: ThemeStyle, onPick: (ThemeStyle) -> Unit) {
             val on = style == selected
             val p = if (c.dark) style.night else style.light
             Row(
-                Modifier.clip(RoundedCornerShape(16.dp)).background(p.ground)
-                    .border(2.dp, if (on) c.primary else c.line, RoundedCornerShape(16.dp))
+                Modifier.clip(pShape(16.dp)).background(p.ground)
+                    .border(2.dp, if (on) c.primary else c.line, pShape(16.dp))
                     .clickable(role = Role.RadioButton) { onPick(style) }
                     .semantics { stateDescription = if (on) "choisi" else "" }
                     .padding(horizontal = 12.dp, vertical = 10.dp),

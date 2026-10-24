@@ -1,5 +1,7 @@
 package fr.papote.app.ui.contacts
 
+import fr.papote.app.ui.theme.pShape
+
 import fr.papote.app.tr
 
 import androidx.compose.foundation.background
@@ -80,7 +82,7 @@ fun ContactsScreen(onBack: () -> Unit, onOpen: (Long) -> Unit) {
             else -> LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(list.filter { query.isBlank() || it.name.contains(query.trim(), ignoreCase = true) }, key = { it.id }) { u ->
                     Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.card)
+                        Modifier.fillMaxWidth().clip(pShape(20.dp)).background(c.card)
                             .clickable(enabled = opening == null, role = Role.Button) {
                                 opening = u.id
                                 scope.launch {

@@ -1,5 +1,7 @@
 package fr.papote.app.ui.components
 
+import fr.papote.app.ui.theme.pShape
+
 import fr.papote.app.tr
 
 import android.content.Context
@@ -98,7 +100,7 @@ fun EmojiPicker(onPick: (String) -> Unit, modifier: Modifier = Modifier, height:
     var tab by rememberSaveable { mutableStateOf(if (Emojis.recents(context).isEmpty()) 1 else 0) }
     val tabs = listOf(Emojis.Category(tr("Récents"), "🕘", recents)) + Emojis.categories
 
-    Column(modifier.fillMaxWidth().height(height).clip(RoundedCornerShape(24.dp)).background(c.card)) {
+    Column(modifier.fillMaxWidth().height(height).clip(pShape(24.dp)).background(c.card)) {
         Row(
             Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp, vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -106,7 +108,7 @@ fun EmojiPicker(onPick: (String) -> Unit, modifier: Modifier = Modifier, height:
             tabs.forEachIndexed { i, cat ->
                 val on = i == tab
                 Box(
-                    Modifier.size(40.dp).clip(RoundedCornerShape(12.dp)).background(if (on) c.soft else Color.Transparent)
+                    Modifier.size(40.dp).clip(pShape(12.dp)).background(if (on) c.soft else Color.Transparent)
                         .clickable(role = Role.Tab) { tab = i }
                         .semantics {
                             contentDescription = cat.label
@@ -125,7 +127,7 @@ fun EmojiPicker(onPick: (String) -> Unit, modifier: Modifier = Modifier, height:
             LazyVerticalGrid(GridCells.Adaptive(44.dp), Modifier.fillMaxWidth().padding(horizontal = 6.dp)) {
                 items(list) { e ->
                     Box(
-                        Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).clickable(role = Role.Button) {
+                        Modifier.size(44.dp).clip(pShape(12.dp)).clickable(role = Role.Button) {
                             Emojis.remember(context, e)
                             recents = Emojis.recents(context)
                             onPick(e)

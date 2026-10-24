@@ -131,6 +131,9 @@ class Api(
     suspend fun setGroupPhoto(id: Long, bytes: ByteArray): GroupSummary =
         decode(call("PUT", "/api/groups/$id/photo", multipart(bytes, "image/jpeg", "groupe.jpg")))
     suspend fun deleteGroupPhoto(id: Long): GroupSummary = decode(call("DELETE", "/api/groups/$id/photo"))
+    suspend fun setWallpaper(id: Long, bytes: ByteArray): GroupSummary =
+        decode(call("PUT", "/api/groups/$id/wallpaper", multipart(bytes, "image/jpeg", "fond.jpg")))
+    suspend fun deleteWallpaper(id: Long): GroupSummary = decode(call("DELETE", "/api/groups/$id/wallpaper"))
     suspend fun leaveGroup(id: Long) = sendUnit("POST", "/api/groups/$id/leave")
 
     suspend fun members(groupId: Long): List<Member> = get("/api/groups/$groupId/members")

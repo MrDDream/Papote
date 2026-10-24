@@ -368,6 +368,19 @@ describe('personal code', () => {
     a.ws.close();
   });
 
+  it('sets illustrated backgrounds and a background picture for a group', async () => {
+    const { lou, group } = await setup();
+    expect((await agent.patch(`/api/groups/${group.id}/settings`).set(auth(lou.token)).send({ pattern: 'hearts' })).status).toBe(200);
+    expect((await agent.patch(`/api/groups/${group.id}/settings`).set(auth(lou.token)).send({ pattern: 'lasers' })).status).toBe(400);
+    const set = await agent.put(`/api/groups/${group.id}/wallpaper`).set(auth(lou.token)).attach('file', PNG, { filename: 'fond.png', contentType: 'image/png' });
+    expect(set.status).toBe(200);
+    expect(set.body).toMatchObject({ settings: { pattern: 'hearts' }, wallpaper: expect.stringMatching(/^\/api\/media\/[a-f0-9]{32}$/) });
+    expect((await agent.get(set.body.wallpaper).set(auth(lou.token))).status).toBe(200);
+    const off = await agent.delete(`/api/groups/${group.id}/wallpaper`).set(auth(lou.token));
+    expect(off.body.wallpaper).toBeNull();
+    expect((await agent.get(set.body.wallpaper).set(auth(lou.token))).status).toBe(404);
+  });
+
   it('sends videos and documents, up to MAX_UPLOAD_MB', async () => {
     papote.close();
     papote = createServer({ dataDir: dir, adminPassword: 'correct-horse-battery', logger: quiet, maxUploadMb: 1 });

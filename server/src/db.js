@@ -197,6 +197,7 @@ function migrate(db) {
   if (!userCols.includes('personal_code')) db.exec('ALTER TABLE users ADD COLUMN personal_code TEXT');
   const groupCols = db.prepare('PRAGMA table_info(groups)').all().map((c) => c.name);
   if (!groupCols.includes('photo_media_id')) db.exec('ALTER TABLE groups ADD COLUMN photo_media_id TEXT');
+  if (!groupCols.includes('wallpaper_media_id')) db.exec('ALTER TABLE groups ADD COLUMN wallpaper_media_id TEXT');
   // 1 = a two-person conversation started from "Nouvelle discussion" (no name, no invitations).
   if (!groupCols.includes('direct')) db.exec('ALTER TABLE groups ADD COLUMN direct INTEGER NOT NULL DEFAULT 0');
   for (const col of ['totp_secret', 'totp_pending', 'recovery_codes']) {

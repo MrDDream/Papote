@@ -1,5 +1,7 @@
 package fr.papote.app.ui.chat
 
+import fr.papote.app.ui.theme.pShape
+
 import fr.papote.app.tr
 
 import android.Manifest
@@ -108,6 +110,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import fr.papote.app.data.ReplyPreview
 import kotlin.math.roundToInt
+import fr.papote.app.ui.theme.lookOutline
+import fr.papote.app.ui.theme.lookShadow
 
 /** A picked picture travels to the photo editor through here (a Uri can't go in a route safely). */
 object PendingPhoto {
@@ -232,14 +236,16 @@ fun ChatScreen(
     Column(Modifier.fillMaxSize()) {
         // Header
         Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp)).background(c.surfaceOf(t))
+            Modifier.fillMaxWidth()
+                .clip(if (fr.papote.app.ui.theme.ActiveLook.value.plainSurfaces) androidx.compose.ui.graphics.RectangleShape else RoundedCornerShape(bottomStart = 28.dp, bottomEnd = 28.dp))
+                .background(if (fr.papote.app.ui.theme.ActiveLook.value.plainSurfaces) c.card else c.surfaceOf(t))
                 .padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
             SquareIconButton(PIcons.Back, tr("Retour aux groupes"), onBack, size = 40.dp)
             Row(
-                Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).clickable(role = Role.Button, onClick = onMembers),
+                Modifier.weight(1f).clip(pShape(16.dp)).clickable(role = Role.Button, onClick = onMembers),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -263,7 +269,7 @@ fun ChatScreen(
             val bubu = state.bubu
             Box {
                 Box(
-                    Modifier.clip(RoundedCornerShape(12.dp)).clickable(role = Role.Button) {
+                    Modifier.clip(pShape(12.dp)).clickable(role = Role.Button) {
                         bubuTip = true
                         if (bubu == fr.papote.app.ui.extras.BubuState.Party) confetti++
                     }.semantics { contentDescription = tr("Bubu, la mascotte : {}", bubu.line) },
@@ -291,8 +297,9 @@ fun ChatScreen(
             )
         }
 
-        // Messages
+        // Messages, over the group's background (pattern and/or picture)
         Box(Modifier.weight(1f).fillMaxWidth()) {
+            ChatBackground(group?.settings?.pattern ?: "none", group?.color, group?.wallpaper, Modifier.matchParentSize())
             if (state.loading) {
                 CircularProgressIndicator(Modifier.align(Alignment.Center), color = c.primary)
             } else {
@@ -354,7 +361,7 @@ fun ChatScreen(
                 err,
                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                 color = c.danger,
-                modifier = Modifier.padding(horizontal = 12.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(c.dangerBg)
+                modifier = Modifier.padding(horizontal = 12.dp).fillMaxWidth().clip(pShape(14.dp)).background(c.dangerBg)
                     .clickable(onClick = vm::dismissError).padding(horizontal = 14.dp, vertical = 8.dp),
             )
         }
@@ -363,7 +370,7 @@ fun ChatScreen(
                 info,
                 style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                 color = c.ink,
-                modifier = Modifier.padding(horizontal = 12.dp).fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(c.soft)
+                modifier = Modifier.padding(horizontal = 12.dp).fillMaxWidth().clip(pShape(14.dp)).background(c.soft)
                     .clickable(onClick = vm::dismissInfo).padding(horizontal = 14.dp, vertical = 8.dp),
             )
         }
@@ -372,7 +379,7 @@ fun ChatScreen(
                 tr("Revenir aux derniers messages"),
                 style = MaterialTheme.typography.labelLarge,
                 color = c.onPrimary,
-                modifier = Modifier.align(Alignment.CenterHorizontally).padding(4.dp).clip(RoundedCornerShape(16.dp)).background(c.primary)
+                modifier = Modifier.align(Alignment.CenterHorizontally).padding(4.dp).clip(pShape(16.dp)).background(c.primary)
                     .clickable(role = Role.Button, onClick = vm::backToLatest).padding(horizontal = 14.dp, vertical = 8.dp),
             )
         }
@@ -392,7 +399,7 @@ fun ChatScreen(
         // Composer
         if (state.muted) {
             Row(
-                Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 14.dp).fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.soft).padding(14.dp),
+                Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 14.dp).fillMaxWidth().clip(pShape(20.dp)).background(c.soft).padding(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
@@ -470,8 +477,8 @@ fun ChatScreen(
                         val on = vm.meId in (m.reactions[key] ?: emptyList())
                         if (r == null) {
                             Box(
-                                Modifier.size(54.dp).clip(RoundedCornerShape(18.dp)).background(c.field)
-                                    .border(3.dp, if (on) c.primary else Color.Transparent, RoundedCornerShape(18.dp))
+                                Modifier.size(54.dp).clip(pShape(18.dp)).background(c.field)
+                                    .border(3.dp, if (on) c.primary else Color.Transparent, pShape(18.dp))
                                     .clickable(role = Role.Button) {
                                         vm.toggleReaction(m, key)
                                         sheetFor = null
@@ -481,8 +488,8 @@ fun ChatScreen(
                             continue
                         }
                         Box(
-                            Modifier.size(54.dp).clip(RoundedCornerShape(18.dp)).background(r.bg)
-                                .border(3.dp, if (on) c.primary else Color.Transparent, RoundedCornerShape(18.dp))
+                            Modifier.size(54.dp).clip(pShape(18.dp)).background(r.bg)
+                                .border(3.dp, if (on) c.primary else Color.Transparent, pShape(18.dp))
                                 .clickable(role = Role.Button) {
                                     vm.toggleReaction(m, r.key)
                                     sheetFor = null
@@ -496,8 +503,8 @@ fun ChatScreen(
                     for (e in Emojis.quickReactions) {
                         val on = vm.meId in (m.reactions[e] ?: emptyList())
                         Box(
-                            Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(if (on) c.soft else c.field)
-                                .border(2.dp, if (on) c.primary else Color.Transparent, RoundedCornerShape(14.dp))
+                            Modifier.size(44.dp).clip(pShape(14.dp)).background(if (on) c.soft else c.field)
+                                .border(2.dp, if (on) c.primary else Color.Transparent, pShape(14.dp))
                                 .clickable(role = Role.Button) {
                                     vm.toggleReaction(m, e)
                                     sheetFor = null
@@ -506,7 +513,7 @@ fun ChatScreen(
                         ) { Text(e, fontSize = 22.sp) }
                     }
                     Box(
-                        Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(if (sheetPicker) c.soft else c.field)
+                        Modifier.size(44.dp).clip(pShape(14.dp)).background(if (sheetPicker) c.soft else c.field)
                             .clickable(role = Role.Button) { sheetPicker = !sheetPicker }
                             .semantics { contentDescription = tr("Plus d’emoji") },
                         contentAlignment = Alignment.Center,
@@ -521,7 +528,7 @@ fun ChatScreen(
                 }
                 @Composable
                 fun Action(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, onClick: () -> Unit) = Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.field).clickable(role = Role.Button) {
+                    Modifier.fillMaxWidth().clip(pShape(16.dp)).background(c.field).clickable(role = Role.Button) {
                         sheetFor = null
                         onClick()
                     }.padding(14.dp),
@@ -537,7 +544,7 @@ fun ChatScreen(
                 if (m.type == "photo") Action(PIcons.Pencil, tr("Dessiner dessus")) { m.media?.url?.let { onDrawOver(m.id, it) } }
                 if (canDelete) {
                     Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.dangerBg)
+                        Modifier.fillMaxWidth().clip(pShape(16.dp)).background(c.dangerBg)
                             .clickable(role = Role.Button) {
                                 vm.delete(m)
                                 sheetFor = null
@@ -599,7 +606,7 @@ private fun DayChip(label: String) {
             label,
             style = MaterialTheme.typography.labelMedium,
             color = c.muted,
-            modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(c.soft).padding(horizontal = 12.dp, vertical = 4.dp),
+            modifier = Modifier.clip(pShape(12.dp)).background(c.soft).padding(horizontal = 12.dp, vertical = 4.dp),
         )
     }
 }
@@ -629,7 +636,7 @@ private fun ReplyQuote(r: ReplyPreview, members: Map<Long, Member>, meId: Long?,
     val who = nameOf(r.authorId, members, meId)
     val snippet = replySnippet(r.type, r.text, r.deleted)
     Row(
-        Modifier.widthIn(max = 260.dp).clip(RoundedCornerShape(12.dp)).background(c.soft)
+        Modifier.widthIn(max = 260.dp).clip(pShape(12.dp)).background(c.soft)
             .clickable(role = Role.Button, onClickLabel = tr("Voir ce message"), onClick = onClick)
             .semantics { contentDescription = tr("En réponse à {} : {}", who, snippet) },
     ) {
@@ -647,7 +654,7 @@ private fun ReplyBar(m: Message, members: Map<Long, Member>, meId: Long?, onCanc
     val c = Papote.colors
     val rt = tint(m.authorId?.let { members[it]?.color } ?: "lilas")
     Row(
-        Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp).fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.card),
+        Modifier.padding(start = 12.dp, end = 12.dp, top = 8.dp).fillMaxWidth().clip(pShape(16.dp)).background(c.card),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -727,7 +734,9 @@ private fun MessageRow(
         return
     }
     val t = tint(author?.color)
-    val bubbleShape = if (mine) RoundedCornerShape(20.dp, 20.dp, 6.dp, 20.dp) else RoundedCornerShape(20.dp, 20.dp, 20.dp, 6.dp)
+    val bubbleShape = fr.papote.app.ui.theme.bubbleShape(mine)
+    val look = fr.papote.app.ui.theme.ActiveLook.value
+    val mineColors = fr.papote.app.ui.theme.mineBubble(c.dark)
     // Dragging a message to the right answers it, like in the other messengers.
     val scope = rememberCoroutineScope()
     val drag = remember { Animatable(0f) }
@@ -784,9 +793,14 @@ private fun MessageRow(
                 }
                 m.reply?.takeIf { !m.deleted }?.let { r -> ReplyQuote(r, members, meId) { onQuote(r.id) } }
                 val bigEmoji = m.type == "text" && !m.deleted && Emojis.isEmojiOnly(m.text)
-                val bubbleBg = if (bigEmoji || (m.type == "sticker" && !m.deleted)) Color.Transparent else if (mine && m.type == "text") c.primary else c.card
+                val bare = bigEmoji || (m.type == "sticker" && !m.deleted)
+                val bubbleBg = if (bare) Color.Transparent else if (mine && m.type == "text") (mineColors?.first ?: c.primary) else c.card
                 Box(
-                    Modifier.widthIn(max = 260.dp).clip(bubbleShape).background(if (m.deleted) c.soft else bubbleBg)
+                    Modifier.widthIn(max = 260.dp)
+                        .then(if (look.tilt && !bare) Modifier.graphicsLayer { rotationZ = if (m.id % 2 == 0L) -0.8f else 0.6f } else Modifier)
+                        .then(if (bare) Modifier else Modifier.lookShadow(bubbleShape, c.ink))
+                        .clip(bubbleShape).background(if (m.deleted) c.soft else bubbleBg)
+                        .then(if (bare) Modifier else Modifier.lookOutline(bubbleShape, if (look.dashed && !mine) c.muted else c.ink))
                         .then(if (highlighted) Modifier.border(3.dp, c.primary, bubbleShape) else Modifier)
                         .combinedClickable(
                             onClick = {
@@ -809,7 +823,7 @@ private fun MessageRow(
                         m.type == "text" -> Text(
                             m.text,
                             style = MaterialTheme.typography.bodyLarge,
-                            color = if (mine) c.onPrimary else c.ink,
+                            color = if (mine) (mineColors?.second ?: c.onPrimary) else c.ink,
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                         )
                         m.type == "photo" || m.type == "drawing" -> Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -818,7 +832,7 @@ private fun MessageRow(
                                 model = PapoteApp.instance.mediaUrl(m.media?.url),
                                 contentDescription = if (m.type == "drawing") tr("Dessin de {}", author?.name ?: tr("quelqu’un")) else tr("Photo de {}", author?.name ?: tr("quelqu’un")),
                                 contentScale = ContentScale.Crop,
-                                modifier = Modifier.width(220.dp).aspectRatio(ratio.coerceIn(0.6f, 1.8f)).clip(RoundedCornerShape(14.dp))
+                                modifier = Modifier.width(220.dp).aspectRatio(ratio.coerceIn(0.6f, 1.8f)).clip(pShape(14.dp))
                                     .background(if (m.type == "drawing") Color(0xFFFFF8E6) else c.soft),
                             )
                             if (m.text.isNotBlank()) Text(m.text, style = MaterialTheme.typography.bodyLarge, color = c.ink, modifier = Modifier.padding(horizontal = 4.dp))
@@ -859,8 +873,8 @@ private fun MessageRow(
                             val bg = r?.bg ?: c.card
                             val fg = r?.fg ?: c.ink
                             Row(
-                                Modifier.clip(RoundedCornerShape(10.dp)).background(bg)
-                                    .border(2.dp, if (on) (r?.fg ?: c.primary).copy(alpha = 0.5f) else if (r == null) c.line else Color.Transparent, RoundedCornerShape(10.dp))
+                                Modifier.clip(pShape(10.dp)).background(bg)
+                                    .border(2.dp, if (on) (r?.fg ?: c.primary).copy(alpha = 0.5f) else if (r == null) c.line else Color.Transparent, pShape(10.dp))
                                     .clickable(role = Role.Button) { onReact(kind) }
                                     .padding(horizontal = 8.dp, vertical = 2.dp)
                                     .semantics { contentDescription = "${r?.label ?: kind} : ${users.size}" + if (on) tr(", dont toi") else "" },
@@ -888,7 +902,7 @@ private fun VoiceBubble(m: Message, tintBg: Color, tintFg: Color, playing: Boole
         val filter = mapOf("souris" to "souris", "robot" to "robot", "echo" to tr("écho"), "geant" to tr("géant"))[m.metaString("filter")]
         if (filter != null || m.transcript != null || m.metaBool("transcribing")) {
             Row(Modifier.padding(start = 12.dp, end = 12.dp, bottom = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (filter != null) Text("Voix $filter", style = MaterialTheme.typography.labelSmall, color = c.primary, modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(c.soft).padding(horizontal = 8.dp, vertical = 2.dp))
+                if (filter != null) Text("Voix $filter", style = MaterialTheme.typography.labelSmall, color = c.primary, modifier = Modifier.clip(pShape(8.dp)).background(c.soft).padding(horizontal = 8.dp, vertical = 2.dp))
                 if (m.metaBool("transcribing")) Text(tr("Transcription…"), style = MaterialTheme.typography.bodySmall, color = c.muted)
                 if (m.transcript != null) Text(
                     if (open) tr("Masquer le texte") else tr("Voir le texte"),
@@ -925,7 +939,7 @@ private fun VoiceRow(m: Message, tintBg: Color, tintFg: Color, playing: Boolean,
             val played = (progress * bars.size).toInt()
             bars.take(28).forEachIndexed { i, v ->
                 Box(
-                    Modifier.width(3.dp).height((6 + v * 26 / 100).dp).clip(RoundedCornerShape(2.dp))
+                    Modifier.width(3.dp).height((6 + v * 26 / 100).dp).clip(pShape(2.dp))
                         .background(if (i < played) (if (c.dark) tintBg else tintFg) else tintBg.copy(alpha = if (c.dark) 0.45f else 1f)),
                 )
             }
@@ -938,7 +952,7 @@ private fun VoiceRow(m: Message, tintBg: Color, tintFg: Color, playing: Boolean,
                 label,
                 style = MaterialTheme.typography.labelMedium,
                 color = c.primary,
-                modifier = Modifier.clip(RoundedCornerShape(10.dp)).background(c.soft).clickable(role = Role.Button, onClick = vm::cycleSpeed)
+                modifier = Modifier.clip(pShape(10.dp)).background(c.soft).clickable(role = Role.Button, onClick = vm::cycleSpeed)
                     .semantics { contentDescription = tr("Vitesse de lecture {}, changer", label) }.padding(horizontal = 8.dp, vertical = 4.dp),
             )
         }
@@ -957,7 +971,7 @@ private fun TypingRow(who: List<Member>, kind: String?) {
     }
     Row(Modifier.padding(start = 40.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
-            Modifier.clip(RoundedCornerShape(16.dp)).background(c.card).padding(horizontal = 12.dp, vertical = 10.dp),
+            Modifier.clip(pShape(16.dp)).background(c.card).padding(horizontal = 12.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             listOf(0xFF8FB6EF, 0xFF6A9BE6, 0xFF4A7FD6).forEach { Box(Modifier.size(7.dp).clip(CircleShape).background(Color(it))) }
@@ -972,7 +986,7 @@ private fun RecordingBar(vm: ChatViewModel, onCancel: () -> Unit, onSend: () -> 
     val levels by vm.recorder.levels.collectAsStateWithLifecycle()
     val elapsed by vm.recorder.elapsed.collectAsStateWithLifecycle()
     Row(
-        Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 14.dp).fillMaxWidth().clip(RoundedCornerShape(28.dp))
+        Modifier.padding(start = 12.dp, end = 12.dp, top = 10.dp, bottom = 14.dp).fillMaxWidth().clip(pShape(28.dp))
             .background(c.dangerBg).padding(10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -990,7 +1004,7 @@ private fun RecordingBar(vm: ChatViewModel, onCancel: () -> Unit, onSend: () -> 
             horizontalArrangement = Arrangement.spacedBy(3.dp, Alignment.End),
         ) {
             levels.takeLast(24).forEach { v ->
-                Box(Modifier.width(3.dp).height((4 + v * 24 / 100).dp).clip(RoundedCornerShape(2.dp)).background(Color(0xFFE0456A)))
+                Box(Modifier.width(3.dp).height((4 + v * 24 / 100).dp).clip(pShape(2.dp)).background(Color(0xFFE0456A)))
             }
         }
         Box(

@@ -39,6 +39,7 @@ const BASE_RULES = {
   drawing: { max: 5 * 1024 * 1024, mimes: ['image/png', 'image/webp'] },
   avatar: { max: 5 * 1024 * 1024, mimes: ['image/jpeg', 'image/png', 'image/webp'] },
   group: { max: 5 * 1024 * 1024, mimes: ['image/jpeg', 'image/png', 'image/webp'] },
+  wallpaper: { max: 8 * 1024 * 1024, mimes: ['image/jpeg', 'image/png', 'image/webp'] },
   gif: { max: 15 * 1024 * 1024, mimes: ['image/gif', 'image/webp'] },
   sticker: { max: 2 * 1024 * 1024, mimes: ['image/png', 'image/webp', 'image/gif', 'image/jpeg'] },
   story: { max: 15 * 1024 * 1024, mimes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] },
@@ -602,6 +603,33 @@ export function createApi({ store, hub, push, dataDir, serverName, version, gifs
     const media = storeUpload(req.file, 'group', { ownerId: req.user.id, groupId: id });
     const old = q('SELECT photo_media_id FROM groups WHERE id = ?').get(id).photo_media_id;
     q('UPDATE groups SET photo_media_id = ? WHERE id = ?').run(media.id, id);
+    if (old) deleteMedia(old);
+    hub.sendToGroup(id, { type: 'group.updated', group: groupDto(q('SELECT * FROM groups WHERE id = ?').get(id)) });
+    res.json(store.groupDetail(id, req.user.id));
+  });
+
+  // The group's background picture (also in two-person conversations).
+  router.put('/groups/:id/wallpaper', upload.single('file'), (req, res) => {
+    const id = Number(req.params.id);
+    try {
+      intParam(id);
+      requireThemeRight(id, req.user.id);
+    } catch (err) {
+      if (req.file) fs.rmSync(req.file.path, { force: true });
+      throw err;
+    }
+    const media = storeUpload(req.file, 'wallpaper', { ownerId: req.user.id, groupId: id });
+    const old = q('SELECT wallpaper_media_id FROM groups WHERE id = ?').get(id).wallpaper_media_id;
+    q('UPDATE groups SET wallpaper_media_id = ? WHERE id = ?').run(media.id, id);
+    if (old) deleteMedia(old);
+    hub.sendToGroup(id, { type: 'group.updated', group: groupDto(q('SELECT * FROM groups WHERE id = ?').get(id)) });
+    res.json(store.groupDetail(id, req.user.id));
+  });
+  router.delete('/groups/:id/wallpaper', (req, res) => {
+    const id = intParam(req.params.id);
+    requireThemeRight(id, req.user.id);
+    const old = q('SELECT wallpaper_media_id FROM groups WHERE id = ?').get(id).wallpaper_media_id;
+    q('UPDATE groups SET wallpaper_media_id = NULL WHERE id = ?').run(id);
     if (old) deleteMedia(old);
     hub.sendToGroup(id, { type: 'group.updated', group: groupDto(q('SELECT * FROM groups WHERE id = ?').get(id)) });
     res.json(store.groupDetail(id, req.user.id));

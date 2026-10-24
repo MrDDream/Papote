@@ -516,6 +516,7 @@ ${shown.map(
 <td>${hub.isOnline(u.id) ? 'maintenant' : relative(u.last_seen_at)}</td>
 <td>${formatDate(u.created_at)}</td>
 <td class="actions">
+<a class="btn ghost" href="/admin/members/${u.id}/code" title="Téléphone perdu, code oublié : un nouveau code personnel">Nouveau code</a>
 <form method="post" action="/admin/members/${u.id}/signout"><button class="soft" type="submit">Déconnecter</button></form>
 <form method="post" action="/admin/members/${u.id}/${u.disabled ? 'enable' : 'disable'}"><button class="${u.disabled ? 'soft' : 'danger'}" type="submit">${u.disabled ? 'Débloquer' : 'Bloquer'}</button></form>
 </td>
@@ -523,6 +524,59 @@ ${shown.map(
 )}
 </tbody></table></div>`
 }
+</section>`,
+    );
+  });
+
+  // Lost phone, forgotten code: a new personal code, the account's 2FA removed, every device signed out.
+  router.get('/members/:id/code', (req, res) => {
+    const u = store.getUser(Number(req.params.id));
+    if (!u) return res.redirect(303, '/admin/members');
+    page(
+      req,
+      res,
+      '/admin/members',
+      'Nouveau code personnel',
+      html`${pageHead(`Nouveau code pour ${u.name} ?`, 'Téléphone perdu, code oublié')}
+<section class="card">
+<p>Papote crée un nouveau code personnel pour ${u.name}. L’ancien cesse de marcher, tous ses appareils sont déconnectés (le téléphone perdu compris)${
+        u.totp_secret ? ' et sa double authentification est retirée : elle pourra la réactiver ensuite' : ''
+      }. Ses groupes et ses messages restent intacts.</p>
+<p class="empty">Le nouveau code s’affiche une seule fois ici : donne-le à ${u.name} de vive voix ou par un moyen sûr.</p>
+<form method="post" action="/admin/members/${u.id}/code" class="inline">
+<input type="hidden" name="confirm" value="1">
+<button type="submit" class="danger">Créer un nouveau code</button>
+<a class="btn ghost" href="/admin/members">Annuler</a>
+</form>
+</section>`,
+    );
+  });
+
+  router.post('/members/:id/code', (req, res) => {
+    const u = store.getUser(Number(req.params.id));
+    if (!u || req.body?.confirm !== '1') return res.redirect(303, '/admin/members');
+    const code = store.personalCode(u.id, { fresh: true });
+    q('UPDATE users SET totp_secret = NULL, totp_pending = NULL, recovery_codes = NULL WHERE id = ?').run(u.id);
+    q('DELETE FROM tokens WHERE user_id = ?').run(u.id);
+    hub.disconnectUser(u.id);
+    sec.audit('member_code_reset', req, u.name);
+    const origin = `${req.protocol}://${req.get('host')}`;
+    const link = `${origin}/web/#/join?link=1&code=${code.replace('-', '')}`;
+    // uqr's SVG is built from our own link only: safe to inline.
+    const svg = renderSVG(link, { border: 4, whiteColor: '#FFFFFF', blackColor: '#2E2442' });
+    page(
+      req,
+      res,
+      '/admin/members',
+      'Nouveau code personnel',
+      html`${pageHead(`Nouveau code pour ${u.name}`, 'Il ne sera plus affiché après cette page')}
+<section class="card">
+<p>Sur son nouveau téléphone ou ordinateur, ${u.name} choisit « J’ai déjà un compte », entre l’adresse du serveur <code>${origin}</code> et ce code :</p>
+<div class="code-big">${code}</div>
+<p>Ou scanne ce QR code avec l’appareil photo :</p>
+<div class="qr">${raw(svg)}</div>
+<p class="empty">Tous ses appareils ont été déconnectés${u.totp_secret ? ' et sa double authentification retirée' : ''}. Ses groupes et ses messages l’attendent.</p>
+<a class="btn primary" href="/admin/members">Retour aux membres</a>
 </section>`,
     );
   });
@@ -782,6 +836,7 @@ ${trashed.map(
     code_created: 'Code créé',
     code_revoked: 'Code révoqué',
     member_signout: 'Membre déconnecté',
+    member_code_reset: 'Nouveau code personnel pour un membre',
     member_disable: 'Membre bloqué',
     member_enable: 'Membre débloqué',
     group_created: 'Groupe créé',
@@ -798,7 +853,7 @@ ${trashed.map(
   const EVENT_CATEGORIES = {
     access: ['Connexions', ['login', 'login_failed', 'totp_failed', 'logout', 'session_revoked', 'sessions_revoked']],
     security: ['Sécurité', ['2fa_enabled', '2fa_disabled', 'recovery_regenerated']],
-    members: ['Membres', ['member_signout', 'member_disable', 'member_enable']],
+    members: ['Membres', ['member_signout', 'member_disable', 'member_enable', 'member_code_reset']],
     groups: ['Groupes', ['group_created', 'group_deleted', 'group_restored', 'group_purged']],
     codes: ['Codes', ['code_created', 'code_revoked', 'server_code']],
     backups: ['Sauvegardes', ['backup', 'backup_failed', 'restore_started', 'backup_restored']],

@@ -27,6 +27,7 @@ import {
   REACTIONS,
   reactionOf,
   resizeImage,
+  chatBackground,
 } from './ui.js';
 import { emojiPicker } from './emoji.js';
 import { gameInfo, pendingPhoto, of } from './extras.js';
@@ -50,7 +51,11 @@ const setPref = (key, value) => {
 };
 const MONTHS = [tr('janvier'), tr('février'), tr('mars'), tr('avril'), tr('mai'), tr('juin'), tr('juillet'), tr('août'), tr('septembre'), tr('octobre'), tr('novembre'), tr('décembre')];
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-const PATTERNS = [['none', tr('Uni')], ['dots', tr('Pois')], ['stripes', tr('Rayures')], ['grid', tr('Grille')]];
+const PATTERNS = [
+  ['none', tr('Uni')], ['dots', tr('Pois')], ['stripes', tr('Rayures')], ['grid', tr('Grille')],
+  ['hearts', tr('Cœurs')], ['stars', tr('Étoiles')], ['waves', tr('Vagues')], ['leaves', tr('Feuilles')],
+  ['confetti', tr('Confettis')], ['clouds', tr('Nuages')], ['paws', tr('Pattes')], ['notes', tr('Musique')],
+];
 
 function linkRow(ic, label, sub, onclick) {
   return h('button', { type: 'button', class: 'link-row', onclick }, h('span', { class: 'link-icon' }, icon(ic, 20)), h('span', { class: 'col grow', style: { gap: 0, textAlign: 'left' } }, h('b', {}, label), sub && h('span', { class: 'small muted' }, sub)), icon('forward', 18));
@@ -92,9 +97,22 @@ export function groupSettingsScreen(groupId) {
     const direct = group.direct;
     const t = tint(group.color);
     const active = members.filter((m) => m.status !== 'pending');
+    // A picture behind the messages: resized like the others, dimmed when shown.
+    const wallpaperInput = h('input', { type: 'file', accept: 'image/*', hidden: true });
+    wallpaperInput.addEventListener('change', async () => {
+      const file = wallpaperInput.files?.[0];
+      wallpaperInput.value = '';
+      if (!file) return;
+      try {
+        await api.setWallpaper(groupId, await resizeImage(file, 1600));
+        await load();
+      } catch (e) {
+        err.show(e.message);
+      }
+    });
     const preview = h(
       'div',
-      { class: 'theme-preview', 'data-pattern': s.pattern, style: { backgroundColor: surfaceOf(t) }, 'aria-hidden': 'true' },
+      { class: 'theme-preview', 'data-pattern': s.pattern, style: { backgroundColor: surfaceOf(t), ...chatBackground(group) }, 'aria-hidden': 'true' },
       h('span', { class: 'pv-bubble' }, tr('Coucou !')),
       h('span', { class: 'pv-bubble mine' }, tr('Salut')),
     );
@@ -170,9 +188,24 @@ export function groupSettingsScreen(groupId) {
             !direct && canTheme && swatches(group.color, (c) => act(() => api.updateGroup(groupId, { color: c }))()),
             h(
               'div',
-              { class: 'segmented small', role: 'group', 'aria-label': tr('Motif du fond') },
-              PATTERNS.map(([k, l]) => h('button', { type: 'button', 'aria-pressed': String(s.pattern === k), disabled: !canTheme, onclick: act(() => api.groupSettings(groupId, { pattern: k })) }, l)),
+              { class: 'bg-picker', role: 'group', 'aria-label': tr('Motif du fond') },
+              PATTERNS.map(([k, l]) =>
+                h(
+                  'button',
+                  { type: 'button', 'aria-pressed': String(s.pattern === k), disabled: !canTheme, onclick: act(() => api.groupSettings(groupId, { pattern: k })) },
+                  h('span', { class: 'bg-tile', 'data-pattern': k, style: { backgroundColor: surfaceOf(t), ...chatBackground({ color: group.color, settings: { pattern: k } }) } }),
+                  l,
+                ),
+              ),
             ),
+            canTheme &&
+              h(
+                'div',
+                { class: 'row wrap' },
+                button(group.wallpaper ? tr('Changer la photo de fond') : tr('Photo de fond'), () => wallpaperInput.click(), { iconName: 'image', small: true }),
+                group.wallpaper && button(tr('Retirer la photo de fond'), act(() => api.deleteWallpaper(groupId)), { small: true }),
+                wallpaperInput,
+              ),
           ),
         ),
       ),

@@ -183,6 +183,24 @@ describe('admin access', () => {
     expect(res.status).toBe(429);
   });
 
+  it('gives a member a new personal code after a lost phone', async () => {
+    const { papote, agent } = start();
+    const lou = (await agent.post('/api/join').send({ code: papote.bootstrapCode(), name: 'Lou' })).body;
+    const old = (await agent.get('/api/me/code').set('Authorization', `Bearer ${lou.token}`)).body.code;
+    const { session } = await login(agent);
+    expect((await agent.get(`/admin/members/${lou.user.id}/code`).set('Cookie', session)).text).toContain('Nouveau code pour Lou');
+    const page = await agent.post(`/admin/members/${lou.user.id}/code`).set('Cookie', session).type('form').send({ confirm: '1' });
+    const code = page.text.match(/class="code-big">([A-Z0-9-]{9})</)[1];
+    expect(code).not.toBe(old);
+    expect(page.text).toContain('<svg');
+    // The lost phone is signed out; the old code no longer works, the new one opens the account.
+    expect((await agent.get('/api/me').set('Authorization', `Bearer ${lou.token}`)).status).toBe(401);
+    expect((await agent.post('/api/link').send({ code: old })).status).toBe(404);
+    const linked = await agent.post('/api/link').send({ code });
+    expect(linked.status).toBe(201);
+    expect(linked.body.user.id).toBe(lou.user.id);
+  });
+
   it('puts a deleted group in the trash, restorable for 30 days, then purges it', async () => {
     const { papote, agent } = start();
     const { session } = await login(agent);

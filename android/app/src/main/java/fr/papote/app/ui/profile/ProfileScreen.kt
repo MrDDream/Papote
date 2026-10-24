@@ -1,5 +1,7 @@
 package fr.papote.app.ui.profile
 
+import fr.papote.app.ui.theme.pShape
+
 import fr.papote.app.tr
 
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -157,7 +159,7 @@ fun ProfileScreen(onBack: () -> Unit) {
         TopBar(tr("Paramètres"), onBack)
 
         Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(c.card).padding(18.dp),
+            Modifier.fillMaxWidth().clip(pShape(28.dp)).background(c.card).padding(18.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {

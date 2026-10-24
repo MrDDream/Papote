@@ -1,5 +1,7 @@
 package fr.papote.app.ui.games
 
+import fr.papote.app.ui.theme.pShape
+
 import fr.papote.app.tr
 
 import androidx.compose.foundation.Canvas
@@ -169,11 +171,11 @@ fun GamesScreen(groupId: Long, onBack: () -> Unit, onOpen: (Long) -> Unit) {
                     else -> tr("mot {} · {} trouvé(s)", s.int("round"), s.int("wins"))
                 }
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(info.bg).clickable(role = Role.Button) { onOpen(g.id) }.padding(12.dp),
+                    Modifier.fillMaxWidth().clip(pShape(22.dp)).background(info.bg).clickable(role = Role.Button) { onOpen(g.id) }.padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = 0.7f)), contentAlignment = Alignment.Center) { Icon(info.icon, null, tint = Ink) }
+                    Box(Modifier.size(44.dp).clip(pShape(14.dp)).background(Color.White.copy(alpha = 0.7f)), contentAlignment = Alignment.Center) { Icon(info.icon, null, tint = Ink) }
                     Column(Modifier.weight(1f)) {
                         Text(info.name, style = MaterialTheme.typography.titleMedium, color = Ink)
                         Text(summary, style = MaterialTheme.typography.bodySmall, color = Ink)
@@ -187,11 +189,11 @@ fun GamesScreen(groupId: Long, onBack: () -> Unit, onOpen: (Long) -> Unit) {
             Catalogue.filter { (_, _, duo) -> filter == "all" || (filter == "duo") == duo }.forEach { (kind, meta, duo) ->
                 val info = gameInfo(kind)
                 Column(
-                    Modifier.weight(1f).heightIn(min = 120.dp).clip(RoundedCornerShape(22.dp)).background(info.bg)
+                    Modifier.weight(1f).heightIn(min = 120.dp).clip(pShape(22.dp)).background(info.bg)
                         .clickable(role = Role.Button) { if (duo && group?.direct != true) pickFor = kind else start(kind) }.padding(14.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
-                    Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = 0.7f)), contentAlignment = Alignment.Center) { Icon(info.icon, null, tint = Ink) }
+                    Box(Modifier.size(44.dp).clip(pShape(14.dp)).background(Color.White.copy(alpha = 0.7f)), contentAlignment = Alignment.Center) { Icon(info.icon, null, tint = Ink) }
                     Text(info.name, style = MaterialTheme.typography.titleMedium, color = Ink)
                     Text(meta, style = MaterialTheme.typography.bodySmall, color = Ink)
                 }
@@ -210,7 +212,7 @@ fun GamesScreen(groupId: Long, onBack: () -> Unit, onOpen: (Long) -> Unit) {
                 }, Modifier.fillMaxWidth(), icon = PIcons.PersonPlus)
                 members.filter { it.id != app.session.userId && !it.pending }.forEach { m ->
                     Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).clickable(role = Role.Button) {
+                        Modifier.fillMaxWidth().clip(pShape(18.dp)).clickable(role = Role.Button) {
                             pickFor = null
                             start(kind, m.id)
                         }.padding(8.dp),
@@ -294,7 +296,7 @@ fun GameScreen(gameId: Long, onBack: () -> Unit) {
             val info = gameInfo(g?.kind)
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 SquareIconButton(PIcons.Back, tr("Retour"), onBack)
-                Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(info.bg), contentAlignment = Alignment.Center) { Icon(info.icon, null, tint = Ink) }
+                Box(Modifier.size(44.dp).clip(pShape(14.dp)).background(info.bg), contentAlignment = Alignment.Center) { Icon(info.icon, null, tint = Ink) }
                 Column(Modifier.weight(1f)) {
                     Text(info.name, style = MaterialTheme.typography.headlineSmall, color = c.ink)
                     if (g?.status == "done") Text(tr("Partie terminée"), style = MaterialTheme.typography.bodySmall, color = c.muted)
@@ -339,8 +341,8 @@ private fun ScoreCards(players: List<Long?>, scores: List<Int>, turn: Int?, name
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         for (i in 0..1) {
             Row(
-                Modifier.weight(1f).clip(RoundedCornerShape(20.dp)).background(if (i == 0) Color(0xFFFFE0E8) else Color(0xFFEDE6FF))
-                    .border(3.dp, if (turn == i && players.getOrNull(1) != null) c.primary else Color.Transparent, RoundedCornerShape(20.dp)).padding(10.dp),
+                Modifier.weight(1f).clip(pShape(20.dp)).background(if (i == 0) Color(0xFFFFE0E8) else Color(0xFFEDE6FF))
+                    .border(3.dp, if (turn == i && players.getOrNull(1) != null) c.primary else Color.Transparent, pShape(20.dp)).padding(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
@@ -387,7 +389,7 @@ private fun BoardGame(g: Game, s: JsonObject, me: Long?, nameOf: (Long?) -> Stri
                     val i = r * 3 + col
                     val v = board.getOrNull(i)
                     Box(
-                        Modifier.size(96.dp).clip(RoundedCornerShape(22.dp)).background(if (i in line) Color(0xFFFFF0B8) else c.card)
+                        Modifier.size(96.dp).clip(pShape(22.dp)).background(if (i in line) Color(0xFFFFF0B8) else c.card)
                             .clickable(enabled = v == null && result == null, role = Role.Button) { play(jsonOf("cell" to i)) }
                             .semantics { contentDescription = "Case ${r + 1}-${col + 1} : " + when (v) { 0 -> tr("cœur"); 1 -> tr("étoile"); else -> "vide" } },
                         contentAlignment = Alignment.Center,
@@ -399,13 +401,13 @@ private fun BoardGame(g: Game, s: JsonObject, me: Long?, nameOf: (Long?) -> Stri
         Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 for (col in 0..6) Box(
-                    Modifier.weight(1f).height(34.dp).clip(RoundedCornerShape(10.dp)).background(c.soft)
+                    Modifier.weight(1f).height(34.dp).clip(pShape(10.dp)).background(c.soft)
                         .clickable(enabled = result == null && board[col] == null, role = Role.Button) { play(jsonOf("col" to col)) }
                         .semantics { contentDescription = tr("Jouer colonne {}", col + 1) },
                     contentAlignment = Alignment.Center,
                 ) { Text("↓", color = c.primary, fontWeight = FontWeight.ExtraBold) }
             }
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Color(0xFF6A47D6)).padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(Modifier.fillMaxWidth().clip(pShape(22.dp)).background(Color(0xFF6A47D6)).padding(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 for (r in 0..5) Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     for (col in 0..6) {
                         val i = r * 7 + col
@@ -441,7 +443,7 @@ private fun Rps(s: JsonObject, me: Long?, nameOf: (Long?) -> String, play: (Json
         for ((k, e) in emo) {
             val chosen = you >= 0 && picks.getOrNull(you) == k
             Column(
-                Modifier.weight(1f).clip(RoundedCornerShape(22.dp)).background(c.card).border(3.dp, if (chosen) c.primary else Color.Transparent, RoundedCornerShape(22.dp))
+                Modifier.weight(1f).clip(pShape(22.dp)).background(c.card).border(3.dp, if (chosen) c.primary else Color.Transparent, pShape(22.dp))
                     .clickable(enabled = !(you >= 0 && picks.getOrNull(you) != null), role = Role.Button) { play(jsonOf("pick" to k)) }.padding(vertical = 14.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
@@ -491,7 +493,7 @@ private fun Hangman(s: JsonObject, nameOf: (Long?) -> String, play: (JsonObject)
                 val used = "$l" in guessed
                 val ok = used && "$l" in mask
                 Box(
-                    Modifier.weight(1f).height(42.dp).clip(RoundedCornerShape(12.dp))
+                    Modifier.weight(1f).height(42.dp).clip(pShape(12.dp))
                         .background(if (!used) c.card else if (ok) Color(0xFFCDEFE0) else c.dangerBg)
                         .clickable(enabled = !used, role = Role.Button) { play(jsonOf("letter" to "$l")) },
                     contentAlignment = Alignment.Center,
@@ -515,10 +517,10 @@ private fun Quiz(s: JsonObject, me: Long?, members: Map<Long, Member>, nameOf: (
     val cur = questions.lastOrNull()
     val last = questions.lastOrNull { it["answer"] != null }
     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        repeat(total) { i -> Box(Modifier.weight(1f).height(8.dp).clip(RoundedCornerShape(4.dp)).background(if (i < answered) c.primary else c.card)) }
+        repeat(total) { i -> Box(Modifier.weight(1f).height(8.dp).clip(pShape(4.dp)).background(if (i < answered) c.primary else c.card)) }
     }
     if (!s.bool("done") && cur != null && cur["answer"] == null) {
-        Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.card).padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.fillMaxWidth().clip(pShape(24.dp)).background(c.card).padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("« ${cur.str("quote")} »", fontFamily = Baloo, fontWeight = FontWeight.Bold, fontSize = 20.sp, color = c.ink)
             cur.long("date")?.let { Text(tr("Message du {}", fr.papote.app.ui.dayLabel(it).lowercase()), style = MaterialTheme.typography.bodySmall, color = c.muted) }
         }
@@ -526,7 +528,7 @@ private fun Quiz(s: JsonObject, me: Long?, members: Map<Long, Member>, nameOf: (
             for (ch in cur.arr("choices").map { it.jsonObject }) {
                 val id = ch.long("id")
                 Row(
-                    Modifier.weight(1f).clip(RoundedCornerShape(20.dp)).background(c.card).clickable(role = Role.Button) { play(jsonOf("answer" to id)) }.padding(10.dp),
+                    Modifier.weight(1f).clip(pShape(20.dp)).background(c.card).clickable(role = Role.Button) { play(jsonOf("answer" to id)) }.padding(10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
@@ -543,7 +545,7 @@ private fun Quiz(s: JsonObject, me: Long?, members: Map<Long, Member>, nameOf: (
     }
     if (s.bool("done")) Status(tr("Fini ! Tu as {} points.", s.obj("scores")?.int("$me") ?: 0))
     val scores = s.obj("scores")?.entries?.sortedByDescending { it.value.jsonPrimitive.intOrNull ?: 0 }.orEmpty()
-    if (scores.isNotEmpty()) Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.card).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    if (scores.isNotEmpty()) Column(Modifier.fillMaxWidth().clip(pShape(24.dp)).background(c.card).padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(tr("Scores"), style = MaterialTheme.typography.titleMedium, color = c.ink)
         for ((uid, pts) in scores) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             val m = members[uid.toLongOrNull()]
@@ -578,7 +580,7 @@ private fun Pictionary(g: Game, s: JsonObject, me: Long?, members: Map<Long, Mem
 
     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         for (p in players) Row(
-            Modifier.clip(RoundedCornerShape(16.dp)).background(if (p == drawer) Color(0xFFFFF0B8) else c.card).padding(start = 4.dp, end = 10.dp, top = 4.dp, bottom = 4.dp),
+            Modifier.clip(pShape(16.dp)).background(if (p == drawer) Color(0xFFFFF0B8) else c.card).padding(start = 4.dp, end = 10.dp, top = 4.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
@@ -637,14 +639,14 @@ private fun Pictionary(g: Game, s: JsonObject, me: Long?, members: Map<Long, Mem
     }
     for (gs in s.arr("guesses").map { it.jsonObject }.takeLast(8)) {
         val result = gs.str("result")
-        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(c.card).padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth().clip(pShape(14.dp)).background(c.card).padding(horizontal = 12.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(nameOf(gs.long("userId")), fontWeight = FontWeight.ExtraBold, color = c.ink)
             Text(gs.str("text") ?: tr("a trouvé !"), Modifier.weight(1f), color = c.ink)
             Text(
                 when (result) { "found" -> "+ points"; "close" -> tr("Presque !"); else -> tr("Non") },
                 style = MaterialTheme.typography.labelMedium,
                 color = Ink,
-                modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(when (result) { "found" -> Color(0xFFCDEFE0); "close" -> Color(0xFFFFF0B8); else -> c.soft }).padding(horizontal = 8.dp, vertical = 2.dp),
+                modifier = Modifier.clip(pShape(8.dp)).background(when (result) { "found" -> Color(0xFFCDEFE0); "close" -> Color(0xFFFFF0B8); else -> c.soft }).padding(horizontal = 8.dp, vertical = 2.dp),
             )
         }
     }

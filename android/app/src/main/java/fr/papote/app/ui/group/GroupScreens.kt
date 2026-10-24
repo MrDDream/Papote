@@ -1,5 +1,7 @@
 package fr.papote.app.ui.group
 
+import fr.papote.app.ui.theme.pShape
+
 import fr.papote.app.tr
 
 import android.content.ContentValues
@@ -96,18 +98,18 @@ private val MONTHS = listOf(tr("janvier"), tr("février"), tr("mars"), tr("avril
 @Composable
 private fun Card(content: @Composable () -> Unit) {
     val c = Papote.colors
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(c.card).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { content() }
+    Column(Modifier.fillMaxWidth().clip(pShape(28.dp)).background(c.card).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) { content() }
 }
 
 @Composable
 private fun LinkRow(icon: ImageVector, title: String, sub: String?, onClick: () -> Unit) {
     val c = Papote.colors
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).clickable(role = Role.Button, onClick = onClick).padding(8.dp),
+        Modifier.fillMaxWidth().clip(pShape(18.dp)).clickable(role = Role.Button, onClick = onClick).padding(8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Box(Modifier.size(40.dp).clip(RoundedCornerShape(14.dp)).background(c.soft), contentAlignment = Alignment.Center) { Icon(icon, null, tint = c.primary) }
+        Box(Modifier.size(40.dp).clip(pShape(14.dp)).background(c.soft), contentAlignment = Alignment.Center) { Icon(icon, null, tint = c.primary) }
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.labelLarge, color = c.ink)
             if (sub != null) Text(sub, style = MaterialTheme.typography.bodySmall, color = c.muted)
@@ -143,6 +145,16 @@ fun GroupSettingsScreen(
     var addReaction by remember { mutableStateOf(false) }
     var talkie by remember { mutableStateOf(app.session.talkie(groupId)) }
     var exporting by remember { mutableStateOf(false) }
+    // A picture behind the messages: resized like the others, dimmed when shown.
+    val pickWallpaper = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) scope.launch {
+            try {
+                group = app.api.setWallpaper(groupId, fr.papote.app.ui.chat.prepareImage(context, uri).bytes)
+            } catch (e: ApiException) {
+                error = e.message
+            }
+        }
+    }
 
     suspend fun load() {
         try {
@@ -199,9 +211,35 @@ fun GroupSettingsScreen(
                 if (!canTheme) Text(tr("réservé aux admins"), style = MaterialTheme.typography.bodySmall, color = c.muted)
             }
             if (!g.direct && canTheme) TintPicker(g.color, { col -> act { app.api.updateGroup(groupId, jsonOf("color" to col)) } })
-            Segmented(listOf("none" to tr("Uni"), "dots" to tr("Pois"), "stripes" to tr("Rayures"), "grid" to tr("Grille")), s.pattern, { p ->
-                if (canTheme) act { app.api.groupSettings(groupId, jsonOf("pattern" to p)) }
-            }, Modifier.fillMaxWidth())
+            val labels = mapOf(
+                "none" to tr("Uni"), "dots" to tr("Pois"), "stripes" to tr("Rayures"), "grid" to tr("Grille"),
+                "hearts" to tr("Cœurs"), "stars" to tr("Étoiles"), "waves" to tr("Vagues"), "leaves" to tr("Feuilles"),
+                "confetti" to tr("Confettis"), "clouds" to tr("Nuages"), "paws" to tr("Pattes"), "notes" to tr("Musique"),
+            )
+            FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                for (p in fr.papote.app.ui.chat.BgPatterns) {
+                    val on = s.pattern == p
+                    Column(
+                        Modifier.clip(pShape(16.dp)).border(2.dp, if (on) c.primary else Color.Transparent, pShape(16.dp))
+                            .clickable(enabled = canTheme, role = Role.RadioButton) { act { app.api.groupSettings(groupId, jsonOf("pattern" to p)) } }
+                            .semantics { contentDescription = labels[p] ?: p }
+                            .padding(4.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        fr.papote.app.ui.chat.ChatBackground(
+                            p, g.color, null,
+                            Modifier.size(52.dp).clip(pShape(12.dp)).background(c.surfaceOf(tint(g.color))).border(1.dp, c.line, pShape(12.dp)),
+                        )
+                        Text(labels[p] ?: p, style = MaterialTheme.typography.labelMedium.copy(fontSize = 11.sp), color = c.ink)
+                    }
+                }
+            }
+            if (canTheme) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                SecondaryButton(if (g.wallpaper != null) tr("Changer la photo de fond") else tr("Photo de fond"), {
+                    pickWallpaper.launch(androidx.activity.result.PickVisualMediaRequest(androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia.ImageOnly))
+                }, Modifier.weight(1f), icon = PIcons.Photo, height = 44.dp)
+                if (g.wallpaper != null) SecondaryButton(tr("Retirer"), { act { app.api.deleteWallpaper(groupId) } }, height = 44.dp)
+            }
         }
         Card {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -212,7 +250,7 @@ fun GroupSettingsScreen(
                 for (k in s.reactions) {
                     val r = PIcons.reaction(k)
                     Box(
-                        Modifier.size(46.dp).clip(RoundedCornerShape(16.dp)).background(r?.bg ?: c.field)
+                        Modifier.size(46.dp).clip(pShape(16.dp)).background(r?.bg ?: c.field)
                             .clickable(enabled = canTheme && s.reactions.size > 1, role = Role.Button) {
                                 act { app.api.groupSettings(groupId, jsonOf("reactions" to kotlinx.serialization.json.JsonArray((s.reactions - k).map { kotlinx.serialization.json.JsonPrimitive(it) }))) }
                             }
@@ -221,7 +259,7 @@ fun GroupSettingsScreen(
                     ) { if (r != null) Icon(r.icon, null, tint = r.fg) else Text(k, fontSize = 22.sp) }
                 }
                 if (canTheme && s.reactions.size < 8) Box(
-                    Modifier.size(46.dp).clip(RoundedCornerShape(16.dp)).background(c.soft).clickable(role = Role.Button) { addReaction = !addReaction }
+                    Modifier.size(46.dp).clip(pShape(16.dp)).background(c.soft).clickable(role = Role.Button) { addReaction = !addReaction }
                         .semantics { contentDescription = tr("Ajouter une réaction") },
                     contentAlignment = Alignment.Center,
                 ) { Icon(PIcons.Plus, null, tint = c.primary) }
@@ -230,7 +268,7 @@ fun GroupSettingsScreen(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     PIcons.Reactions.filter { it.key !in s.reactions }.forEach { r ->
                         Box(
-                            Modifier.size(46.dp).clip(RoundedCornerShape(16.dp)).background(r.bg).clickable(role = Role.Button) {
+                            Modifier.size(46.dp).clip(pShape(16.dp)).background(r.bg).clickable(role = Role.Button) {
                                 addReaction = false
                                 act { app.api.groupSettings(groupId, jsonOf("reactions" to kotlinx.serialization.json.JsonArray((s.reactions + r.key).map { kotlinx.serialization.json.JsonPrimitive(it) }))) }
                             }.semantics { contentDescription = r.label },
@@ -250,7 +288,7 @@ fun GroupSettingsScreen(
                 for (m in Moods) {
                     val on = me?.mood == m.key
                     Row(
-                        Modifier.clip(RoundedCornerShape(14.dp)).background(if (on) c.soft else c.field).border(2.dp, if (on) c.primary else c.line, RoundedCornerShape(14.dp))
+                        Modifier.clip(pShape(14.dp)).background(if (on) c.soft else c.field).border(2.dp, if (on) c.primary else c.line, pShape(14.dp))
                             .clickable(role = Role.RadioButton) {
                                 scope.launch {
                                     try {
@@ -382,7 +420,7 @@ fun SearchScreen(groupId: Long, onBack: () -> Unit, onOpen: (Long) -> Unit) {
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 pins.forEachIndexed { i, p ->
                     Column(
-                        Modifier.width(160.dp).clip(RoundedCornerShape(18.dp)).background(listOf(Color(0xFFFFF0B8), Color(0xFFD6E8FF), Color(0xFFFFE0E8), Color(0xFFCDEFE0))[i % 4])
+                        Modifier.width(160.dp).clip(pShape(18.dp)).background(listOf(Color(0xFFFFF0B8), Color(0xFFD6E8FF), Color(0xFFFFE0E8), Color(0xFFCDEFE0))[i % 4])
                             .clickable(role = Role.Button) { onOpen(p.id) }.padding(12.dp),
                     ) {
                         Text(members[p.authorId]?.name.orEmpty(), style = MaterialTheme.typography.labelMedium, color = Ink, fontWeight = FontWeight.ExtraBold)
@@ -400,7 +438,7 @@ fun SearchScreen(groupId: Long, onBack: () -> Unit, onOpen: (Long) -> Unit) {
                     l,
                     style = MaterialTheme.typography.labelLarge,
                     color = if (on) c.onPrimary else c.ink,
-                    modifier = Modifier.clip(RoundedCornerShape(14.dp)).background(if (on) c.primary else c.card).clickable(role = Role.RadioButton) { filter = k }
+                    modifier = Modifier.clip(pShape(14.dp)).background(if (on) c.primary else c.card).clickable(role = Role.RadioButton) { filter = k }
                         .padding(horizontal = 14.dp, vertical = 8.dp),
                 )
             }
@@ -410,7 +448,7 @@ fun SearchScreen(groupId: Long, onBack: () -> Unit, onOpen: (Long) -> Unit) {
             for (m in list) {
                 val a = members[m.authorId]
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(c.card).clickable(role = Role.Button) { onOpen(m.id) }.padding(10.dp),
+                    Modifier.fillMaxWidth().clip(pShape(18.dp)).background(c.card).clickable(role = Role.Button) { onOpen(m.id) }.padding(10.dp),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
                     Avatar(a?.name ?: "?", a?.color ?: "lilas", a?.photo, size = 36.dp, initialOnly = true)
@@ -491,11 +529,11 @@ fun GalleryScreen(groupId: Long, onBack: () -> Unit, onDrawing: (Long) -> Unit) 
         TopBar(tr("Galerie"), onBack, subtitle = "$total souvenir${if (total > 1) "s" else ""}")
         memory?.let { m ->
             Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Color(0xFFFFF0B8)).clickable(role = Role.Button) { open(m) }.padding(10.dp),
+                Modifier.fillMaxWidth().clip(pShape(22.dp)).background(Color(0xFFFFF0B8)).clickable(role = Role.Button) { open(m) }.padding(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                AsyncImage(app.mediaUrl(m.media?.url), null, contentScale = ContentScale.Crop, modifier = Modifier.size(64.dp).clip(RoundedCornerShape(14.dp)))
+                AsyncImage(app.mediaUrl(m.media?.url), null, contentScale = ContentScale.Crop, modifier = Modifier.size(64.dp).clip(pShape(14.dp)))
                 Column {
                     Text(tr("Il y a un an jour pour jour…"), style = MaterialTheme.typography.titleMedium, color = Ink)
                     Text("${if (m.type == "drawing") tr("Le dessin") else tr("La photo")} ${of(members[m.authorId]?.name ?: tr("quelqu’un"))}", style = MaterialTheme.typography.bodySmall, color = Ink)
@@ -521,7 +559,7 @@ fun GalleryScreen(groupId: Long, onBack: () -> Unit, onDrawing: (Long) -> Unit) 
             FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp), maxItemsInEachRow = 3) {
                 for (m in list) {
                     Box(
-                        Modifier.weight(1f).aspectRatio(1f).clip(RoundedCornerShape(18.dp)).background(bg[m.type] ?: c.soft).clickable(role = Role.Button) { open(m) }
+                        Modifier.weight(1f).aspectRatio(1f).clip(pShape(18.dp)).background(bg[m.type] ?: c.soft).clickable(role = Role.Button) { open(m) }
                             .semantics { contentDescription = (mapOf("drawing" to tr("Dessin"), "photo" to tr("Photo"), "gif" to "GIF", "voice" to tr("Vocal"))[m.type] ?: "") + " " + of(members[m.authorId]?.name ?: tr("quelqu’un")) },
                     ) {
                         if (m.type == "voice") Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
@@ -577,7 +615,7 @@ fun RecapScreen(groupId: Long, initialMonth: String?, onBack: () -> Unit) {
         TopBar(tr("Le récap"), onBack)
         val r = recap ?: return@Column ErrorText(error)
         Column(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(Brush.linearGradient(listOf(Color(0xFFFFE0E8), Color(0xFFEDE6FF)))).padding(16.dp),
+            Modifier.fillMaxWidth().clip(pShape(28.dp)).background(Brush.linearGradient(listOf(Color(0xFFFFE0E8), Color(0xFFEDE6FF)))).padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
@@ -590,7 +628,7 @@ fun RecapScreen(groupId: Long, initialMonth: String?, onBack: () -> Unit) {
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(Triple(r.stats.messages, "messages", Color(0xFFFFE0E8)), Triple(r.stats.drawings, "dessins", Color(0xFFFFF0B8)), Triple(r.stats.voices, "vocaux", Color(0xFFCDEFE0))).forEach { (n, l, bg) ->
-                Column(Modifier.weight(1f).clip(RoundedCornerShape(20.dp)).background(bg).padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(Modifier.weight(1f).clip(pShape(20.dp)).background(bg).padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("$n", fontFamily = Baloo, fontWeight = FontWeight.ExtraBold, fontSize = 26.sp, color = Ink)
                     Text(l, color = Ink)
                 }
@@ -612,7 +650,7 @@ fun RecapScreen(groupId: Long, initialMonth: String?, onBack: () -> Unit) {
                 else -> tr("{} · {} messages", b.user?.name, b.value)
             }
             Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(c.card).padding(12.dp),
+                Modifier.fillMaxWidth().clip(pShape(22.dp)).background(c.card).padding(12.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {

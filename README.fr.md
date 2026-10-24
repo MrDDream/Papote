@@ -33,6 +33,7 @@ On rejoint un groupe avec un code d'invitation à 6 caractères (ou un QR code).
 - **Discussion** : texte, photos, **vidéos et documents**, vocaux avec forme d'onde, dessins, emoji (les mêmes emoji Noto partout), réactions (intégrées + n'importe quel emoji), **répondre en glissant un message**, **coches de lecture** (envoyé, lu par une partie, lu par tout le monde), indicateur « écrit… » en direct, messages épinglés, recherche (textes et vocaux transcrits), galerie avec « il y a un an jour pour jour ». Touche une photo de profil pour la voir en grand.
 - **Partager vers Papote** depuis n'importe quelle appli (texte, lien, image), et directement vers une conversation depuis le menu de partage d'Android.
 - **Français ou anglais**, au choix dans les Paramètres (🇫🇷 / 🇬🇧).
+- **Des thèmes pour toute l'appli** : Papote et ses coloris, plus Nuit étoilée, Carnet, Néo-pop, Sobre, Arcade et Forêt (polices et formes comprises), chacun en clair et en sombre. Chaque groupe choisit son fond : 12 motifs (cœurs, étoiles, vagues, feuilles, confettis…) ou une photo.
 - **Le côté ludique** : Bubu, la mascotte qui réagit au groupe (endormie, contente, surexcitée, en fête, étonnée), stories de 24 h, sondages, partage de position *sans service de carte*, bandeau et confettis d'anniversaire, récap du mois avec médailles, stickers du groupe et favoris, GIF via GIPHY (toujours relayés par ton serveur).
 - **Dessin** : pinceau, feutre, gomme, pot de peinture, tampons ; timelapse ; « dessiner dessus » une photo ; une **toile commune** où tout le monde dessine en même temps.
 - **Mini-jeux** : Morpion, Puissance 4, Chifoumi, Pendu, « Qui a dit ça ? » (avec vos vieux messages) et Pictionary en direct.
@@ -41,7 +42,7 @@ On rejoint un groupe avec un code d'invitation à 6 caractères (ou un QR code).
 - **Groupes** : couleurs, 20 icônes ou une image, motifs de fond, réactions rapides propres au groupe, rôles (créateur·rice / admin / membre), validation des nouveaux, sourdine, export en `.zip`, discussions à deux.
 - **Un compte, plusieurs appareils**, avec un code personnel permanent (et son QR code), fusion de comptes, 2FA en option, verrouillage de l'app (code ou empreinte) sur Android.
 - **Notifications sans Google** : l'app Android garde sa propre connexion ; les navigateurs et la PWA iPhone reçoivent du Web Push, chiffré pour le navigateur.
-- **Admin web** (`/admin`) : tableau de bord, santé du serveur, stockage, **sauvegarde & restauration**, journal filtrable, codes d'invitation, membres, groupes avec une **corbeille de 30 jours**, 2FA, liste d'adresses autorisées, **vérification des nouvelles versions** (l'app Android propose elle-même le nouvel APK). L'admin ne voit jamais le contenu des groupes.
+- **Admin web** (`/admin`) : tableau de bord, santé du serveur, stockage, **sauvegarde & restauration**, journal filtrable, codes d'invitation, membres, groupes avec une **corbeille de 30 jours**, 2FA, liste d'adresses autorisées, **nouveau code personnel pour un membre** qui a perdu son téléphone (tous ses appareils déconnectés, 2FA du compte retirée), **vérification des nouvelles versions** (l'app Android propose elle-même le nouvel APK). L'admin ne voit jamais le contenu des groupes.
 
 ## Installation rapide (Docker Compose)
 

@@ -1,5 +1,7 @@
 package fr.papote.app.ui.groups
 
+import fr.papote.app.ui.theme.pShape
+
 import fr.papote.app.tr
 
 import androidx.compose.foundation.background
@@ -63,6 +65,8 @@ import fr.papote.app.ui.shortWhen
 import fr.papote.app.ui.theme.PIcons
 import fr.papote.app.ui.theme.Papote
 import fr.papote.app.ui.theme.tint
+import fr.papote.app.ui.theme.lookOutline
+import fr.papote.app.ui.theme.lookShadow
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -202,7 +206,7 @@ fun GroupsScreen(onOpen: (Long) -> Unit, onJoinCode: () -> Unit, onNewGroup: () 
                     f.label + (n?.takeIf { it > 0 }?.let { " · $it" } ?: ""),
                     style = MaterialTheme.typography.labelLarge.copy(fontSize = 13.sp),
                     color = if (on) c.onPrimary else c.ink,
-                    modifier = Modifier.clip(RoundedCornerShape(14.dp)).background(if (on) c.primary else c.card)
+                    modifier = Modifier.clip(pShape(14.dp)).background(if (on) c.primary else c.card)
                         .clickable(role = Role.RadioButton) { filter = f }
                         .padding(horizontal = 14.dp, vertical = 8.dp),
                 )
@@ -220,8 +224,8 @@ fun GroupsScreen(onOpen: (Long) -> Unit, onJoinCode: () -> Unit, onNewGroup: () 
                 else -> LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(state.waiting, key = { "w${it.id}" }) { w ->
                         Row(
-                            Modifier.fillMaxWidth().clip(androidx.compose.foundation.shape.RoundedCornerShape(22.dp)).background(Papote.colors.card)
-                                .then(Modifier.border(2.dp, Papote.colors.line, androidx.compose.foundation.shape.RoundedCornerShape(22.dp))).padding(12.dp),
+                            Modifier.fillMaxWidth().clip(pShape(22.dp)).background(Papote.colors.card)
+                                .then(Modifier.border(2.dp, Papote.colors.line, pShape(22.dp))).padding(12.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(12.dp),
                         ) {
@@ -249,7 +253,7 @@ private fun UpdateBanner(r: fr.papote.app.data.LatestRelease, onLater: () -> Uni
     val c = Papote.colors
     val context = androidx.compose.ui.platform.LocalContext.current
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.soft).padding(start = 14.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
+        Modifier.fillMaxWidth().clip(pShape(20.dp)).background(c.soft).padding(start = 14.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
@@ -262,13 +266,13 @@ private fun UpdateBanner(r: fr.papote.app.data.LatestRelease, onLater: () -> Uni
             tr("Plus tard"),
             style = MaterialTheme.typography.labelMedium,
             color = c.muted,
-            modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(role = Role.Button, onClick = onLater).padding(horizontal = 8.dp, vertical = 8.dp),
+            modifier = Modifier.clip(pShape(12.dp)).clickable(role = Role.Button, onClick = onLater).padding(horizontal = 8.dp, vertical = 8.dp),
         )
         Text(
             tr("Installer"),
             style = MaterialTheme.typography.labelLarge,
             color = c.onPrimary,
-            modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(c.primary)
+            modifier = Modifier.clip(pShape(12.dp)).background(c.primary)
                 .clickable(role = Role.Button) { fr.papote.app.data.AppUpdates.download(context, r) }.padding(horizontal = 12.dp, vertical = 8.dp),
         )
     }
@@ -307,7 +311,9 @@ private fun GroupCard(g: GroupSummary, meId: Long?, onClick: () -> Unit) {
         else -> PIcons.Text
     }
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.surfaceOf(t))
+        Modifier.fillMaxWidth().lookShadow(pShape(24.dp), c.ink).clip(pShape(24.dp))
+            .background(if (fr.papote.app.ui.theme.ActiveLook.value.plainSurfaces) c.card else c.surfaceOf(t))
+            .lookOutline(pShape(24.dp), if (fr.papote.app.ui.theme.ActiveLook.value.dashed) c.muted else c.line)
             .clickable(role = Role.Button, onClick = onClick).padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
@@ -331,7 +337,7 @@ private fun GroupCard(g: GroupSummary, meId: Long?, onClick: () -> Unit) {
                 )
                 if (g.unread > 0) {
                     Box(
-                        Modifier.defaultMinSize(24.dp, 24.dp).clip(RoundedCornerShape(12.dp)).background(c.primary).padding(horizontal = 7.dp),
+                        Modifier.defaultMinSize(24.dp, 24.dp).clip(pShape(12.dp)).background(c.primary).padding(horizontal = 7.dp),
                         contentAlignment = Alignment.Center,
                     ) {
                         Text(if (g.unread > 99) "99+" else "${g.unread}", style = MaterialTheme.typography.labelMedium, color = c.onPrimary)

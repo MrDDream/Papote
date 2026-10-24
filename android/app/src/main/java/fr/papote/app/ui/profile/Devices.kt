@@ -1,5 +1,7 @@
 package fr.papote.app.ui.profile
 
+import fr.papote.app.ui.theme.pShape
+
 import fr.papote.app.tr
 
 import androidx.compose.foundation.background
@@ -48,6 +50,8 @@ import fr.papote.app.ui.shortWhen
 import fr.papote.app.ui.theme.Baloo
 import fr.papote.app.ui.theme.PIcons
 import fr.papote.app.ui.theme.Papote
+import fr.papote.app.ui.theme.lookOutline
+import fr.papote.app.ui.theme.lookShadow
 import kotlinx.coroutines.launch
 
 private val CODE_CHARS = Regex("[A-HJ-NP-Z2-9]")
@@ -57,7 +61,8 @@ private val CODE_CHARS = Regex("[A-HJ-NP-Z2-9]")
 fun SettingsCard(title: String, action: (@Composable () -> Unit)? = null, content: @Composable ColumnScope.() -> Unit) {
     val c = Papote.colors
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(c.card).padding(18.dp),
+        Modifier.fillMaxWidth().lookShadow(pShape(28.dp), c.ink).clip(pShape(28.dp)).background(c.card)
+            .lookOutline(pShape(28.dp), if (fr.papote.app.ui.theme.ActiveLook.value.dashed) c.muted else c.line).padding(18.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -119,13 +124,13 @@ fun PersonalCodeCard() {
         },
     ) {
         Column(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.soft).padding(14.dp),
+            Modifier.fillMaxWidth().clip(pShape(20.dp)).background(c.soft).padding(14.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(code ?: "…", fontFamily = Baloo, fontWeight = FontWeight.ExtraBold, fontSize = 32.sp, letterSpacing = 3.sp, color = if (c.dark) c.ink else c.primaryDark)
             Text(app.session.server.orEmpty(), style = MaterialTheme.typography.bodySmall, color = c.muted)
             code?.let {
-                fr.papote.app.ui.extras.QrCode(fr.papote.app.ui.extras.inviteLink(app.session.server.orEmpty(), it, personal = true), 150.dp, Modifier.padding(top = 10.dp).clip(RoundedCornerShape(14.dp)))
+                fr.papote.app.ui.extras.QrCode(fr.papote.app.ui.extras.inviteLink(app.session.server.orEmpty(), it, personal = true), 150.dp, Modifier.padding(top = 10.dp).clip(pShape(14.dp)))
                 Text(tr("À scanner depuis ton autre appareil (« J’ai déjà un compte »)"), style = MaterialTheme.typography.bodySmall, color = c.muted)
             }
         }

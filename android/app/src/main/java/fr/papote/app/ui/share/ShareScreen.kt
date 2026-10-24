@@ -1,5 +1,7 @@
 package fr.papote.app.ui.share
 
+import fr.papote.app.ui.theme.pShape
+
 import fr.papote.app.tr
 
 import android.net.Uri
@@ -70,12 +72,12 @@ fun ShareScreen(shared: Shared, onBack: () -> Unit, onPick: (GroupSummary) -> Un
     Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         TopBar(tr("Partager dans Papote"), onBack, subtitle = tr("Choisis un groupe ou une personne"))
         Row(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(c.soft).padding(12.dp),
+            Modifier.fillMaxWidth().clip(pShape(18.dp)).background(c.soft).padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             if (shared.image != null) {
-                AsyncImage(shared.image, tr("Image partagée"), contentScale = ContentScale.Crop, modifier = Modifier.size(56.dp).clip(RoundedCornerShape(12.dp)))
+                AsyncImage(shared.image, tr("Image partagée"), contentScale = ContentScale.Crop, modifier = Modifier.size(56.dp).clip(pShape(12.dp)))
             } else {
                 Icon(PIcons.Share, null, tint = c.primary)
             }
@@ -90,7 +92,7 @@ fun ShareScreen(shared: Shared, onBack: () -> Unit, onPick: (GroupSummary) -> Un
             LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(list.filter { query.isBlank() || it.name.contains(query.trim(), ignoreCase = true) }, key = { it.id }) { g ->
                     Row(
-                        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.surfaceOf(tint(g.color)))
+                        Modifier.fillMaxWidth().clip(pShape(20.dp)).background(c.surfaceOf(tint(g.color)))
                             .clickable(role = Role.Button, onClickLabel = tr("Envoyer ici")) { onPick(g) }
                             .padding(12.dp),
                         verticalAlignment = Alignment.CenterVertically,

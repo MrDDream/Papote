@@ -23,6 +23,7 @@ import {
   reactionOf,
   replySnippet,
   fileSize,
+  chatBackground,
 } from './ui.js';
 import { emojiPicker, isEmojiOnly, QUICK_REACTIONS } from './emoji.js';
 import { clearNotifications } from './push.js';
@@ -118,6 +119,7 @@ export function chatScreen(groupId, query = new URLSearchParams()) {
       isAdmin() && pendingBanner(groupId, pending),
     );
     list.dataset.pattern = group?.settings?.pattern ?? 'none';
+    Object.assign(list.style, chatBackground(group));
   }
 
   function refreshBubu() {

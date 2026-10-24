@@ -33,6 +33,7 @@ People join a group with a 6-character invitation code (or a QR code). Messages,
 - **Chat**: text, photos, **videos and documents**, voice notes with waveform, drawings, emoji (the same Noto emoji everywhere), reactions (built-in + any emoji), **swipe a message to reply**, **read ticks** (sent, read by some, read by everyone), live typing indicators, pinned messages, search (text and transcribed voice notes), a gallery with "one year ago today". Tap a profile picture to see it big.
 - **Share to Papote** from any app (text, links, pictures), and straight to a conversation from Android's share sheet.
 - **French or English**, chosen in Settings (🇫🇷 / 🇬🇧).
+- **Themes for the whole app**: Papote and its colours, plus Starry night, Notebook, Neo-pop, Plain, Arcade and Forest (fonts and shapes change too), each in light and dark. Each group picks its own background: 12 patterns (hearts, stars, waves, leaves, confetti…) or a photo.
 - **The fun bits**: Bubu the mascot reacting to the group (sleepy, happy, excited, party, surprised), 24-hour stories, polls, location sharing *without any map service*, birthday banner and confetti, a monthly recap with medals, group stickers and favourites, GIFs through GIPHY (always relayed by your server).
 - **Drawing**: brush, marker, eraser, bucket, stamps; timelapse replay; "draw over" a photo; a **shared live canvas** everybody paints on at once.
 - **Mini-games**: Tic-tac-toe, Connect 4, Rock-paper-scissors, Hangman, "Who said that?" (from your old messages) and live Pictionary.
@@ -41,7 +42,7 @@ People join a group with a 6-character invitation code (or a QR code). Messages,
 - **Groups**: colours, 20 icons or a picture, background patterns, the group's own quick reactions, roles (owner / admin / member), approval of newcomers, mute, export as `.zip`, two-person conversations.
 - **One account, several devices**, with a permanent personal code (and QR code), account merge, optional 2FA, app lock (PIN or fingerprint) on Android.
 - **Notifications without Google**: the Android app keeps its own connection; browsers and the iPhone PWA get Web Push, encrypted for the browser.
-- **Admin web** (`/admin`): dashboard, server health, storage, **backup & restore**, journal with filters, invitation codes, members, groups with a **30-day trash**, 2FA, IP allowlist, **new version check** (the Android app offers the new APK by itself). The admin never sees group content.
+- **Admin web** (`/admin`): dashboard, server health, storage, **backup & restore**, journal with filters, invitation codes, members, groups with a **30-day trash**, 2FA, IP allowlist, a **new personal code for a member** who lost their phone (all their devices signed out, account 2FA removed), **new version check** (the Android app offers the new APK by itself). The admin never sees group content.
 
 ## Quick start (Docker Compose)
 

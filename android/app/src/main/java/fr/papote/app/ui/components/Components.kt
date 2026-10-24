@@ -1,5 +1,7 @@
 package fr.papote.app.ui.components
 
+import fr.papote.app.ui.theme.pShape
+
 import fr.papote.app.tr
 
 import androidx.compose.foundation.BorderStroke
@@ -76,6 +78,9 @@ import fr.papote.app.ui.theme.Papote
 import fr.papote.app.ui.theme.Tint
 import fr.papote.app.ui.theme.Tints
 import fr.papote.app.ui.theme.tint
+import fr.papote.app.ui.theme.ActiveLook
+import fr.papote.app.ui.theme.lookOutline
+import fr.papote.app.ui.theme.lookShadow
 
 private val BubblePath = PathParser().parsePathString(
     "M20 8 H92 a16 16 0 0 1 16 16 V64 a16 16 0 0 1 -16 16 H50 L30 98 L33 80 H20 a16 16 0 0 1 -16 -16 V24 a16 16 0 0 1 16 -16 Z",
@@ -249,13 +254,33 @@ fun PrimaryButton(
     val pressed by source.collectIsPressedAsState()
     val active = enabled && !loading
     val lift = if (pressed || !active) 1.dp else 5.dp
+    val look = ActiveLook.value
+    if (look.flat) {
+        // Themes other than Papote: a flat button (with Néo-pop's offset shadow and the theme's outline).
+        val shape = pShape(20.dp)
+        Row(
+            modifier.height(height).lookShadow(shape, c.ink).clip(shape)
+                .background(if (active) c.primary else c.soft).lookOutline(shape, c.ink)
+                .clickable(source, null, enabled = active, role = Role.Button, onClick = onClick),
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (loading) {
+                CircularProgressIndicator(Modifier.size(22.dp), color = c.primary, strokeWidth = 3.dp)
+            } else {
+                Text(text, fontFamily = Baloo, fontWeight = FontWeight.Bold, fontSize = textSize * look.displayScale.coerceAtLeast(0.75f), maxLines = 1, color = if (active) c.onPrimary else c.muted)
+                if (icon != null) Icon(icon, null, tint = if (active) c.onPrimary else c.muted, modifier = Modifier.size(22.dp))
+            }
+        }
+        return
+    }
     Box(modifier.height(height + 5.dp)) {
         Box(
-            Modifier.fillMaxWidth().height(height).offset(y = 5.dp).clip(RoundedCornerShape(20.dp))
+            Modifier.fillMaxWidth().height(height).offset(y = 5.dp).clip(pShape(20.dp))
                 .background(if (active) c.primaryDark else c.line),
         )
         Row(
-            Modifier.fillMaxWidth().height(height).offset(y = 5.dp - lift).clip(RoundedCornerShape(20.dp))
+            Modifier.fillMaxWidth().height(height).offset(y = 5.dp - lift).clip(pShape(20.dp))
                 .background(if (active) c.primary else c.soft)
                 .clickable(source, null, enabled = active, role = Role.Button, onClick = onClick),
             horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
@@ -291,9 +316,9 @@ fun SecondaryButton(
     val c = Papote.colors
     val fg = if (danger) c.danger else if (c.dark) c.ink else c.primaryDark
     Row(
-        modifier.height(height).clip(RoundedCornerShape(18.dp))
+        modifier.height(height).lookShadow(pShape(18.dp), c.ink).clip(pShape(18.dp))
             .background(if (danger) c.dangerBg else c.card)
-            .border(BorderStroke(2.dp, if (danger) c.dangerBg else c.line), RoundedCornerShape(18.dp))
+            .border(BorderStroke(2.dp, if (danger) c.dangerBg else c.line), pShape(18.dp))
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .padding(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally),
@@ -317,7 +342,7 @@ fun SquareIconButton(
     enabled: Boolean = true,
 ) {
     Box(
-        modifier.size(size).clip(RoundedCornerShape(16.dp)).background(background)
+        modifier.size(size).clip(pShape(16.dp)).background(background)
             .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .semantics { contentDescription = label },
         contentAlignment = Alignment.Center,
@@ -412,13 +437,13 @@ fun TintPicker(selected: String, onPick: (String) -> Unit, modifier: Modifier = 
 fun <T> Segmented(options: List<Pair<T, String>>, selected: T, onPick: (T) -> Unit, modifier: Modifier = Modifier) {
     val c = Papote.colors
     Row(
-        modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(c.soft).padding(4.dp),
+        modifier.fillMaxWidth().clip(pShape(16.dp)).background(c.soft).padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         for ((value, label) in options) {
             val on = value == selected
             Box(
-                Modifier.weight(1f).height(40.dp).clip(RoundedCornerShape(12.dp))
+                Modifier.weight(1f).height(40.dp).clip(pShape(12.dp))
                     .background(if (on) c.card else Color.Transparent)
                     .clickable(role = Role.RadioButton) { onPick(value) }
                     .semantics { stateDescription = if (on) "choisi" else "" },
@@ -434,7 +459,7 @@ fun <T> Segmented(options: List<Pair<T, String>>, selected: T, onPick: (T) -> Un
 fun PapoteSwitch(checked: Boolean, onChange: (Boolean) -> Unit, label: String, modifier: Modifier = Modifier) {
     val c = Papote.colors
     Box(
-        modifier.width(56.dp).height(32.dp).clip(RoundedCornerShape(16.dp))
+        modifier.width(56.dp).height(32.dp).clip(pShape(16.dp))
             .background(if (checked) c.primary else c.line)
             .clickable(role = Role.Switch) { onChange(!checked) }
             .semantics {
@@ -473,7 +498,7 @@ fun ErrorText(text: String?, modifier: Modifier = Modifier) {
         text,
         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
         color = Papote.colors.danger,
-        modifier = modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Papote.colors.dangerBg).padding(horizontal = 14.dp, vertical = 10.dp),
+        modifier = modifier.fillMaxWidth().clip(pShape(14.dp)).background(Papote.colors.dangerBg).padding(horizontal = 14.dp, vertical = 10.dp),
     )
 }
 
