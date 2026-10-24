@@ -30,7 +30,9 @@ People join a group with a 6-character invitation code (or a QR code). Messages,
 
 ## Features
 
-- **Chat**: text, photos, voice notes with waveform, drawings, emoji (the same Noto emoji everywhere), reactions (built-in + any emoji), live typing indicators, pinned messages, search (text and transcribed voice notes), a gallery with "one year ago today".
+- **Chat**: text, photos, **videos and documents**, voice notes with waveform, drawings, emoji (the same Noto emoji everywhere), reactions (built-in + any emoji), **swipe a message to reply**, **read ticks** (sent, read by some, read by everyone), live typing indicators, pinned messages, search (text and transcribed voice notes), a gallery with "one year ago today". Tap a profile picture to see it big.
+- **Share to Papote** from any app (text, links, pictures), and straight to a conversation from Android's share sheet.
+- **French or English**, chosen in Settings (🇫🇷 / 🇬🇧).
 - **The fun bits**: Bubu the mascot reacting to the group (sleepy, happy, excited, party, surprised), 24-hour stories, polls, location sharing *without any map service*, birthday banner and confetti, a monthly recap with medals, group stickers and favourites, GIFs through GIPHY (always relayed by your server).
 - **Drawing**: brush, marker, eraser, bucket, stamps; timelapse replay; "draw over" a photo; a **shared live canvas** everybody paints on at once.
 - **Mini-games**: Tic-tac-toe, Connect 4, Rock-paper-scissors, Hangman, "Who said that?" (from your old messages) and live Pictionary.
@@ -39,13 +41,13 @@ People join a group with a 6-character invitation code (or a QR code). Messages,
 - **Groups**: colours, 20 icons or a picture, background patterns, the group's own quick reactions, roles (owner / admin / member), approval of newcomers, mute, export as `.zip`, two-person conversations.
 - **One account, several devices**, with a permanent personal code (and QR code), account merge, optional 2FA, app lock (PIN or fingerprint) on Android.
 - **Notifications without Google**: the Android app keeps its own connection; browsers and the iPhone PWA get Web Push, encrypted for the browser.
-- **Admin web** (`/admin`): dashboard, server health, storage, **backup & restore**, journal with filters, invitation codes, members, groups with a **30-day trash**, 2FA, IP allowlist. The admin never sees group content.
+- **Admin web** (`/admin`): dashboard, server health, storage, **backup & restore**, journal with filters, invitation codes, members, groups with a **30-day trash**, 2FA, IP allowlist, **new version check** (the Android app offers the new APK by itself). The admin never sees group content.
 
 ## Quick start (Docker Compose)
 
 You need a machine with Docker and Docker Compose. The image [`ghcr.io/mrddream/papote`](https://github.com/MrDDream/Papote/pkgs/container/papote) is published for `linux/amd64` and `linux/arm64` (Raspberry Pi 4/5).
 
-Create a folder with this `docker-compose.yml`:
+Create a folder (for example `papote/`) with this `docker-compose.yml`. It reads every setting from `.env` and includes the optional **Whisper** container for voice note transcription:
 
 ```yaml
 services:
@@ -54,27 +56,54 @@ services:
     container_name: papote
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3000:3000"        # host port on the left: change it if 3000 is taken;
-                                     # "3000:3000" if the reverse proxy is on another machine
+      # Host side from .env: BIND_ADDRESS (127.0.0.1 = only a reverse proxy on this machine) and PORT.
+      - "${BIND_ADDRESS:-127.0.0.1}:${PORT:-3000}:3000"
+    env_file: .env                       # every setting comes from .env (see below)
     environment:
-      ADMIN_PASSWORD: ${ADMIN_PASSWORD}  # from .env, 12+ characters
-      TZ: Europe/Paris
+      PORT: 3000                         # inside the container, whatever PORT says in .env
       BACKUP_DIR: /backups
-      TRUST_PROXY: loopback, uniquelocal
-      SECURE_COOKIES: "true"           # "false" only to test over plain HTTP
-      # GIPHY_API_KEY: your-key        # optional: GIFs
+      PAPOTE_PROFILES: ${COMPOSE_PROFILES:-}   # lets Papote know Whisper runs next to it
     volumes:
       - ./data:/data
-      - ./backups:/backups
+      - ${BACKUP_HOST_DIR:-./backups}:/backups   # ideally another disk or a NAS
+
+  # Voice note transcription on your machine (optional, ~1-2 GB of RAM):
+  # COMPOSE_PROFILES=whisper in .env. Its image is only pulled in that case.
+  whisper:
+    image: onerahmet/openai-whisper-asr-webservice:v1.9.1
+    container_name: papote-whisper
+    profiles: ["whisper"]
+    restart: unless-stopped
+    environment:
+      ASR_MODEL: ${WHISPER_MODEL:-small}
+      ASR_ENGINE: faster_whisper
+    volumes:
+      - ./whisper-cache:/root/.cache
 ```
 
 and a `.env` next to it:
 
 ```bash
+# Admin password (/admin), 12+ characters
 ADMIN_PASSWORD=a-long-password-of-your-own
+# Host port and address: 127.0.0.1 when the reverse proxy is on this machine, 0.0.0.0 otherwise
+PORT=3000
+BIND_ADDRESS=127.0.0.1
+# Behind a reverse proxy serving HTTPS
+TRUST_PROXY=loopback, uniquelocal
+SECURE_COOKIES=true
+TZ=Europe/Paris
+# Optional: GIFs (free key on developers.giphy.com) and voice transcription (empty = off)
+GIPHY_API_KEY=
+COMPOSE_PROFILES=whisper
+# Largest video or document, in MB; new-version check against GitHub
+MAX_UPLOAD_MB=20
+UPDATE_CHECK=true
 ```
 
-The [full `docker-compose.yml`](docker-compose.yml) of this repository has every option (backups, admin IP allowlist, optional Whisper container…) with its [`.env.example`](.env.example). To use it directly:
+If port 3000 is already taken on the machine, change `PORT` (for example `PORT=3080`) and point your reverse proxy at it: Papote keeps listening on 3000 inside the container. Every variable is described [below](#configuration-env).
+
+The repository's [`docker-compose.yml`](docker-compose.yml) and [`.env.example`](.env.example) do the same with every option written out. To start from them:
 
 ```bash
 mkdir papote && cd papote
@@ -108,7 +137,7 @@ A backup is made automatically every 24 hours. To make one right before an updat
 
 ### Behind a reverse proxy (HTTPS)
 
-Browsers require HTTPS to install the web app and to send notifications. Any reverse proxy works: it must pass WebSockets (`/ws`) and allow 16 MB uploads.
+Browsers require HTTPS to install the web app and to send notifications. Any reverse proxy works: it must pass WebSockets (`/ws`) and allow uploads a bit larger than `MAX_UPLOAD_MB` (25 MB with the default 20).
 
 Caddy (WebSockets and headers are handled automatically), with the admin only reachable from your LAN:
 
@@ -195,7 +224,7 @@ Admin maintenance: `docker exec papote node src/cli.js admin-reset-2fa` (lost ph
 
 ## The apps
 
-- **Android** (8.0+): download `Papote-vX.Y.Z-release.apk` from the [releases](https://github.com/MrDDream/Papote/releases) and install it. To receive messages while the app is closed, allow notifications and turn off battery optimisation for Papote: the app offers it on first launch. Plain `http://` addresses are accepted on a local network (the app warns that the connection isn't encrypted).
+- **Android** (8.0+): download `Papote-vX.Y.Z-release.apk` from the [releases](https://github.com/MrDDream/Papote/releases) and install it. Later versions install over it, and the app tells you when one is out (Settings → App). To receive messages while the app is closed, allow notifications and turn off battery optimisation for Papote: the app offers it on first launch. Plain `http://` addresses are accepted on a local network (the app warns that the connection isn't encrypted).
 - **iPhone, iPad, computers**: open `https://<your-server>/web/`. On iPhone, Share → *Add to Home Screen* installs it and enables notifications (iOS 16.4+).
 
 The interface is in French for now.
