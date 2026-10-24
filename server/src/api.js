@@ -34,7 +34,7 @@ import { newSecret, otpauthUrl, verifyTotp } from './admin/totp.js';
 import { rateLimit } from './ratelimit.js';
 import { createFeatures } from './features.js';
 
-const MEDIA_RULES = {
+const BASE_RULES = {
   photo: { max: 15 * 1024 * 1024, mimes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] },
   drawing: { max: 5 * 1024 * 1024, mimes: ['image/png', 'image/webp'] },
   avatar: { max: 5 * 1024 * 1024, mimes: ['image/jpeg', 'image/png', 'image/webp'] },
@@ -47,6 +47,28 @@ const MEDIA_RULES = {
     mimes: ['audio/mp4', 'audio/m4a', 'audio/x-m4a', 'audio/aac', 'audio/mpeg', 'audio/ogg', 'audio/webm', 'audio/opus'],
   },
 };
+
+const VIDEO_MIMES = ['video/mp4', 'video/quicktime', 'video/webm', 'video/3gpp'];
+
+/** A video's real type from its first bytes (MP4/MOV/3GP "ftyp" box, WebM/Matroska header). */
+function sniffVideo(file) {
+  const fd = fs.openSync(file, 'r');
+  const b = Buffer.alloc(12);
+  fs.readSync(fd, b, 0, 12, 0);
+  fs.closeSync(fd);
+  if (b.subarray(0, 4).equals(Buffer.from([0x1a, 0x45, 0xdf, 0xa3]))) return 'video/webm';
+  if (b.subarray(4, 8).toString('latin1') !== 'ftyp') return null;
+  const brand = b.subarray(8, 12).toString('latin1');
+  if (brand === 'qt  ') return 'video/quicktime';
+  if (brand.startsWith('3g')) return 'video/3gpp';
+  return 'video/mp4';
+}
+
+/** A document's type as the browser or phone said it, if it looks like one; otherwise just bytes. */
+function cleanMime(m) {
+  const v = String(m ?? '').toLowerCase().split(';')[0].trim();
+  return /^[a-z0-9][a-z0-9!#$&^_.+-]{0,63}\/[a-z0-9][a-z0-9!#$&^_.+-]{0,63}$/.test(v) ? v : 'application/octet-stream';
+}
 
 const MAGIC = [
   ['image/jpeg', (b) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff],
@@ -69,10 +91,16 @@ const intParam = (v) => {
   return n;
 };
 
-export function createApi({ store, hub, push, dataDir, serverName, version, gifs = null, whisper = null }) {
+export function createApi({ store, hub, push, dataDir, serverName, version, gifs = null, whisper = null, updates = null, maxUploadMb = 20 }) {
   const router = express.Router();
   const { q } = store;
   const mediaDir = path.join(dataDir, 'media');
+  // Videos and documents ("Fichier"): MAX_UPLOAD_MB in .env.
+  const MEDIA_RULES = {
+    ...BASE_RULES,
+    video: { max: maxUploadMb * 1024 * 1024, mimes: VIDEO_MIMES },
+    file: { max: maxUploadMb * 1024 * 1024, mimes: null },
+  };
   const upload = multer({
     dest: path.join(dataDir, 'tmp'),
     // fieldSize: a drawing's strokes (for its timelapse) come as a text field next to the picture.
@@ -189,7 +217,7 @@ export function createApi({ store, hub, push, dataDir, serverName, version, gifs
       icons: GROUP_ICONS,
       moods: MOODS,
       // Optional services: the apps hide what isn't set up.
-      features: { gifs: !!gifs?.enabled, transcription: !!whisper?.enabled },
+      features: { gifs: !!gifs?.enabled, transcription: !!whisper?.enabled, maxUploadMb },
     });
   });
 
@@ -278,6 +306,12 @@ export function createApi({ store, hub, push, dataDir, serverName, version, gifs
   router.use(requireUser);
 
   router.get('/me', (req, res) => res.json(meDto(req.user)));
+
+  // Latest Papote release on GitHub (asked by the server, cached): the Android app offers its new APK.
+  router.get('/updates', (_req, res) => {
+    const s = updates?.cached() ?? { enabled: false, current: version, latest: null, available: false };
+    res.json({ enabled: s.enabled, server: version, latest: s.latest && { version: s.latest.version, name: s.latest.name, url: s.latest.url, publishedAt: s.latest.publishedAt, apk: s.latest.apk } });
+  });
 
   router.patch('/me', (req, res) => {
     const b = req.body ?? {};
@@ -420,12 +454,18 @@ export function createApi({ store, hub, push, dataDir, serverName, version, gifs
       if (!file) throw new HttpError(400, 'file_required');
       if (file.size > rules.max) throw new HttpError(413, 'file_too_large');
       let mime = file.mimetype;
-      if (kind !== 'voice') {
+      if (kind === 'file') {
+        // Any document: served only as a download (see /media/:id), so its claimed type is harmless.
+        mime = cleanMime(mime);
+      } else if (kind === 'video') {
+        mime = sniffVideo(file.path);
+        if (!mime) throw new HttpError(415, 'unsupported_media');
+      } else if (kind !== 'voice') {
         // Images are checked by their first bytes, never by what the client claims.
         mime = sniffImage(file.path);
         if (!mime) throw new HttpError(415, 'unsupported_media');
       }
-      if (!rules.mimes.includes(mime)) throw new HttpError(415, 'unsupported_media');
+      if (rules.mimes && !rules.mimes.includes(mime)) throw new HttpError(415, 'unsupported_media');
       const id = crypto.randomBytes(16).toString('hex');
       fs.renameSync(file.path, path.join(mediaDir, id));
       q('INSERT INTO media (id, owner_id, group_id, kind, mime, size, file, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(
@@ -475,6 +515,12 @@ export function createApi({ store, hub, push, dataDir, serverName, version, gifs
     const m = q('SELECT * FROM media WHERE id = ?').get(req.params.id);
     if (!m) throw new HttpError(404, 'not_found');
     if (m.group_id) store.requireMember(m.group_id, req.user.id);
+    if (m.kind === 'file') {
+      // Documents are never shown by the browser on our origin: always a download, under their own name.
+      const name = q('SELECT meta FROM messages WHERE media_id = ?').get(m.id)?.meta;
+      const filename = (name && JSON.parse(name).name) || 'fichier';
+      res.setHeader('Content-Disposition', `attachment; filename="${filename.replace(/[^\x20-\x7e]|["\\]/g, '_')}"; filename*=UTF-8''${encodeURIComponent(filename)}`);
+    }
     res.setHeader('Content-Type', m.mime);
     res.setHeader('Cache-Control', 'private, max-age=31536000, immutable');
     res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
@@ -711,7 +757,7 @@ export function createApi({ store, hub, push, dataDir, serverName, version, gifs
     try {
       intParam(id);
       store.requireCanPost(id, req.user.id);
-      if (!['photo', 'voice', 'drawing'].includes(kind)) throw new HttpError(400, 'bad_type');
+      if (!['photo', 'voice', 'drawing', 'video', 'file'].includes(kind)) throw new HttpError(400, 'bad_type');
     } catch (err) {
       if (req.file) fs.rmSync(req.file.path, { force: true });
       throw err;
@@ -729,6 +775,14 @@ export function createApi({ store, hub, push, dataDir, serverName, version, gifs
     }
     // Voice filter chosen when recording ("Souris", "Robot"…): applied when the message is played.
     if (kind === 'voice' && VOICE_FILTERS.includes(req.body?.filter)) meta.filter = req.body.filter;
+    if (kind === 'file') {
+      // The original name (shown in the bubble, used for the download), without any path.
+      // Multer reads the multipart file name as latin1: "été" arrives as "Ã©tÃ©".
+      const original = req.file.originalname ? Buffer.from(req.file.originalname, 'latin1').toString('utf8') : '';
+      const name = String(req.body?.name || original || 'fichier').split(/[\\/]/).pop().replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 200);
+      meta.name = name || 'fichier';
+      meta.size = req.file.size;
+    }
     if (kind === 'drawing') {
       // The strokes, kept apart, replay the drawing as a timelapse.
       const ops = cleanOps(safeJson(req.body?.ops));
@@ -743,7 +797,7 @@ export function createApi({ store, hub, push, dataDir, serverName, version, gifs
       if (Array.isArray(artists)) meta.artists = [...new Set(artists.map(Number).filter((n) => Number.isInteger(n) && store.membership(id, n)))].slice(0, 20);
     }
     if (kind === 'voice' && whisper?.enabled) meta.transcribing = true;
-    const ephemeral = req.body?.ephemeral === '1' && kind !== 'voice';
+    const ephemeral = req.body?.ephemeral === '1' && ['photo', 'drawing'].includes(kind);
     const message = store.addMessage({
       expiresAt: ephemeral ? now() + 24 * 3600_000 : null,
       groupId: id,
@@ -811,12 +865,14 @@ export function createApi({ store, hub, push, dataDir, serverName, version, gifs
 
   router.post('/groups/:id/read', (req, res) => {
     const id = intParam(req.params.id);
-    store.requireMember(id, req.user.id);
+    const before = store.requireMember(id, req.user.id).last_read_id;
     const mid = Number(req.body?.messageId);
     if (Number.isInteger(mid) && mid > 0) {
       q('UPDATE members SET last_read_id = MAX(last_read_id, ?) WHERE group_id = ? AND user_id = ?').run(mid, id, req.user.id);
       // The user's other devices clear their unread badge right away.
       hub.sendToUser(req.user.id, { type: 'group.read', groupId: id, messageId: mid });
+      // The others update the "lu" ticks under their messages.
+      if (mid > before) hub.sendToGroup(id, { type: 'member.read', groupId: id, userId: req.user.id, messageId: mid }, { except: req.user.id });
     }
     res.status(204).end();
   });

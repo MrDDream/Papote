@@ -1,3 +1,4 @@
+import { tr, locale } from './i18n.js';
 // Tiny DOM helpers, icons and shared widgets. All user content goes through text nodes, never innerHTML.
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -37,6 +38,11 @@ const PATHS = {
   plus: 'M12 5v14M5 12h14',
   close: 'M6 6l12 12M18 6L6 18',
   check: 'M5 12l5 5 9-10',
+  checks: 'M2 12.5l4.5 4.5 9-10M11.5 16l1 1 9-10',
+  reply: 'M9 14L4 9l5-5M4 9h10a6 6 0 0 1 6 6v4',
+  video: 'M3 6h12a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zM16 10l6-3v10l-6-3',
+  file: 'M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h4',
+  download: 'M12 4v11M7 10l5 5 5-5M5 20h14',
   send: 'M4 12l16-8-6 16-3-7z',
   mic: 'M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zM5 11a7 7 0 0 0 14 0M12 18v3',
   pencil: 'M4 20l4-1 11-11-3-3L5 16zM14 6l3 3',
@@ -143,23 +149,23 @@ export const GROUP_ICONS = [
 ];
 
 export const REACTIONS = [
-  { key: 'heart', label: 'Cœur', icon: 'heart', bg: '#FFE0E8', fg: '#B0305A' },
-  { key: 'star', label: 'Étoile', icon: 'star', bg: '#FFF0B8', fg: '#7A5F00' },
-  { key: 'laugh', label: 'Rire', icon: 'laugh', bg: '#FFE3C7', fg: '#9A4F0C' },
+  { key: 'heart', label: tr('Cœur'), icon: 'heart', bg: '#FFE0E8', fg: '#B0305A' },
+  { key: 'star', label: tr('Étoile'), icon: 'star', bg: '#FFF0B8', fg: '#7A5F00' },
+  { key: 'laugh', label: tr('Rire'), icon: 'laugh', bg: '#FFE3C7', fg: '#9A4F0C' },
   { key: 'popcorn', label: 'Pop-corn', icon: 'popcorn', bg: '#FFF8E6', fg: '#8A5A00' },
-  { key: 'thumb', label: 'Pouce', icon: 'thumb', bg: '#D6E8FF', fg: '#2E5FA8' },
+  { key: 'thumb', label: tr('Pouce'), icon: 'thumb', bg: '#D6E8FF', fg: '#2E5FA8' },
 ];
 export const reactionOf = (key) => REACTIONS.find((r) => r.key === key);
 
 // --- tints --------------------------------------------------------------------
 
 export const TINTS = [
-  { key: 'rose', label: 'Rose', bg: '#FFE0E8', tint: '#FFC2D1', text: '#B0305A' },
-  { key: 'peche', label: 'Pêche', bg: '#FFEBD6', tint: '#FFD3A8', text: '#9A4F0C' },
-  { key: 'menthe', label: 'Menthe', bg: '#DDF4E9', tint: '#B5E6CF', text: '#2C7A57' },
-  { key: 'ciel', label: 'Ciel', bg: '#E2EEFF', tint: '#C2DAFF', text: '#2E5FA8' },
-  { key: 'citron', label: 'Citron', bg: '#FFF6D6', tint: '#FFE89A', text: '#7A5F00' },
-  { key: 'lilas', label: 'Lilas', bg: '#EDE6FF', tint: '#D7C9FF', text: '#5B3CC4' },
+  { key: 'rose', label: tr('Rose'), bg: '#FFE0E8', tint: '#FFC2D1', text: '#B0305A' },
+  { key: 'peche', label: tr('Pêche'), bg: '#FFEBD6', tint: '#FFD3A8', text: '#9A4F0C' },
+  { key: 'menthe', label: tr('Menthe'), bg: '#DDF4E9', tint: '#B5E6CF', text: '#2C7A57' },
+  { key: 'ciel', label: tr('Ciel'), bg: '#E2EEFF', tint: '#C2DAFF', text: '#2E5FA8' },
+  { key: 'citron', label: tr('Citron'), bg: '#FFF6D6', tint: '#FFE89A', text: '#7A5F00' },
+  { key: 'lilas', label: tr('Lilas'), bg: '#EDE6FF', tint: '#D7C9FF', text: '#5B3CC4' },
 ];
 export const tint = (key) => TINTS.find((t) => t.key === key) ?? TINTS[0];
 
@@ -215,11 +221,11 @@ const BUBU_FACES = {
 };
 
 export const BUBU_LINES = {
-  sleepy: 'Chut… je fais la sieste',
-  happy: 'Coucou tout le monde !',
-  excited: 'Ouh, on dessine ensemble !',
-  party: 'Joyeux anniv !',
-  surprised: 'Waouh, ça bavarde !',
+  sleepy: tr('Chut… je fais la sieste'),
+  happy: tr('Coucou tout le monde !'),
+  excited: tr('Ouh, on dessine ensemble !'),
+  party: tr('Joyeux anniv !'),
+  surprised: tr('Waouh, ça bavarde !'),
 };
 
 function svgParts(svg, parts) {
@@ -273,14 +279,14 @@ export function confetti(count = 90) {
 // --- built-in stickers (mockup "GIF et stickers"), same keys on Android ---
 
 export const STICKERS = [
-  { key: 'check', label: 'Validé', d: 'M8 20l8 8 16-16', fill: 'none', color: '#4CC38A' },
-  { key: 'star', label: 'Étoile', d: 'M20 6l4 9 10 1-7 7 2 10-9-5-9 5 2-10-7-7 10-1z', fill: '#FFD66B' },
-  { key: 'heart', label: 'Cœur', d: 'M20 33s-12-7-12-16a6 6 0 0 1 12-3 6 6 0 0 1 12 3c0 9-12 16-12 16z', fill: '#FF7A93' },
-  { key: 'smile', label: 'Sourire', d: 'M10 26q10 10 20 0M14 15h.01M26 15h.01', fill: 'none', color: '#2E2442', circle: '#FFE58A' },
-  { key: 'wave', label: 'Vague', d: 'M6 24c6-10 10 10 16 0s10 10 14 0', fill: 'none', color: '#4A9BEF' },
-  { key: 'plus', label: 'Plus', d: 'M20 6v28M6 20h28', fill: 'none', color: '#8B6CF0' },
-  { key: 'tent', label: 'Tente', d: 'M10 30l10-22 10 22M14 22h12', fill: 'none', color: '#2C7A57' },
-  { key: 'bag', label: 'Valise', d: 'M8 12h24v18H8zM14 12V8h12v4', fill: '#FFD3A8' },
+  { key: 'check', label: tr('Validé'), d: 'M8 20l8 8 16-16', fill: 'none', color: '#4CC38A' },
+  { key: 'star', label: tr('Étoile'), d: 'M20 6l4 9 10 1-7 7 2 10-9-5-9 5 2-10-7-7 10-1z', fill: '#FFD66B' },
+  { key: 'heart', label: tr('Cœur'), d: 'M20 33s-12-7-12-16a6 6 0 0 1 12-3 6 6 0 0 1 12 3c0 9-12 16-12 16z', fill: '#FF7A93' },
+  { key: 'smile', label: tr('Sourire'), d: 'M10 26q10 10 20 0M14 15h.01M26 15h.01', fill: 'none', color: '#2E2442', circle: '#FFE58A' },
+  { key: 'wave', label: tr('Vague'), d: 'M6 24c6-10 10 10 16 0s10 10 14 0', fill: 'none', color: '#4A9BEF' },
+  { key: 'plus', label: tr('Plus'), d: 'M20 6v28M6 20h28', fill: 'none', color: '#8B6CF0' },
+  { key: 'tent', label: tr('Tente'), d: 'M10 30l10-22 10 22M14 22h12', fill: 'none', color: '#2C7A57' },
+  { key: 'bag', label: tr('Valise'), d: 'M8 12h24v18H8zM14 12V8h12v4', fill: '#FFD3A8' },
   { key: 'rainbow', label: 'Arc-en-ciel', d: 'M12 28a8 8 0 1 1 16 0', fill: 'none', color: '#FF7A93', rainbow: true },
 ];
 
@@ -307,11 +313,11 @@ export function stickerSvg(key, size = 96) {
 // --- moods (Réglages du groupe → "Mon humeur", shown on the avatar) ---
 
 export const MOODS = [
-  { key: 'dispo', label: 'Dispo', d: 'M8 14q4 4 8 0M9 9h.01M15 9h.01' },
-  { key: 'fatigue', label: 'Fatigué·e', d: 'M4 14a8 8 0 1 0 8-8 6 6 0 0 1-8 8z' },
-  { key: 'jeu', label: 'En jeu', d: 'M6 9h12a4 4 0 0 1 0 8l-3-2H9l-3 2a4 4 0 0 1 0-8zM8 12v2M7 13h2M16 12h.01' },
-  { key: 'cine', label: 'Au ciné', d: 'M4 6h16v12H4zM4 10h16M8 6l2 4M14 6l2 4' },
-  { key: 'dnd', label: 'Ne pas déranger', d: 'M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM7 12h10' },
+  { key: 'dispo', label: tr('Dispo'), d: 'M8 14q4 4 8 0M9 9h.01M15 9h.01' },
+  { key: 'fatigue', label: tr('Fatigué·e'), d: 'M4 14a8 8 0 1 0 8-8 6 6 0 0 1-8 8z' },
+  { key: 'jeu', label: tr('En jeu'), d: 'M6 9h12a4 4 0 0 1 0 8l-3-2H9l-3 2a4 4 0 0 1 0-8zM8 12v2M7 13h2M16 12h.01' },
+  { key: 'cine', label: tr('Au ciné'), d: 'M4 6h16v12H4zM4 10h16M8 6l2 4M14 6l2 4' },
+  { key: 'dnd', label: tr('Ne pas déranger'), d: 'M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM7 12h10' },
 ];
 export const moodOf = (key) => MOODS.find((m) => m.key === key);
 
@@ -369,7 +375,7 @@ function faceSvg(size) {
 }
 
 /** Profile photo, else a face (or the initial) on the user's pastel. */
-export function avatar(user, size = 40, { initial = false, online = false } = {}) {
+export function avatar(user, size = 40, { initial = false, online = false, zoom = false } = {}) {
   const t = tint(user?.color);
   const el = h('div', { class: 'avatar', style: { width: `${size}px`, height: `${size}px`, background: t.tint, fontSize: `${Math.round(size * 0.44)}px` }, 'aria-hidden': 'true' });
   if (user?.photo) el.append(h('img', { src: user.photo, alt: '', loading: 'lazy' }));
@@ -377,20 +383,39 @@ export function avatar(user, size = 40, { initial = false, online = false } = {}
   else el.append(faceSvg(size));
   if (online) el.append(h('span', { class: 'online' }));
   if (user?.mood && size >= 32) el.append(h('span', { class: 'mood', title: moodOf(user.mood)?.label }, moodIcon(user.mood, Math.max(10, Math.round(size * 0.3)))));
+  if (zoom && user?.photo) zoomable(el, user.photo, tr`Photo de ${user.name ?? 'profil'}`);
   return el;
 }
 
-export function groupBadge(g, size = 52) {
-  return h(
+export function groupBadge(g, size = 52, { zoom = false } = {}) {
+  const el = h(
     'div',
     { class: 'badge', style: { width: `${size}px`, height: `${size}px`, background: tint(g?.color).tint }, 'aria-hidden': 'true' },
     g?.photo ? h('img', { src: g.photo, alt: '' }) : icon(g?.icon ?? 'heart', Math.round(size * 0.5)),
   );
+  if (zoom && g?.photo) zoomable(el, g.photo, tr`Photo de ${g.name ?? 'groupe'}`);
+  return el;
 }
 
 /** A group's badge, or for a two-person conversation the other person's avatar. */
-export function groupAvatar(g, size = 52) {
-  return g?.direct && g.peer ? avatar(g.peer, size, { online: g.peer.online }) : groupBadge(g, size);
+export function groupAvatar(g, size = 52, { zoom = false } = {}) {
+  return g?.direct && g.peer ? avatar(g.peer, size, { online: g.peer.online, zoom }) : groupBadge(g, size, { zoom });
+}
+
+/** A profile or group picture that opens big when tapped (even inside a row that does something else). */
+function zoomable(el, src, label) {
+  el.removeAttribute('aria-hidden');
+  el.classList.add('zoomable');
+  el.setAttribute('role', 'button');
+  el.setAttribute('tabindex', '0');
+  el.setAttribute('aria-label', `${label}, agrandir`);
+  const open = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    lightbox(src, label);
+  };
+  el.addEventListener('click', open);
+  el.addEventListener('keydown', (e) => (e.key === 'Enter' || e.key === ' ') && open(e));
 }
 
 /** Small round "i" that opens an explanation instead of a paragraph on screen. */
@@ -398,13 +423,13 @@ export function infoButton(title, text) {
   return h('button', {
     type: 'button',
     class: 'icon-btn info',
-    'aria-label': `Plus d’infos : ${title}`,
+    'aria-label': tr`Plus d’infos : ${title}`,
     title,
     onclick: () =>
       sheet((close) => [
         h('h2', { class: 'title', style: { fontSize: '20px' } }, title),
         h('p', { class: 'muted', style: { margin: 0, whiteSpace: 'pre-line' } }, text),
-        button('Compris', close),
+        button(tr('Compris'), close),
       ]),
   }, icon('info', 20));
 }
@@ -425,14 +450,14 @@ export function topBar(title, onBack, { subtitle, actions = [] } = {}) {
   return h(
     'div',
     { class: 'row' },
-    onBack && iconButton('back', 'Retour', onBack),
+    onBack && iconButton('back', tr('Retour'), onBack),
     h('div', { class: 'col grow', style: { gap: '0', minWidth: '0' } }, h('h1', { class: 'title ellipsis' }, title), subtitle && h('span', { class: 'small muted ellipsis' }, subtitle)),
     actions,
   );
 }
 
 export function swatches(selected, onPick, { face = false } = {}) {
-  const wrap = h('div', { class: 'swatches', role: 'radiogroup', 'aria-label': face ? 'Ta frimousse' : 'Couleur' });
+  const wrap = h('div', { class: 'swatches', role: 'radiogroup', 'aria-label': face ? tr('Ta frimousse') : tr('Couleur') });
   const render = (sel) =>
     clear(
       wrap,
@@ -508,7 +533,7 @@ export function sheet(build) {
   return close;
 }
 
-export function confirmDialog(title, body, confirmText = 'Confirmer') {
+export function confirmDialog(title, body, confirmText = tr('Confirmer')) {
   return new Promise((resolve) => {
     const backdrop = h('div', { class: 'backdrop dialog-wrap' });
     const done = (v) => {
@@ -522,7 +547,7 @@ export function confirmDialog(title, body, confirmText = 'Confirmer') {
         { class: 'dialog', role: 'alertdialog', 'aria-modal': 'true' },
         h('h2', { class: 'title', style: { fontSize: '20px' } }, title),
         h('p', { class: 'muted', style: { margin: '0' } }, body),
-        h('div', { class: 'actions' }, button('Annuler', () => done(false), { small: true }), button(confirmText, () => done(true), { small: true, danger: true })),
+        h('div', { class: 'actions' }, button(tr('Annuler'), () => done(false), { small: true }), button(confirmText, () => done(true), { small: true, danger: true })),
       ),
     );
     document.body.append(backdrop);
@@ -532,14 +557,14 @@ export function confirmDialog(title, body, confirmText = 'Confirmer') {
 
 export function lightbox(src, alt) {
   const close = () => box.remove();
-  const box = h('div', { class: 'lightbox', role: 'dialog', 'aria-modal': 'true', onclick: close }, h('img', { src, alt }), iconButton('close', 'Fermer', close));
+  const box = h('div', { class: 'lightbox', role: 'dialog', 'aria-modal': 'true', onclick: close }, h('img', { src, alt }), iconButton('close', tr('Fermer'), close));
   document.body.append(box);
   box.querySelector('button').focus();
 }
 
 // --- formatting -------------------------------------------------------------------
 
-const timeFmt = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit' });
+const timeFmt = new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' });
 const startOfDay = (ts) => new Date(new Date(ts).toDateString()).getTime();
 const daysAgo = (ts) => Math.round((startOfDay(Date.now()) - startOfDay(ts)) / 86_400_000);
 
@@ -549,21 +574,31 @@ export const sameDay = (a, b) => startOfDay(a) === startOfDay(b);
 export function shortWhen(ts) {
   const d = daysAgo(ts);
   if (d <= 0) return timeOf(ts);
-  if (d === 1) return 'Hier';
+  if (d === 1) return tr('Hier');
   if (d < 7) {
-    const w = new Intl.DateTimeFormat('fr-FR', { weekday: 'short' }).format(ts);
+    const w = new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(ts);
     return w.charAt(0).toUpperCase() + w.slice(1);
   }
-  return new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'short' }).format(ts);
+  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(ts);
 }
 
 export function dayLabel(ts) {
   const d = daysAgo(ts);
-  if (d === 0) return 'Aujourd’hui';
-  if (d === 1) return 'Hier';
+  if (d === 0) return tr('Aujourd’hui');
+  if (d === 1) return tr('Hier');
   const sameYear = new Date(ts).getFullYear() === new Date().getFullYear();
-  const s = new Intl.DateTimeFormat('fr-FR', sameYear ? { weekday: 'long', day: 'numeric', month: 'long' } : { day: 'numeric', month: 'long', year: 'numeric' }).format(ts);
+  const s = new Intl.DateTimeFormat(locale, sameYear ? { weekday: 'long', day: 'numeric', month: 'long' } : { day: 'numeric', month: 'long', year: 'numeric' }).format(ts);
   return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+/** 1536 → "1,5 Ko", 3_400_000 → "3,2 Mo". */
+export function fileSize(bytes) {
+  if (!bytes && bytes !== 0) return '';
+  const units = [tr('o'), tr('Ko'), tr('Mo'), tr('Go')];
+  let v = bytes;
+  let i = 0;
+  while (v >= 1024 && i < units.length - 1) (v /= 1024), i++;
+  return `${v.toLocaleString(locale, { maximumFractionDigits: i ? 1 : 0 })} ${units[i]}`;
 }
 
 export function duration(ms) {
@@ -572,48 +607,60 @@ export function duration(ms) {
 }
 
 export function lastSeen(m) {
-  if (m.online) return 'En ligne';
-  if (!m.lastSeenAt) return 'Pas encore venu·e';
+  if (m.online) return tr('En ligne');
+  if (!m.lastSeenAt) return tr('Pas encore venu·e');
   const mins = Math.floor((Date.now() - m.lastSeenAt) / 60_000);
-  if (mins < 1) return 'Vu·e à l’instant';
-  if (mins < 60) return `Vu·e il y a ${mins} min`;
-  if (mins < 24 * 60) return `Vu·e il y a ${Math.floor(mins / 60)} h`;
+  if (mins < 1) return tr('Vu·e à l’instant');
+  if (mins < 60) return tr`Vu·e il y a ${mins} min`;
+  if (mins < 24 * 60) return tr`Vu·e il y a ${Math.floor(mins / 60)} h`;
   return `Vu·e ${shortWhen(m.lastSeenAt).toLowerCase()}`;
 }
 
 export function systemText(m, name) {
-  const who = name ?? 'Quelqu’un';
+  const who = name ?? tr('Quelqu’un');
   switch (m.meta?.event) {
-    case 'created': return `${who} a créé le groupe`;
-    case 'joined': return `${who} a rejoint le groupe`;
-    case 'left': return `${who} est parti·e`;
-    case 'removed': return `${who} a été retiré·e du groupe`;
-    case 'livedraw': return `${who} a lancé une toile commune`;
-    default: return 'Le groupe a changé';
+    case 'created': return tr`${who} a créé le groupe`;
+    case 'joined': return tr`${who} a rejoint le groupe`;
+    case 'left': return tr`${who} est parti·e`;
+    case 'removed': return tr`${who} a été retiré·e du groupe`;
+    case 'livedraw': return tr`${who} a lancé une toile commune`;
+    default: return tr('Le groupe a changé');
   }
 }
 
 export function preview(m, author) {
-  const who = author ?? 'Quelqu’un';
-  const sent = author === 'Toi' ? 'Tu as envoyé' : `${who} a envoyé`;
-  if (m.deleted) return 'Message supprimé';
+  const who = author ?? tr('Quelqu’un');
+  const sent = author === tr('Toi') ? tr('Tu as envoyé') : tr`${who} a envoyé`;
+  if (m.deleted) return tr('Message supprimé');
   switch (m.type) {
     case 'text': return author ? `${author} : ${m.text}` : m.text;
-    case 'photo': return `${sent} une photo`;
-    case 'drawing': return `${sent} un dessin`;
-    case 'voice': return `${who} · vocal ${duration(m.meta?.durationMs)}`;
+    case 'photo': return tr`${sent} une photo`;
+    case 'drawing': return tr`${sent} un dessin`;
+    case 'video': return tr`${sent} une vidéo`;
+    case 'file': return `${sent} « ${m.meta?.name ?? tr('un fichier')} »`;
+    case 'voice': return tr`${who} · vocal ${duration(m.meta?.durationMs)}`;
     case 'gif': return `${sent} un GIF`;
-    case 'sticker': return `${sent} un sticker`;
-    case 'poll': return `${who} : sondage « ${m.text} »`;
-    case 'location': return `${who} a partagé sa position`;
-    case 'game': return `${who} a lancé une partie`;
-    case 'recap': return `${who} a partagé le récap du mois`;
+    case 'sticker': return tr`${sent} un sticker`;
+    case 'poll': return tr`${who} : sondage « ${m.text} »`;
+    case 'location': return tr`${who} a partagé sa position`;
+    case 'game': return tr`${who} a lancé une partie`;
+    case 'recap': return tr`${who} a partagé le récap du mois`;
     case 'system': return systemText(m, author);
     default: return m.text;
   }
 }
 
-export const roleLabel = (r) => ({ owner: 'Créateur·rice', admin: 'Admin' })[r] ?? 'Membre';
+/** One line about the message a reply answers ("Photo", "Vocal 0:12", the start of the text…). */
+export function replySnippet(r) {
+  if (!r || r.deleted) return tr('Message supprimé');
+  if (r.type === 'file') return tr`Fichier · ${r.text || r.meta?.name || 'document'}`;
+  const label = { photo: tr('Photo'), video: tr('Vidéo'), drawing: tr('Dessin'), voice: tr('Vocal'), gif: 'GIF', sticker: 'Sticker', location: tr('Position'), game: tr('Partie de jeu'), recap: tr('Récap du mois') }[r.type];
+  if (r.type === 'poll') return tr`Sondage « ${r.text} »`;
+  if (label) return r.text ? `${label} · ${r.text}` : label;
+  return r.text;
+}
+
+export const roleLabel = (r) => ({ owner: tr('Créateur·rice'), admin: 'Admin' })[r] ?? tr('Membre');
 
 /** Re-encodes a picked image as JPEG, at most `max` px on its long side (EXIF rotation applied by the browser). */
 export async function resizeImage(file, max = 1600) {
@@ -627,6 +674,6 @@ export async function resizeImage(file, max = 1600) {
   canvas.getContext('2d').drawImage(bitmap, 0, 0, w, hgt);
   bitmap.close?.();
   const blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', 0.85));
-  if (!blob) throw new Error('Image illisible');
+  if (!blob) throw new Error(tr('Image illisible'));
   return { blob, width: w, height: hgt };
 }

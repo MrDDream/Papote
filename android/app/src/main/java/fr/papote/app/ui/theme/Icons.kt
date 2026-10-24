@@ -1,5 +1,7 @@
 package fr.papote.app.ui.theme
 
+import fr.papote.app.tr
+
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
@@ -29,6 +31,8 @@ object PIcons {
     val Plus = stroke("M12 5v14M5 12h14", 2.4f)
     val Close = stroke("M6 6l12 12M18 6L6 18", 2.4f)
     val Check = stroke("M5 12l5 5 9-10", 2.6f)
+    val Checks = stroke("M2 12.5l4.5 4.5 9-10M11.5 16l1 1 9-10", 2.4f)
+    val Reply = stroke("M9 14L4 9l5-5M4 9h10a6 6 0 0 1 6 6v4", 2.4f)
     val Send = stroke("M4 12l16-8-6 16-3-7z", 2.4f)
     val Mic = stroke("M12 3a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3zM5 11a7 7 0 0 0 14 0M12 18v3")
     val Pencil = stroke("M4 20l4-1 11-11-3-3L5 16zM14 6l3 3")
@@ -64,6 +68,8 @@ object PIcons {
 
     // Mockup features
     val Download = stroke("M12 4v11M7 10l5 5 5-5M5 20h14")
+    val Video = stroke("M3 6h12a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zM16 10l6-3v10l-6-3")
+    val File = stroke("M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM14 3v5h5M9 13h6M9 17h4")
     val Pin = stroke("M9 4h6l-1 6 4 4H6l4-4zM12 14v7")
     val Grid = stroke("M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z")
     val Poll = stroke("M5 20V10M12 20V4M19 20v-7")
@@ -131,11 +137,11 @@ object PIcons {
     data class Reaction(val key: String, val label: String, val icon: ImageVector, val bg: Color, val fg: Color)
 
     val Reactions = listOf(
-        Reaction("heart", "Cœur", Heart, Color(0xFFFFE0E8), Color(0xFFB0305A)),
-        Reaction("star", "Étoile", Star, Color(0xFFFFF0B8), Color(0xFF7A5F00)),
-        Reaction("laugh", "Rire", Laugh, Color(0xFFFFE3C7), Color(0xFF9A4F0C)),
+        Reaction("heart", tr("Cœur"), Heart, Color(0xFFFFE0E8), Color(0xFFB0305A)),
+        Reaction("star", tr("Étoile"), Star, Color(0xFFFFF0B8), Color(0xFF7A5F00)),
+        Reaction("laugh", tr("Rire"), Laugh, Color(0xFFFFE3C7), Color(0xFF9A4F0C)),
         Reaction("popcorn", "Pop-corn", Popcorn, Color(0xFFFFF8E6), Color(0xFF8A5A00)),
-        Reaction("thumb", "Pouce", Thumb, Color(0xFFD6E8FF), Color(0xFF2E5FA8)),
+        Reaction("thumb", tr("Pouce"), Thumb, Color(0xFFD6E8FF), Color(0xFF2E5FA8)),
     )
 
     fun reaction(key: String) = Reactions.firstOrNull { it.key == key }

@@ -1,5 +1,7 @@
 package fr.papote.app.ui.extras
 
+import fr.papote.app.tr
+
 import android.graphics.Bitmap
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
@@ -54,11 +56,11 @@ private val Ink = Color(0xFF2E2442)
 
 /** Bubu's moods (mockup "Mascotte réactive"). */
 enum class BubuState(val label: String, val line: String, val bg: Color) {
-    Sleepy("Endormie", "Chut… je fais la sieste", Color(0xFFE2EEFF)),
-    Happy("Contente", "Coucou tout le monde !", Color(0xFFFFE0E8)),
-    Excited("Surexcitée", "Ouh, on dessine ensemble !", Color(0xFFFFF0B8)),
-    Party("En fête", "Joyeux anniv !", Color(0xFFFFE3C7)),
-    Surprised("Étonnée", "Waouh, ça bavarde !", Color(0xFFDDF4E9)),
+    Sleepy(tr("Endormie"), tr("Chut… je fais la sieste"), Color(0xFFE2EEFF)),
+    Happy(tr("Contente"), tr("Coucou tout le monde !"), Color(0xFFFFE0E8)),
+    Excited(tr("Surexcitée"), tr("Ouh, on dessine ensemble !"), Color(0xFFFFF0B8)),
+    Party(tr("En fête"), tr("Joyeux anniv !"), Color(0xFFFFE3C7)),
+    Surprised(tr("Étonnée"), tr("Waouh, ça bavarde !"), Color(0xFFDDF4E9)),
 }
 
 private fun DrawScope.strokePath(d: String, color: Color = Ink, width: Float = 3f) =
@@ -155,14 +157,14 @@ fun ConfettiOverlay(trigger: Int) {
 data class BuiltinSticker(val key: String, val label: String, val d: String, val fill: Color?, val color: Color = Ink, val circle: Color? = null)
 
 val BuiltinStickers = listOf(
-    BuiltinSticker("check", "Validé", "M8 20l8 8 16-16", null, Color(0xFF4CC38A)),
-    BuiltinSticker("star", "Étoile", "M20 6l4 9 10 1-7 7 2 10-9-5-9 5 2-10-7-7 10-1z", Color(0xFFFFD66B)),
-    BuiltinSticker("heart", "Cœur", "M20 33s-12-7-12-16a6 6 0 0 1 12-3 6 6 0 0 1 12 3c0 9-12 16-12 16z", Color(0xFFFF7A93)),
-    BuiltinSticker("smile", "Sourire", "M10 26q10 10 20 0M14 15h.01M26 15h.01", null, Ink, Color(0xFFFFE58A)),
-    BuiltinSticker("wave", "Vague", "M6 24c6-10 10 10 16 0s10 10 14 0", null, Color(0xFF4A9BEF)),
-    BuiltinSticker("plus", "Plus", "M20 6v28M6 20h28", null, Color(0xFF8B6CF0)),
-    BuiltinSticker("tent", "Tente", "M10 30l10-22 10 22M14 22h12", null, Color(0xFF2C7A57)),
-    BuiltinSticker("bag", "Valise", "M8 12h24v18H8zM14 12V8h12v4", Color(0xFFFFD3A8)),
+    BuiltinSticker("check", tr("Validé"), "M8 20l8 8 16-16", null, Color(0xFF4CC38A)),
+    BuiltinSticker("star", tr("Étoile"), "M20 6l4 9 10 1-7 7 2 10-9-5-9 5 2-10-7-7 10-1z", Color(0xFFFFD66B)),
+    BuiltinSticker("heart", tr("Cœur"), "M20 33s-12-7-12-16a6 6 0 0 1 12-3 6 6 0 0 1 12 3c0 9-12 16-12 16z", Color(0xFFFF7A93)),
+    BuiltinSticker("smile", tr("Sourire"), "M10 26q10 10 20 0M14 15h.01M26 15h.01", null, Ink, Color(0xFFFFE58A)),
+    BuiltinSticker("wave", tr("Vague"), "M6 24c6-10 10 10 16 0s10 10 14 0", null, Color(0xFF4A9BEF)),
+    BuiltinSticker("plus", tr("Plus"), "M20 6v28M6 20h28", null, Color(0xFF8B6CF0)),
+    BuiltinSticker("tent", tr("Tente"), "M10 30l10-22 10 22M14 22h12", null, Color(0xFF2C7A57)),
+    BuiltinSticker("bag", tr("Valise"), "M8 12h24v18H8zM14 12V8h12v4", Color(0xFFFFD3A8)),
     BuiltinSticker("rainbow", "Arc-en-ciel", "", null),
 )
 
@@ -200,11 +202,11 @@ private fun moodIcon(d: String) = ImageVector.Builder(defaultWidth = 24.dp, defa
     .build()
 
 val Moods = listOf(
-    Mood("dispo", "Dispo", moodIcon("M4 12a8 8 0 1 0 16 0 8 8 0 1 0-16 0M8 14q4 4 8 0M9 9h.01M15 9h.01")),
-    Mood("fatigue", "Fatigué·e", moodIcon("M4 14a8 8 0 1 0 8-8 6 6 0 0 1-8 8z")),
-    Mood("jeu", "En jeu", moodIcon("M6 9h12a4 4 0 0 1 0 8l-3-2H9l-3 2a4 4 0 0 1 0-8zM8 12v2M7 13h2M16 12h.01")),
-    Mood("cine", "Au ciné", moodIcon("M4 6h16v12H4zM4 10h16M8 6l2 4M14 6l2 4")),
-    Mood("dnd", "Ne pas déranger", moodIcon("M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM7 12h10")),
+    Mood("dispo", tr("Dispo"), moodIcon("M4 12a8 8 0 1 0 16 0 8 8 0 1 0-16 0M8 14q4 4 8 0M9 9h.01M15 9h.01")),
+    Mood("fatigue", tr("Fatigué·e"), moodIcon("M4 14a8 8 0 1 0 8-8 6 6 0 0 1-8 8z")),
+    Mood("jeu", tr("En jeu"), moodIcon("M6 9h12a4 4 0 0 1 0 8l-3-2H9l-3 2a4 4 0 0 1 0-8zM8 12v2M7 13h2M16 12h.01")),
+    Mood("cine", tr("Au ciné"), moodIcon("M4 6h16v12H4zM4 10h16M8 6l2 4M14 6l2 4")),
+    Mood("dnd", tr("Ne pas déranger"), moodIcon("M12 3a9 9 0 1 1 0 18 9 9 0 0 1 0-18zM7 12h10")),
 )
 
 fun moodOf(key: String?) = Moods.firstOrNull { it.key == key }
@@ -227,7 +229,7 @@ fun qrBitmap(text: String, size: Int = 512): ImageBitmap {
 @Composable
 fun QrCode(text: String, size: Dp = 160.dp, modifier: Modifier = Modifier) {
     val img = remember(text) { qrBitmap(text) }
-    Box(modifier.size(size)) { Image(img, "QR code", Modifier.fillMaxSize()) }
+    Box(modifier.size(size)) { Image(img, tr("QR code"), Modifier.fillMaxSize()) }
 }
 
 /** The link a QR code carries: the phone's camera opens it, Papote reads it back when scanned. */

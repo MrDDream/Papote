@@ -12,6 +12,7 @@ import fr.papote.app.data.Event
 import fr.papote.app.data.Realtime
 import fr.papote.app.data.Session
 import fr.papote.app.service.LiveService
+import fr.papote.app.service.ShareShortcuts
 import fr.papote.app.service.Notifier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -48,6 +49,7 @@ class PapoteApp : Application(), ImageLoaderFactory {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        I18n.init(this)
         session = Session(this)
         http = OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
@@ -86,7 +88,12 @@ class PapoteApp : Application(), ImageLoaderFactory {
         }
         scope.launch {
             session.state.distinctUntilChangedBy { it.token to it.server }.collect {
-                if (it.loggedIn) realtime.restart() else realtime.stop()
+                if (it.loggedIn) {
+                    realtime.restart()
+                } else {
+                    realtime.stop()
+                    ShareShortcuts.clear(this@PapoteApp)
+                }
             }
         }
         scope.launch {

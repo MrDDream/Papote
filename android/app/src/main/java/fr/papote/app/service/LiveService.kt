@@ -1,5 +1,7 @@
 package fr.papote.app.service
 
+import fr.papote.app.tr
+
 import android.app.Service
 import android.content.Context
 import android.content.Intent
@@ -30,8 +32,8 @@ class LiveService : Service() {
         )
         val n = NotificationCompat.Builder(this, Notifier.CHANNEL_CONNECTION)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle("Papote reste connecté")
-            .setContentText("Pour recevoir tes messages même app fermée")
+            .setContentTitle(tr("Papote reste connecté"))
+            .setContentText(tr("Pour recevoir tes messages même app fermée"))
             .setPriority(NotificationCompat.PRIORITY_MIN)
             .setOngoing(true)
             .setContentIntent(open)

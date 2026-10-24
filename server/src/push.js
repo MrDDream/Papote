@@ -23,6 +23,8 @@ const PREVIEWS = {
   photo: '📷 Photo',
   drawing: '🎨 Dessin',
   voice: '🎤 Message vocal',
+  video: '🎬 Vidéo',
+  file: '📎 Fichier',
   gif: 'GIF',
   sticker: 'Sticker',
   poll: '📊 Sondage',

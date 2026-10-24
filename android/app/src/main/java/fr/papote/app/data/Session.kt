@@ -94,6 +94,11 @@ class Session(context: Context) {
     fun talkie(groupId: Long) = prefs.getBoolean("talkie.$groupId", false)
     fun setTalkie(groupId: Long, on: Boolean) = prefs.edit().putBoolean("talkie.$groupId", on).apply()
 
+    /** A new version the person chose "Plus tard" for: not offered again on the groups screen. */
+    var dismissedUpdate: String?
+        get() = prefs.getString("dismissedUpdate", null)
+        set(v) = prefs.edit().putString("dismissedUpdate", v).apply()
+
     var notificationPromptOff: Boolean
         get() = prefs.getBoolean("notifPromptOff", false)
         set(v) = prefs.edit().putBoolean("notifPromptOff", v).apply()

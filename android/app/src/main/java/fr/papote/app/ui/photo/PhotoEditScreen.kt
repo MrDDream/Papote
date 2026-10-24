@@ -1,5 +1,7 @@
 package fr.papote.app.ui.photo
 
+import fr.papote.app.tr
+
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ColorMatrix
@@ -81,8 +83,8 @@ import kotlin.math.roundToInt
 private data class Item(val kind: String, val text: String = "", val color: Int = 0xFFFFFFFF.toInt(), val key: String = "", val x: Float = 0.5f, val y: Float = 0.5f, val s: Float = 1f)
 private data class Line(val color: Int, val points: List<Offset>)
 
-private val Filters = listOf("normal" to "Normal", "pastel" to "Pastel", "retro" to "Rétro", "nb" to "N&B")
-private val Crops = listOf("orig" to "Original", "square" to "Carré", "portrait" to "4:5", "wide" to "16:9")
+private val Filters = listOf("normal" to "Normal", "pastel" to "Pastel", "retro" to tr("Rétro"), "nb" to "N&B")
+private val Crops = listOf("orig" to "Original", "square" to tr("Carré"), "portrait" to "4:5", "wide" to "16:9")
 private val TextColors = listOf(0xFFFFFFFF, 0xFF2E2442, 0xFFFF7A93, 0xFFFFD66B, 0xFF4CC38A, 0xFF4A9BEF).map { it.toInt() }
 
 private fun matrixOf(filter: String): ColorMatrix? = when (filter) {
@@ -198,7 +200,7 @@ fun PhotoEditScreen(groupId: Long, story: Boolean, onDone: () -> Unit) {
             val img = prepareImage(context, uri)
             bmp = withContext(Dispatchers.Default) { BitmapFactory.decodeByteArray(img.bytes, 0, img.bytes.size) }
         } catch (e: Exception) {
-            error = "Cette image n’a pas pu être lue"
+            error = tr("Cette image n’a pas pu être lue")
         }
     }
 
@@ -235,10 +237,10 @@ fun PhotoEditScreen(groupId: Long, story: Boolean, onDone: () -> Unit) {
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SquareIconButton(PIcons.Close, "Annuler", onDone)
+            SquareIconButton(PIcons.Close, tr("Annuler"), onDone)
             Column(Modifier.weight(1f)) {
-                Text(if (story) "Ma story" else "Décorer la photo", style = MaterialTheme.typography.headlineSmall, color = c.ink)
-                Text(if (story) "Visible 24 h par le groupe" else "Texte, stickers, dessin, filtres", style = MaterialTheme.typography.bodySmall, color = c.muted)
+                Text(if (story) tr("Ma story") else tr("Décorer la photo"), style = MaterialTheme.typography.headlineSmall, color = c.ink)
+                Text(if (story) tr("Visible 24 h par le groupe") else "Texte, stickers, dessin, filtres", style = MaterialTheme.typography.bodySmall, color = c.muted)
             }
         }
         val b = bmp
@@ -246,7 +248,7 @@ fun PhotoEditScreen(groupId: Long, story: Boolean, onDone: () -> Unit) {
             val r = cropRect(b, crop)
             Box(
                 Modifier.fillMaxWidth().aspectRatio(r.width() / r.height()).clip(RoundedCornerShape(24.dp))
-                    .semantics { contentDescription = "Photo à décorer" }
+                    .semantics { contentDescription = tr("Photo à décorer") }
                     .pointerInput(drawing, ink) {
                         awaitEachGesture {
                             val down = awaitFirstDown()
@@ -290,31 +292,31 @@ fun PhotoEditScreen(groupId: Long, story: Boolean, onDone: () -> Unit) {
                 Icon(icon, null, tint = c.ink)
                 Text(short, style = MaterialTheme.typography.labelMedium, color = c.ink)
             }
-            Tool(PIcons.TextTool, "Aa", "Ajouter du texte") { textSheet = true }
-            Tool(PIcons.Stamp, "Sticker", "Ajouter un sticker") { stickerSheet = true }
-            Tool(PIcons.Pencil, "Dessin", "Dessiner dessus", drawing) {
+            Tool(PIcons.TextTool, "Aa", tr("Ajouter du texte")) { textSheet = true }
+            Tool(PIcons.Stamp, "Sticker", tr("Ajouter un sticker")) { stickerSheet = true }
+            Tool(PIcons.Pencil, tr("Dessin"), tr("Dessiner dessus"), drawing) {
                 drawing = !drawing
                 selected = -1
             }
-            Tool(PIcons.Crop, Crops.first { it.first == crop }.second, "Recadrer") { crop = Crops[(Crops.indexOfFirst { it.first == crop } + 1) % Crops.size].first }
+            Tool(PIcons.Crop, Crops.first { it.first == crop }.second, tr("Recadrer")) { crop = Crops[(Crops.indexOfFirst { it.first == crop } + 1) % Crops.size].first }
         }
         if (drawing) Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             for (col in TextColors) Box(
                 Modifier.size(34.dp).clip(CircleShape).border(3.dp, if (col == ink) c.primary else c.line, CircleShape).padding(4.dp).clip(CircleShape).background(Color(col))
                     .clickable(role = Role.RadioButton) { ink = col },
             )
-            SquareIconButton(PIcons.Undo, "Annuler le dernier trait", { lines.removeLastOrNull() })
+            SquareIconButton(PIcons.Undo, tr("Annuler le dernier trait"), { lines.removeLastOrNull() })
         }
         if (selected >= 0 && !drawing) Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SquareIconButton(PIcons.Close, "Plus petit", { items[selected] = items[selected].let { it.copy(s = (it.s - 0.2f).coerceAtLeast(0.4f)) } })
-            SquareIconButton(PIcons.Plus, "Plus grand", { items[selected] = items[selected].let { it.copy(s = (it.s + 0.2f).coerceAtMost(4f)) } })
-            SquareIconButton(PIcons.Trash, "Retirer", {
+            SquareIconButton(PIcons.Close, tr("Plus petit"), { items[selected] = items[selected].let { it.copy(s = (it.s - 0.2f).coerceAtLeast(0.4f)) } })
+            SquareIconButton(PIcons.Plus, tr("Plus grand"), { items[selected] = items[selected].let { it.copy(s = (it.s + 0.2f).coerceAtMost(4f)) } })
+            SquareIconButton(PIcons.Trash, tr("Retirer"), {
                 items.removeAt(selected)
                 selected = -1
             })
         }
         Segmented(Filters, filter, { filter = it }, Modifier.fillMaxWidth())
-        PapoteField(caption, { caption = it.take(140) }, Modifier.fillMaxWidth(), placeholder = if (story) "Un petit mot sur ta story" else "Ajouter une légende", label = "Légende")
+        PapoteField(caption, { caption = it.take(140) }, Modifier.fillMaxWidth(), placeholder = if (story) tr("Un petit mot sur ta story") else tr("Ajouter une légende"), label = tr("Légende"))
         ErrorText(error)
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
             if (!story) Row(
@@ -325,9 +327,9 @@ fun PhotoEditScreen(groupId: Long, story: Boolean, onDone: () -> Unit) {
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 Icon(PIcons.Timer, null, tint = if (ephemeral) Color(0xFFA3204A) else c.ink, modifier = Modifier.size(18.dp))
-                Text(if (ephemeral) "Disparaît en 24 h" else "Garder", style = MaterialTheme.typography.labelLarge, color = if (ephemeral) Color(0xFFA3204A) else c.ink)
+                Text(if (ephemeral) tr("Disparaît en 24 h") else tr("Garder"), style = MaterialTheme.typography.labelLarge, color = if (ephemeral) Color(0xFFA3204A) else c.ink)
             }
-            PrimaryButton(if (story) "Publier" else "Envoyer", ::send, Modifier.weight(1f), enabled = bmp != null, loading = sending, icon = PIcons.Send)
+            PrimaryButton(if (story) tr("Publier") else tr("Envoyer"), ::send, Modifier.weight(1f), enabled = bmp != null, loading = sending, icon = PIcons.Send)
         }
     }
 
@@ -335,15 +337,15 @@ fun PhotoEditScreen(groupId: Long, story: Boolean, onDone: () -> Unit) {
         var text by remember { mutableStateOf("") }
         var color by remember { mutableIntStateOf(TextColors[0]) }
         Column(Modifier.padding(start = 20.dp, end = 20.dp, bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Ajouter du texte", style = MaterialTheme.typography.titleLarge, color = c.ink)
-            PapoteField(text, { text = it.take(60) }, Modifier.fillMaxWidth(), placeholder = "Enfin la mer !", label = "Texte")
+            Text(tr("Ajouter du texte"), style = MaterialTheme.typography.titleLarge, color = c.ink)
+            PapoteField(text, { text = it.take(60) }, Modifier.fillMaxWidth(), placeholder = tr("Enfin la mer !"), label = tr("Texte"))
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (col in TextColors) Box(
                     Modifier.size(34.dp).clip(CircleShape).border(3.dp, if (col == color) c.primary else c.line, CircleShape).padding(4.dp).clip(CircleShape).background(Color(col))
                         .clickable(role = Role.RadioButton) { color = col },
                 )
             }
-            PrimaryButton("Ajouter", {
+            PrimaryButton(tr("Ajouter"), {
                 if (text.isNotBlank()) {
                     items += Item("text", text = text.trim(), color = color)
                     selected = items.lastIndex
@@ -355,7 +357,7 @@ fun PhotoEditScreen(groupId: Long, story: Boolean, onDone: () -> Unit) {
     }
     if (stickerSheet) ModalBottomSheet({ stickerSheet = false }, containerColor = c.card) {
         Column(Modifier.padding(start = 20.dp, end = 20.dp, bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Ajouter un sticker", style = MaterialTheme.typography.titleLarge, color = c.ink)
+            Text(tr("Ajouter un sticker"), style = MaterialTheme.typography.titleLarge, color = c.ink)
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (st in BuiltinStickers) Box(
                     Modifier.size(72.dp).clip(RoundedCornerShape(14.dp)).background(c.field).clickable(role = Role.Button) {

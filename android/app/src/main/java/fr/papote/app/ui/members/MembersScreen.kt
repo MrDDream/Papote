@@ -1,5 +1,7 @@
 package fr.papote.app.ui.members
 
+import fr.papote.app.tr
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -92,7 +94,7 @@ fun MembersScreen(groupId: Long, onBack: () -> Unit, onInvite: () -> Unit, onLef
             } catch (e: ApiException) {
                 error = e.message
             } catch (e: Exception) {
-                error = "Cette image n’a pas pu être lue"
+                error = tr("Cette image n’a pas pu être lue")
             }
         }
     }
@@ -144,32 +146,32 @@ fun MembersScreen(groupId: Long, onBack: () -> Unit, onInvite: () -> Unit, onLef
     ) {
         val direct = g?.direct == true
         TopBar(
-            if (direct) "Discussion" else "Membres",
+            if (direct) tr("Discussion") else tr("Membres"),
             onBack,
-            subtitle = g?.let { it.name + if (me?.isOwner == true && !direct) " · tu l’as créé" else "" },
+            subtitle = g?.let { it.name + if (me?.isOwner == true && !direct) tr(" · tu l’as créé") else "" },
         ) {
-            if (!direct && (g?.settings?.anyoneInvites != false || me?.isAdmin == true)) SquareIconButton(PIcons.PersonPlus, "Inviter quelqu’un", onInvite, background = c.primary, tint = c.onPrimary)
+            if (!direct && (g?.settings?.anyoneInvites != false || me?.isAdmin == true)) SquareIconButton(PIcons.PersonPlus, tr("Inviter quelqu’un"), onInvite, background = c.primary, tint = c.onPrimary)
         }
         val waiting = members.filter { it.pending }
         if (me?.isAdmin == true && waiting.isNotEmpty()) {
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.soft).padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("Veulent rejoindre", style = MaterialTheme.typography.titleMedium, color = c.ink)
+                Text(tr("Veulent rejoindre"), style = MaterialTheme.typography.titleMedium, color = c.ink)
                 for (m in waiting) Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Avatar(m.name, m.color, m.photo, size = 40.dp, initialOnly = true)
                     Column(Modifier.weight(1f)) {
                         Text(m.name, style = MaterialTheme.typography.labelLarge, color = c.ink)
-                        Text("attend que tu valides", style = MaterialTheme.typography.bodySmall, color = c.muted)
+                        Text(tr("attend que tu valides"), style = MaterialTheme.typography.bodySmall, color = c.muted)
                     }
-                    SecondaryButton("Refuser", { act { app.api.refuse(groupId, m.id) } }, height = 40.dp)
-                    SecondaryButton("Accepter", { act { app.api.approve(groupId, m.id) } }, height = 40.dp, icon = PIcons.Check)
+                    SecondaryButton(tr("Refuser"), { act { app.api.refuse(groupId, m.id) } }, height = 40.dp)
+                    SecondaryButton(tr("Accepter"), { act { app.api.approve(groupId, m.id) } }, height = 40.dp, icon = PIcons.Check)
                 }
             }
         }
         if (!direct && g != null && (g.settings.anyoneInvites || me?.isAdmin == true)) {
             // Inviting is the first thing people come here for: make it obvious.
-            SecondaryButton("Inviter quelqu’un dans le groupe", onInvite, Modifier.fillMaxWidth(), icon = PIcons.PersonPlus)
+            SecondaryButton(tr("Inviter quelqu’un dans le groupe"), onInvite, Modifier.fillMaxWidth(), icon = PIcons.PersonPlus)
         }
-        Text(if (direct) "Avec" else "Membres", style = MaterialTheme.typography.titleMedium, color = c.ink)
+        Text(if (direct) tr("Avec") else tr("Membres"), style = MaterialTheme.typography.titleMedium, color = c.ink)
 
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.card).padding(8.dp)) {
             for (m in members.filter { !it.pending }) {
@@ -178,16 +180,16 @@ fun MembersScreen(groupId: Long, onBack: () -> Unit, onInvite: () -> Unit, onLef
                 Row(
                     Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp))
                         .clickable(enabled = canManage || me?.isOwner == true && m.id != meId, role = Role.Button) { open = if (isOpen) null else m.id }
-                        .semantics { stateDescription = if (isOpen) "actions affichées" else "" }
+                        .semantics { stateDescription = if (isOpen) tr("actions affichées") else "" }
                         .padding(10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Avatar(m.name, m.color, m.photo, size = 44.dp, online = m.online)
+                    Avatar(m.name, m.color, m.photo, size = 44.dp, online = m.online, zoomable = true)
                     Column(Modifier.weight(1f)) {
                         Text(m.name + if (m.id == meId) " (toi)" else "", style = MaterialTheme.typography.titleMedium, color = c.ink)
                         Text(
-                            listOfNotNull(if ((m.mutedUntil ?: 0) > System.currentTimeMillis()) "en sourdine" else null, lastSeen(m), m.bio.takeIf { it.isNotBlank() }).joinToString(" · "),
+                            listOfNotNull(if ((m.mutedUntil ?: 0) > System.currentTimeMillis()) tr("en sourdine") else null, lastSeen(m), m.bio.takeIf { it.isNotBlank() }).joinToString(" · "),
                             style = MaterialTheme.typography.bodySmall,
                             color = c.muted,
                             maxLines = 1,
@@ -210,17 +212,17 @@ fun MembersScreen(groupId: Long, onBack: () -> Unit, onInvite: () -> Unit, onLef
                     ) {
                         if (me.isOwner) {
                             SecondaryButton(
-                                if (m.role == "admin") "Retirer admin" else "Nommer admin",
+                                if (m.role == "admin") tr("Retirer admin") else tr("Nommer admin"),
                                 { act { app.api.setRole(groupId, m.id, if (m.role == "admin") "member" else "admin") } },
                                 height = 40.dp,
                             )
-                            SecondaryButton("Lui confier le groupe", { confirm = Confirm.Transfer(m) }, height = 40.dp)
+                            SecondaryButton(tr("Lui confier le groupe"), { confirm = Confirm.Transfer(m) }, height = 40.dp)
                         }
                         if (canManage && !direct) {
-                            if ((m.mutedUntil ?: 0) > System.currentTimeMillis()) SecondaryButton("Rendre la parole", { act { app.api.unmute(groupId, m.id) } }, height = 40.dp)
-                            else SecondaryButton("Rendre muet·te", { confirm = Confirm.Mute(m) }, height = 40.dp, icon = PIcons.Mute)
+                            if ((m.mutedUntil ?: 0) > System.currentTimeMillis()) SecondaryButton(tr("Rendre la parole"), { act { app.api.unmute(groupId, m.id) } }, height = 40.dp)
+                            else SecondaryButton(tr("Rendre muet·te"), { confirm = Confirm.Mute(m) }, height = 40.dp, icon = PIcons.Mute)
                         }
-                        if (canManage) SecondaryButton("Retirer du groupe", { confirm = Confirm.Remove(m) }, danger = true, height = 40.dp)
+                        if (canManage) SecondaryButton(tr("Retirer du groupe"), { confirm = Confirm.Remove(m) }, danger = true, height = 40.dp)
                     }
                 }
             }
@@ -232,13 +234,13 @@ fun MembersScreen(groupId: Long, onBack: () -> Unit, onInvite: () -> Unit, onLef
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Règles du groupe", style = MaterialTheme.typography.titleMedium, color = c.ink, modifier = Modifier.weight(1f))
+                    Text(tr("Règles du groupe"), style = MaterialTheme.typography.titleMedium, color = c.ink, modifier = Modifier.weight(1f))
                     Text("(admins seulement)", style = MaterialTheme.typography.bodySmall, color = c.muted)
                 }
                 for ((key, label, on) in listOf(
-                    Triple("anyoneInvites", "Tout le monde peut inviter", g.settings.anyoneInvites),
-                    Triple("adminsTheme", "Seuls les admins changent le thème", g.settings.adminsTheme),
-                    Triple("approval", "Valider les nouveaux membres", g.settings.approval),
+                    Triple("anyoneInvites", tr("Tout le monde peut inviter"), g.settings.anyoneInvites),
+                    Triple("adminsTheme", tr("Seuls les admins changent le thème"), g.settings.adminsTheme),
+                    Triple("approval", tr("Valider les nouveaux membres"), g.settings.approval),
                 )) Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(label, Modifier.weight(1f), color = c.ink)
                     fr.papote.app.ui.components.PapoteSwitch(on, { v -> act { app.api.groupSettings(groupId, jsonOf(key to v)) } }, label)
@@ -250,11 +252,11 @@ fun MembersScreen(groupId: Long, onBack: () -> Unit, onInvite: () -> Unit, onLef
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     GroupBadge(color, icon, size = 48.dp, photo = g.photo)
-                    Text("Le groupe", style = MaterialTheme.typography.titleMedium, color = c.ink)
+                    Text(tr("Le groupe"), style = MaterialTheme.typography.titleMedium, color = c.ink)
                 }
-                FieldLabel("Nom")
-                PapoteField(name, { name = it.take(40) }, label = "Nom du groupe")
-                FieldLabel("Couleur")
+                FieldLabel(tr("Nom"))
+                PapoteField(name, { name = it.take(40) }, label = tr("Nom du groupe"))
+                FieldLabel(tr("Couleur"))
                 TintPicker(color, { color = it })
                 GroupLookPicker(
                     icon = icon,
@@ -264,7 +266,7 @@ fun MembersScreen(groupId: Long, onBack: () -> Unit, onInvite: () -> Unit, onLef
                     onClearImage = { act { app.api.deleteGroupPhoto(groupId) } },
                 )
                 if (name.trim() != g.name || color != g.color || icon != g.icon) {
-                    SecondaryButton("Enregistrer", {
+                    SecondaryButton(tr("Enregistrer"), {
                         act { app.api.updateGroup(groupId, jsonOf("name" to name.trim(), "color" to color, "icon" to icon)) }
                     }, Modifier.fillMaxWidth(), icon = PIcons.Check)
                 }
@@ -273,9 +275,9 @@ fun MembersScreen(groupId: Long, onBack: () -> Unit, onInvite: () -> Unit, onLef
 
         ErrorText(error)
         Spacer(Modifier.height(4.dp))
-        SecondaryButton(if (direct) "Quitter la discussion" else "Quitter le groupe", { confirm = Confirm.Leave }, Modifier.fillMaxWidth(), icon = PIcons.Exit, danger = true)
+        SecondaryButton(if (direct) tr("Quitter la discussion") else tr("Quitter le groupe"), { confirm = Confirm.Leave }, Modifier.fillMaxWidth(), icon = PIcons.Exit, danger = true)
         if (me?.isOwner == true && !direct) {
-            SecondaryButton("Supprimer le groupe pour tout le monde", { confirm = Confirm.Delete }, Modifier.fillMaxWidth(), icon = PIcons.Trash, danger = true)
+            SecondaryButton(tr("Supprimer le groupe pour tout le monde"), { confirm = Confirm.Delete }, Modifier.fillMaxWidth(), icon = PIcons.Trash, danger = true)
         }
     }
 
@@ -284,11 +286,11 @@ fun MembersScreen(groupId: Long, onBack: () -> Unit, onInvite: () -> Unit, onLef
             AlertDialog(
                 onDismissRequest = { confirm = null },
                 containerColor = c.card,
-                title = { Text("Rendre ${what.m.name} muet·te", style = MaterialTheme.typography.titleLarge, color = c.ink) },
+                title = { Text(tr("Rendre {} muet·te", what.m.name), style = MaterialTheme.typography.titleLarge, color = c.ink) },
                 text = {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("${what.m.name} pourra lire le groupe, mais pas y écrire.", color = c.muted)
-                        for ((d, l) in listOf("1h" to "Pendant 1 heure", "24h" to "Pendant 24 heures", "7d" to "Pendant 7 jours", "forever" to "Jusqu’à nouvel ordre")) {
+                        Text(tr("{} pourra lire le groupe, mais pas y écrire.", what.m.name), color = c.muted)
+                        for ((d, l) in listOf("1h" to "Pendant 1 heure", "24h" to "Pendant 24 heures", "7d" to "Pendant 7 jours", "forever" to tr("Jusqu’à nouvel ordre"))) {
                             SecondaryButton(l, {
                                 confirm = null
                                 act { app.api.mute(groupId, what.m.id, d) }
@@ -297,15 +299,15 @@ fun MembersScreen(groupId: Long, onBack: () -> Unit, onInvite: () -> Unit, onLef
                     }
                 },
                 confirmButton = {},
-                dismissButton = { TextButton(onClick = { confirm = null }) { Text("Annuler", style = MaterialTheme.typography.labelLarge, color = c.ink) } },
+                dismissButton = { TextButton(onClick = { confirm = null }) { Text(tr("Annuler"), style = MaterialTheme.typography.labelLarge, color = c.ink) } },
             )
             return@let
         }
         val (title, body) = when (what) {
-            is Confirm.Remove -> "Retirer ${what.m.name} ?" to "${what.m.name} ne verra plus les messages du groupe."
-            is Confirm.Transfer -> "Confier le groupe à ${what.m.name} ?" to "Tu deviendras admin, et ${what.m.name} aura le dernier mot sur le groupe."
-            Confirm.Leave -> "Quitter le groupe ?" to (if (me?.isOwner == true) "Le groupe sera confié à un autre membre. " else "") + "Il te faudra un nouveau code pour revenir."
-            Confirm.Delete -> "Supprimer le groupe ?" to "Le groupe disparaîtra pour tout le monde. L’admin du serveur pourra encore le restaurer pendant 30 jours, puis il sera effacé avec ses messages et ses médias."
+            is Confirm.Remove -> "Retirer ${what.m.name} ?" to tr("{} ne verra plus les messages du groupe.", what.m.name)
+            is Confirm.Transfer -> tr("Confier le groupe à {} ?", what.m.name) to tr("Tu deviendras admin, et {} aura le dernier mot sur le groupe.", what.m.name)
+            Confirm.Leave -> tr("Quitter le groupe ?") to (if (me?.isOwner == true) tr("Le groupe sera confié à un autre membre. ") else "") + tr("Il te faudra un nouveau code pour revenir.")
+            Confirm.Delete -> tr("Supprimer le groupe ?") to tr("Le groupe disparaîtra pour tout le monde. L’admin du serveur pourra encore le restaurer pendant 30 jours, puis il sera effacé avec ses messages et ses médias.")
             is Confirm.Mute -> "" to ""
         }
         AlertDialog(
@@ -337,9 +339,9 @@ fun MembersScreen(groupId: Long, onBack: () -> Unit, onInvite: () -> Unit, onLef
                             }
                         }
                     }
-                }) { Text("Confirmer", style = MaterialTheme.typography.labelLarge, color = c.danger) }
+                }) { Text(tr("Confirmer"), style = MaterialTheme.typography.labelLarge, color = c.danger) }
             },
-            dismissButton = { TextButton(onClick = { confirm = null }) { Text("Annuler", style = MaterialTheme.typography.labelLarge, color = c.ink) } },
+            dismissButton = { TextButton(onClick = { confirm = null }) { Text(tr("Annuler"), style = MaterialTheme.typography.labelLarge, color = c.ink) } },
         )
     }
 }

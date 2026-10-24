@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Direct Share: the dynamic shortcuts of category fr.papote.app.SHARE_TARGET (see ShareShortcuts)
+     show up in the "Partager" sheet; picking one sends straight to that conversation. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <share-target android:targetClass="fr.papote.app.MainActivity">
+        <data android:mimeType="text/plain" />
+        <data android:mimeType="image/*" />
+        <category android:name="fr.papote.app.SHARE_TARGET" />
+    </share-target>
+</shortcuts>

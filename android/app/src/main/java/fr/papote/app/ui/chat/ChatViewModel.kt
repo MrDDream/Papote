@@ -1,5 +1,7 @@
 package fr.papote.app.ui.chat
 
+import fr.papote.app.tr
+
 import android.net.Uri
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -23,6 +25,8 @@ import fr.papote.app.data.StoryGroup
 import fr.papote.app.data.jsonOf
 import fr.papote.app.ui.extras.BubuState
 import fr.papote.app.ui.extras.LocationSharing
+
+private fun GroupSummary.readsById(): Map<Long, Long> = reads.mapNotNull { (k, v) -> k.toLongOrNull()?.let { it to v } }.toMap()
 
 class ChatViewModel(handle: SavedStateHandle) : ViewModel() {
     val groupId: Long = handle["id"]!!
@@ -51,6 +55,10 @@ class ChatViewModel(handle: SavedStateHandle) : ViewModel() {
         val reachedEnd: Boolean = true,
         val highlight: Long? = null,
         val info: String? = null,
+        /** user id -> last message id they've read: the ticks under my messages. */
+        val reads: Map<Long, Long> = emptyMap(),
+        /** The message the next one answers (swipe or "Répondre"). */
+        val replyingTo: Message? = null,
     ) {
         val pending get() = members.values.filter { it.pending }
         val muted get() = (group?.mutedUntil ?: 0) > System.currentTimeMillis()
@@ -68,6 +76,24 @@ class ChatViewModel(handle: SavedStateHandle) : ViewModel() {
             }
         val me get() = members.values.firstOrNull { it.id == PapoteApp.instance.session.userId }
         val onlineCount get() = members.values.count { it.online }
+
+        /** Who among the others has read my message [m]: nobody yet, some of them, or everyone. */
+        fun readState(m: Message): ReadState {
+            val meId = PapoteApp.instance.session.userId
+            val others = members.values.filter { it.id != meId && !it.pending && it.joinedAt <= m.createdAt }
+            val n = others.count { (reads[it.id] ?: 0) >= m.id }
+            return when {
+                others.isEmpty() || n == 0 -> ReadState.Sent
+                n < others.size -> ReadState.Some(n, others.size)
+                else -> ReadState.All
+            }
+        }
+    }
+
+    sealed interface ReadState {
+        data object Sent : ReadState
+        data class Some(val read: Int, val of: Int) : ReadState
+        data object All : ReadState
     }
 
     val state = MutableStateFlow(State())
@@ -103,7 +129,7 @@ class ChatViewModel(handle: SavedStateHandle) : ViewModel() {
                 val messages = if (at != null) app.api.messagesAround(groupId, at) else app.api.messages(groupId)
                 state.update {
                     it.copy(
-                        group = group, members = members, messages = messages, loading = false,
+                        group = group, members = members, messages = messages, loading = false, reads = group.readsById(),
                         reachedStart = at == null && messages.size < 50, reachedEnd = at == null, highlight = at, error = null,
                     )
                 }
@@ -167,7 +193,10 @@ class ChatViewModel(handle: SavedStateHandle) : ViewModel() {
 
     private fun onEvent(e: Event) {
         when (e) {
-            is Event.NewMessage -> if (e.message.groupId == groupId && state.value.reachedEnd) {
+            is Event.NewMessage -> if (e.message.groupId == groupId) {
+                // Writing in the group means having read everything before.
+                e.message.authorId?.let { a -> state.update { it.copy(reads = it.reads + (a to maxOf(it.reads[a] ?: 0, e.message.id))) } }
+                if (!state.value.reachedEnd) return
                 upsert(e.message)
                 // Talkie mode: other people's voice messages play by themselves.
                 if (app.session.talkie(groupId) && e.message.type == "voice" && e.message.authorId != meId && !player.state.value.playing) play(e.message)
@@ -209,6 +238,9 @@ class ChatViewModel(handle: SavedStateHandle) : ViewModel() {
             is Event.GroupRemoved -> if (e.groupId == groupId) state.update { it.copy(gone = true) }
             Event.Reconnected -> catchUp()
             is Event.GroupRead -> Unit
+            is Event.MemberRead -> if (e.groupId == groupId) state.update { s ->
+                if ((s.reads[e.userId] ?: 0) >= e.messageId) s else s.copy(reads = s.reads + (e.userId to e.messageId))
+            }
             is Event.GroupRefresh -> if (e.groupId == groupId) load()
             else -> Unit
         }
@@ -221,7 +253,8 @@ class ChatViewModel(handle: SavedStateHandle) : ViewModel() {
                 val latest = app.api.messages(groupId)
                 latest.forEach(::upsert)
                 val members = app.api.members(groupId).associateBy { it.id }
-                state.update { it.copy(members = members) }
+                val group = app.api.group(groupId)
+                state.update { it.copy(members = members, group = group, reads = group.readsById()) }
             }
             markRead()
         }
@@ -257,7 +290,7 @@ class ChatViewModel(handle: SavedStateHandle) : ViewModel() {
             } catch (e: ApiException) {
                 state.update { it.copy(error = e.message) }
             } catch (e: Exception) {
-                state.update { it.copy(error = "Envoi impossible : ${e.message ?: "erreur inconnue"}") }
+                state.update { it.copy(error = tr("Envoi impossible : {}", e.message ?: tr("erreur inconnue"))) }
             } finally {
                 state.update { it.copy(uploads = it.uploads - 1) }
             }
@@ -267,12 +300,47 @@ class ChatViewModel(handle: SavedStateHandle) : ViewModel() {
     fun sendText(text: String) {
         val t = text.trim()
         if (t.isEmpty()) return
-        upload { app.api.sendText(groupId, t) }
+        val replyTo = takeReply()
+        upload { app.api.sendText(groupId, t, replyTo) }
+    }
+
+    fun startReply(m: Message) = state.update { it.copy(replyingTo = m) }
+    fun cancelReply() = state.update { it.copy(replyingTo = null) }
+    private fun takeReply(): Long? = state.value.replyingTo?.id.also { cancelReply() }
+
+    /** Tapping the quote above a reply: go to the answered message (loading around it if needed). */
+    fun showMessage(id: Long) {
+        if (state.value.messages.any { it.id == id }) {
+            state.update { it.copy(highlight = id) }
+            return
+        }
+        viewModelScope.launch {
+            try {
+                val around = app.api.messagesAround(groupId, id)
+                state.update { it.copy(messages = around, reachedEnd = false, reachedStart = false, highlight = id) }
+            } catch (e: ApiException) {
+                state.update { it.copy(error = e.message) }
+            }
+        }
     }
 
     fun sendPhoto(uri: Uri) = upload {
         val img = prepareImage(app, uri)
         app.api.sendMedia(groupId, "photo", img.bytes, "image/jpeg", "photo.jpg", mapOf("width" to "${img.width}", "height" to "${img.height}"))
+    }
+
+    /** A video or a document, sent as it is (MAX_UPLOAD_MB on the server). */
+    fun sendPicked(uri: Uri, video: Boolean) {
+        val replyTo = takeReply()
+        upload {
+            val f = try {
+                readPicked(app, uri, state.value.features.maxUploadMb, video)
+            } catch (e: TooBigException) {
+                throw ApiException(413, "file_too_large", tr("Trop lourd : {}, {} Mo au maximum", fileSize(e.size), state.value.features.maxUploadMb))
+            }
+            val fields = if (replyTo != null) f.fields + ("replyTo" to "$replyTo") else f.fields
+            app.api.sendMedia(groupId, if (video) "video" else "file", f.bytes, f.mime, f.name, fields)
+        }
     }
 
     fun startVoice(): Boolean = runCatching {
@@ -284,10 +352,12 @@ class ChatViewModel(handle: SavedStateHandle) : ViewModel() {
 
     fun sendVoice(filter: String = "") {
         val r = recorder.stop() ?: return
+        val replyTo = takeReply()
         upload {
             try {
                 val fields = mutableMapOf("durationMs" to "${r.durationMs}", "waveform" to PapoteJson.encodeToString(r.waveform))
                 if (filter.isNotEmpty()) fields["filter"] = filter
+                if (replyTo != null) fields["replyTo"] = "$replyTo"
                 app.api.sendMedia(groupId, "voice", r.file.readBytes(), "audio/mp4", "vocal.m4a", fields)
             } finally {
                 r.file.delete()
@@ -342,7 +412,7 @@ class ChatViewModel(handle: SavedStateHandle) : ViewModel() {
     fun pin(m: Message) = act { upsert(app.api.pin(m.id, m.pinnedAt == null)) }
     fun makeSticker(m: Message) = act {
         app.api.makeSticker(groupId, m.id)
-        state.update { it.copy(info = "Sticker ajouté au groupe") }
+        state.update { it.copy(info = tr("Sticker ajouté au groupe")) }
     }
     fun vote(m: Message, option: Int) = act {
         val mine = m.votes.orEmpty().filterValues { meId in it }.keys.mapNotNull { it.toIntOrNull() }

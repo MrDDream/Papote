@@ -1,5 +1,7 @@
 package fr.papote.app.ui.group
 
+import fr.papote.app.tr
+
 import android.content.ContentValues
 import android.os.Build
 import android.provider.MediaStore
@@ -89,7 +91,7 @@ import java.time.YearMonth
 import java.time.ZoneId
 
 private val Ink = Color(0xFF2E2442)
-private val MONTHS = listOf("janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre")
+private val MONTHS = listOf(tr("janvier"), tr("février"), tr("mars"), tr("avril"), tr("mai"), tr("juin"), tr("juillet"), tr("août"), tr("septembre"), tr("octobre"), tr("novembre"), tr("décembre"))
 
 @Composable
 private fun Card(content: @Composable () -> Unit) {
@@ -173,7 +175,7 @@ fun GroupSettingsScreen(
 
     val g = group
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        TopBar(if (g?.direct == true) "Réglages de la discussion" else "Réglages du groupe", onBack, subtitle = g?.name)
+        TopBar(if (g?.direct == true) tr("Réglages de la discussion") else tr("Réglages du groupe"), onBack, subtitle = g?.name)
         if (g == null) {
             ErrorText(error)
             return@Column
@@ -184,27 +186,27 @@ fun GroupSettingsScreen(
         val canTheme = admin || !s.adminsTheme
         val active = members.filter { !it.pending }
         Card {
-            LinkRow(PIcons.People, if (g.direct) "La discussion" else "Membres", if (g.direct) null else "${active.size} membre${if (active.size > 1) "s" else ""}" + if (admin && members.any { it.pending }) " · des demandes en attente" else "", onMembers)
-            if (!g.direct && (s.anyoneInvites || admin)) LinkRow(PIcons.Share, "Inviter quelqu’un", "Code et QR code", onInvite)
-            LinkRow(PIcons.Grid, "Galerie", "Dessins, photos, GIF, vocaux", onGallery)
-            LinkRow(PIcons.Search, "Épinglés et recherche", null, onSearch)
+            LinkRow(PIcons.People, if (g.direct) tr("La discussion") else tr("Membres"), if (g.direct) null else "${active.size} membre${if (active.size > 1) "s" else ""}" + if (admin && members.any { it.pending }) tr(" · des demandes en attente") else "", onMembers)
+            if (!g.direct && (s.anyoneInvites || admin)) LinkRow(PIcons.Share, tr("Inviter quelqu’un"), tr("Code et QR code"), onInvite)
+            LinkRow(PIcons.Grid, tr("Galerie"), "Dessins, photos, GIF, vocaux", onGallery)
+            LinkRow(PIcons.Search, tr("Épinglés et recherche"), null, onSearch)
             LinkRow(PIcons.Game, "Mini-jeux", null, onGames)
-            LinkRow(PIcons.Sparkles, "Le récap du mois", null, onRecap)
+            LinkRow(PIcons.Sparkles, tr("Le récap du mois"), null, onRecap)
         }
         Card {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Thème", style = MaterialTheme.typography.titleMedium, color = c.ink, modifier = Modifier.weight(1f))
-                if (!canTheme) Text("réservé aux admins", style = MaterialTheme.typography.bodySmall, color = c.muted)
+                Text(tr("Thème"), style = MaterialTheme.typography.titleMedium, color = c.ink, modifier = Modifier.weight(1f))
+                if (!canTheme) Text(tr("réservé aux admins"), style = MaterialTheme.typography.bodySmall, color = c.muted)
             }
             if (!g.direct && canTheme) TintPicker(g.color, { col -> act { app.api.updateGroup(groupId, jsonOf("color" to col)) } })
-            Segmented(listOf("none" to "Uni", "dots" to "Pois", "stripes" to "Rayures", "grid" to "Grille"), s.pattern, { p ->
+            Segmented(listOf("none" to tr("Uni"), "dots" to tr("Pois"), "stripes" to tr("Rayures"), "grid" to tr("Grille")), s.pattern, { p ->
                 if (canTheme) act { app.api.groupSettings(groupId, jsonOf("pattern" to p)) }
             }, Modifier.fillMaxWidth())
         }
         Card {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Réactions du groupe", style = MaterialTheme.typography.titleMedium, color = c.ink, modifier = Modifier.weight(1f))
-                Text("Tape pour changer", style = MaterialTheme.typography.bodySmall, color = c.muted)
+                Text(tr("Réactions du groupe"), style = MaterialTheme.typography.titleMedium, color = c.ink, modifier = Modifier.weight(1f))
+                Text(tr("Tape pour changer"), style = MaterialTheme.typography.bodySmall, color = c.muted)
             }
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (k in s.reactions) {
@@ -220,7 +222,7 @@ fun GroupSettingsScreen(
                 }
                 if (canTheme && s.reactions.size < 8) Box(
                     Modifier.size(46.dp).clip(RoundedCornerShape(16.dp)).background(c.soft).clickable(role = Role.Button) { addReaction = !addReaction }
-                        .semantics { contentDescription = "Ajouter une réaction" },
+                        .semantics { contentDescription = tr("Ajouter une réaction") },
                     contentAlignment = Alignment.Center,
                 ) { Icon(PIcons.Plus, null, tint = c.primary) }
             }
@@ -243,7 +245,7 @@ fun GroupSettingsScreen(
             }
         }
         Card {
-            Text("Mon humeur", style = MaterialTheme.typography.titleMedium, color = c.ink)
+            Text(tr("Mon humeur"), style = MaterialTheme.typography.titleMedium, color = c.ink)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (m in Moods) {
                     val on = me?.mood == m.key
@@ -266,38 +268,38 @@ fun GroupSettingsScreen(
                     }
                 }
             }
-            Text("Visible sur ton avatar, dans tous tes groupes.", style = MaterialTheme.typography.bodySmall, color = c.muted)
+            Text(tr("Visible sur ton avatar, dans tous tes groupes."), style = MaterialTheme.typography.bodySmall, color = c.muted)
         }
         Card {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Fêter les anniversaires", style = MaterialTheme.typography.labelLarge, color = c.ink)
+                    Text(tr("Fêter les anniversaires"), style = MaterialTheme.typography.labelLarge, color = c.ink)
                     Text(
                         me?.birthday?.let { b -> "Confettis le jour J · le tien : " + Regex("(\\d{2})-(\\d{2})$").find(b)?.let { "${it.groupValues[2].toInt()} ${MONTHS[it.groupValues[1].toInt() - 1]}" }.orEmpty() }
-                            ?: "Confettis le jour J · ajoute ta date dans Paramètres",
+                            ?: tr("Confettis le jour J · ajoute ta date dans Paramètres"),
                         style = MaterialTheme.typography.bodySmall,
                         color = c.muted,
                     )
                 }
-                PapoteSwitch(s.birthdays, { on -> if (canTheme) act { app.api.groupSettings(groupId, jsonOf("birthdays" to on)) } }, "Fêter les anniversaires")
+                PapoteSwitch(s.birthdays, { on -> if (canTheme) act { app.api.groupSettings(groupId, jsonOf("birthdays" to on)) } }, tr("Fêter les anniversaires"))
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Mode talkie", style = MaterialTheme.typography.labelLarge, color = c.ink)
-                    Text("Les vocaux des autres se lancent tout seuls quand la discussion est ouverte", style = MaterialTheme.typography.bodySmall, color = c.muted)
+                    Text(tr("Mode talkie"), style = MaterialTheme.typography.labelLarge, color = c.ink)
+                    Text(tr("Les vocaux des autres se lancent tout seuls quand la discussion est ouverte"), style = MaterialTheme.typography.bodySmall, color = c.muted)
                 }
                 PapoteSwitch(talkie, {
                     talkie = it
                     app.session.setTalkie(groupId, it)
-                }, "Mode talkie")
+                }, tr("Mode talkie"))
             }
         }
         ErrorText(error)
         info?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = c.ok) }
-        SecondaryButton(if (exporting) "Export en cours…" else "Exporter (.zip)", {
+        SecondaryButton(if (exporting) tr("Export en cours…") else "Exporter (.zip)", {
             if (exporting) return@SecondaryButton
             if (Build.VERSION.SDK_INT < 29) {
-                error = "Il faut Android 10 ou plus pour exporter ici"
+                error = tr("Il faut Android 10 ou plus pour exporter ici")
                 return@SecondaryButton
             }
             exporting = true
@@ -310,18 +312,18 @@ fun GroupSettingsScreen(
                             put(MediaStore.MediaColumns.MIME_TYPE, "application/zip")
                             put(MediaStore.MediaColumns.RELATIVE_PATH, "Download/Papote")
                         }
-                        val uri = context.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: error("stockage indisponible")
+                        val uri = context.contentResolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values) ?: error(tr("stockage indisponible"))
                         context.contentResolver.openOutputStream(uri)!!.use { out -> app.api.export(groupId, out) }
                     }
-                    info = "Enregistré dans Téléchargements › Papote › $name"
+                    info = tr("Enregistré dans Téléchargements › Papote › {}", name)
                 } catch (e: Exception) {
-                    error = "Export impossible : ${e.message}"
+                    error = tr("Export impossible : {}", e.message)
                 } finally {
                     exporting = false
                 }
             }
         }, Modifier.fillMaxWidth(), icon = PIcons.Download)
-        SecondaryButton(if (g.direct) "Quitter la discussion" else "Quitter le groupe", {
+        SecondaryButton(if (g.direct) tr("Quitter la discussion") else tr("Quitter le groupe"), {
             scope.launch {
                 try {
                     app.api.leaveGroup(groupId)
@@ -367,16 +369,16 @@ fun SearchScreen(groupId: Long, onBack: () -> Unit, onOpen: (Long) -> Unit) {
         }
     }
     fun label(m: Message) = if (m.type == "voice") m.transcript.orEmpty() else m.text.ifBlank {
-        mapOf("photo" to "Photo", "drawing" to "Dessin", "voice" to "Vocal", "location" to "Position", "gif" to "GIF", "sticker" to "Sticker")[m.type] ?: "Message"
+        mapOf("photo" to tr("Photo"), "drawing" to tr("Dessin"), "voice" to tr("Vocal"), "location" to tr("Position"), "gif" to "GIF", "sticker" to "Sticker")[m.type] ?: "Message"
     }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SquareIconButton(PIcons.Back, "Retour", onBack)
-            PapoteField(query, { query = it }, Modifier.weight(1f), placeholder = "Rechercher", leading = PIcons.Search, label = "Rechercher dans la discussion")
+            SquareIconButton(PIcons.Back, tr("Retour"), onBack)
+            PapoteField(query, { query = it }, Modifier.weight(1f), placeholder = tr("Rechercher"), leading = PIcons.Search, label = tr("Rechercher dans la discussion"))
         }
-        Text("Textes, sondages et vocaux transcrits", style = MaterialTheme.typography.bodySmall, color = c.muted)
+        Text(tr("Textes, sondages et vocaux transcrits"), style = MaterialTheme.typography.bodySmall, color = c.muted)
         if (pins.isNotEmpty()) {
-            Text("Épinglés", style = MaterialTheme.typography.titleMedium, color = c.ink)
+            Text(tr("Épinglés"), style = MaterialTheme.typography.titleMedium, color = c.ink)
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 pins.forEachIndexed { i, p ->
                     Column(
@@ -390,8 +392,8 @@ fun SearchScreen(groupId: Long, onBack: () -> Unit, onOpen: (Long) -> Unit) {
             }
         }
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            val chips = listOf("all" to "Tout", "text" to "Texte", "voice" to "Vocaux") +
-                members.values.filter { !it.pending }.take(8).map { "u${it.id}" to if (it.id == app.session.userId) "Toi" else it.name }
+            val chips = listOf("all" to tr("Tout"), "text" to tr("Texte"), "voice" to tr("Vocaux")) +
+                members.values.filter { !it.pending }.take(8).map { "u${it.id}" to if (it.id == app.session.userId) tr("Toi") else it.name }
             for ((k, l) in chips) {
                 val on = k == filter
                 Text(
@@ -404,7 +406,7 @@ fun SearchScreen(groupId: Long, onBack: () -> Unit, onOpen: (Long) -> Unit) {
             }
         }
         results?.let { list ->
-            Text("${list.size} résultat${if (list.size > 1) "s" else ""}" + if (query.isNotBlank()) " pour « $query »" else "", style = MaterialTheme.typography.titleMedium, color = c.ink)
+            Text(tr("{} résultat{}", list.size, if (list.size > 1) "s" else "") + if (query.isNotBlank()) tr(" pour « {} »", query) else "", style = MaterialTheme.typography.titleMedium, color = c.ink)
             for (m in list) {
                 val a = members[m.authorId]
                 Row(
@@ -414,10 +416,10 @@ fun SearchScreen(groupId: Long, onBack: () -> Unit, onOpen: (Long) -> Unit) {
                     Avatar(a?.name ?: "?", a?.color ?: "lilas", a?.photo, size = 36.dp, initialOnly = true)
                     Column(Modifier.weight(1f)) {
                         Row {
-                            Text(if (m.authorId == app.session.userId) "Toi" else a?.name ?: "Ancien membre", style = MaterialTheme.typography.labelLarge, color = c.ink, modifier = Modifier.weight(1f))
+                            Text(if (m.authorId == app.session.userId) tr("Toi") else a?.name ?: tr("Ancien membre"), style = MaterialTheme.typography.labelLarge, color = c.ink, modifier = Modifier.weight(1f))
                             Text(dayLabel(m.createdAt), style = MaterialTheme.typography.bodySmall, color = c.muted)
                         }
-                        if (m.type == "voice") Text("vocal transcrit", style = MaterialTheme.typography.labelSmall, color = c.primary)
+                        if (m.type == "voice") Text(tr("vocal transcrit"), style = MaterialTheme.typography.labelSmall, color = c.primary)
                         val text = label(m)
                         val i = text.lowercase().indexOf(query.lowercase().trim()).takeIf { query.isNotBlank() } ?: -1
                         Text(
@@ -486,7 +488,7 @@ fun GalleryScreen(groupId: Long, onBack: () -> Unit, onDrawing: (Long) -> Unit) 
     }
     val bg = mapOf("drawing" to Color(0xFFFFF8E6), "photo" to Color(0xFFD6E8FF), "gif" to Color(0xFFFFE0E8), "voice" to Color(0xFFCDEFE0))
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        TopBar("Galerie", onBack, subtitle = "$total souvenir${if (total > 1) "s" else ""}")
+        TopBar(tr("Galerie"), onBack, subtitle = "$total souvenir${if (total > 1) "s" else ""}")
         memory?.let { m ->
             Row(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(Color(0xFFFFF0B8)).clickable(role = Role.Button) { open(m) }.padding(10.dp),
@@ -495,22 +497,22 @@ fun GalleryScreen(groupId: Long, onBack: () -> Unit, onDrawing: (Long) -> Unit) 
             ) {
                 AsyncImage(app.mediaUrl(m.media?.url), null, contentScale = ContentScale.Crop, modifier = Modifier.size(64.dp).clip(RoundedCornerShape(14.dp)))
                 Column {
-                    Text("Il y a un an jour pour jour…", style = MaterialTheme.typography.titleMedium, color = Ink)
-                    Text("${if (m.type == "drawing") "Le dessin" else "La photo"} ${of(members[m.authorId]?.name ?: "quelqu’un")}", style = MaterialTheme.typography.bodySmall, color = Ink)
+                    Text(tr("Il y a un an jour pour jour…"), style = MaterialTheme.typography.titleMedium, color = Ink)
+                    Text("${if (m.type == "drawing") tr("Le dessin") else tr("La photo")} ${of(members[m.authorId]?.name ?: tr("quelqu’un"))}", style = MaterialTheme.typography.bodySmall, color = Ink)
                 }
             }
         }
-        Segmented(listOf(null to "Tout", "drawing" to "Dessins", "photo" to "Photos", "gif" to "GIF", "voice" to "Vocaux"), tab, { tab = it }, Modifier.fillMaxWidth())
+        Segmented(listOf(null to tr("Tout"), "drawing" to tr("Dessins"), "photo" to tr("Photos"), "gif" to "GIF", "voice" to tr("Vocaux")), tab, { tab = it }, Modifier.fillMaxWidth())
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             members.values.filter { !it.pending }.forEach { m ->
                 Box(
                     Modifier.clip(CircleShape).border(3.dp, if (who == m.id) c.primary else Color.Transparent, CircleShape)
                         .clickable(role = Role.RadioButton) { who = if (who == m.id) null else m.id }
-                        .semantics { contentDescription = "Voir seulement ${m.name}" },
+                        .semantics { contentDescription = tr("Voir seulement {}", m.name) },
                 ) { Avatar(m.name, m.color, m.photo, size = 44.dp, initialOnly = true) }
             }
         }
-        if (items.isEmpty()) Text("Rien par ici pour l’instant.", color = c.muted, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+        if (items.isEmpty()) Text(tr("Rien par ici pour l’instant."), color = c.muted, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
         items.groupBy {
             val d = Instant.ofEpochMilli(it.createdAt).atZone(ZoneId.systemDefault())
             "${MONTHS[d.monthValue - 1].replaceFirstChar { ch -> ch.uppercase() }} ${d.year}"
@@ -520,7 +522,7 @@ fun GalleryScreen(groupId: Long, onBack: () -> Unit, onDrawing: (Long) -> Unit) 
                 for (m in list) {
                     Box(
                         Modifier.weight(1f).aspectRatio(1f).clip(RoundedCornerShape(18.dp)).background(bg[m.type] ?: c.soft).clickable(role = Role.Button) { open(m) }
-                            .semantics { contentDescription = (mapOf("drawing" to "Dessin", "photo" to "Photo", "gif" to "GIF", "voice" to "Vocal")[m.type] ?: "") + " " + of(members[m.authorId]?.name ?: "quelqu’un") },
+                            .semantics { contentDescription = (mapOf("drawing" to tr("Dessin"), "photo" to tr("Photo"), "gif" to "GIF", "voice" to tr("Vocal"))[m.type] ?: "") + " " + of(members[m.authorId]?.name ?: tr("quelqu’un")) },
                     ) {
                         if (m.type == "voice") Column(Modifier.fillMaxSize(), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
                             Icon(PIcons.Play, null, tint = Ink)
@@ -535,7 +537,7 @@ fun GalleryScreen(groupId: Long, onBack: () -> Unit, onDrawing: (Long) -> Unit) 
                 repeat((3 - list.size % 3) % 3) { Box(Modifier.weight(1f)) }
             }
         }
-        if (more) SecondaryButton("Voir plus", {
+        if (more) SecondaryButton(tr("Voir plus"), {
             scope.launch {
                 runCatching { app.api.gallery(groupId, tab, who, items.lastOrNull()?.id) }.onSuccess {
                     items = items + it.items
@@ -572,7 +574,7 @@ fun RecapScreen(groupId: Long, initialMonth: String?, onBack: () -> Unit) {
         }
     }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        TopBar("Le récap", onBack)
+        TopBar(tr("Le récap"), onBack)
         val r = recap ?: return@Column ErrorText(error)
         Column(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(Brush.linearGradient(listOf(Color(0xFFFFE0E8), Color(0xFFEDE6FF)))).padding(16.dp),
@@ -580,11 +582,11 @@ fun RecapScreen(groupId: Long, initialMonth: String?, onBack: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                SquareIconButton(PIcons.Back, "Mois précédent", { month = YearMonth.parse(month).minusMonths(1).toString() })
+                SquareIconButton(PIcons.Back, tr("Mois précédent"), { month = YearMonth.parse(month).minusMonths(1).toString() })
                 Text(r.label, fontFamily = Baloo, fontWeight = FontWeight.ExtraBold, fontSize = 24.sp, color = Ink, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                SquareIconButton(PIcons.Forward, "Mois suivant", { month = YearMonth.parse(month).plusMonths(1).toString() }, enabled = YearMonth.parse(month) < YearMonth.now())
+                SquareIconButton(PIcons.Forward, tr("Mois suivant"), { month = YearMonth.parse(month).plusMonths(1).toString() }, enabled = YearMonth.parse(month) < YearMonth.now())
             }
-            Text(if (r.stats.messages > 0) "Quel mois de papotage !" else "Un mois tout calme", fontFamily = Baloo, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Ink)
+            Text(if (r.stats.messages > 0) tr("Quel mois de papotage !") else tr("Un mois tout calme"), fontFamily = Baloo, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = Ink)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(Triple(r.stats.messages, "messages", Color(0xFFFFE0E8)), Triple(r.stats.drawings, "dessins", Color(0xFFFFF0B8)), Triple(r.stats.voices, "vocaux", Color(0xFFCDEFE0))).forEach { (n, l, bg) ->
@@ -596,18 +598,18 @@ fun RecapScreen(groupId: Long, initialMonth: String?, onBack: () -> Unit) {
         }
         for (b in r.badges) {
             val (title, icon, bg) = when (b.kind) {
-                "picasso" -> Triple("Picasso du mois", PIcons.Pencil, Color(0xFFFFF0B8))
-                "voice" -> Triple("Pipelette vocale", PIcons.Mic, Color(0xFFCDEFE0))
-                "gif" -> Triple("GIF chouchou", PIcons.Gif, Color(0xFFFFE0E8))
-                "early" -> Triple("Lève-tôt", PIcons.Sun, Color(0xFFFFE3C7))
-                else -> Triple("Pipelette du clavier", PIcons.Text, Color(0xFFD6E8FF))
+                "picasso" -> Triple(tr("Picasso du mois"), PIcons.Pencil, Color(0xFFFFF0B8))
+                "voice" -> Triple(tr("Pipelette vocale"), PIcons.Mic, Color(0xFFCDEFE0))
+                "gif" -> Triple(tr("GIF chouchou"), PIcons.Gif, Color(0xFFFFE0E8))
+                "early" -> Triple(tr("Lève-tôt"), PIcons.Sun, Color(0xFFFFE3C7))
+                else -> Triple(tr("Pipelette du clavier"), PIcons.Text, Color(0xFFD6E8FF))
             }
             val detail = when (b.kind) {
-                "picasso" -> "${b.user?.name} · ${b.value} dessin${if (b.value > 1) "s" else ""}"
-                "voice" -> "${b.user?.name} · vocal le plus long ${duration(b.value)}"
-                "gif" -> "« ${b.title} » envoyé ${b.value} fois"
-                "early" -> "${b.user?.name} · 1er message à ${b.value / 60}h${(b.value % 60).toString().padStart(2, '0')}"
-                else -> "${b.user?.name} · ${b.value} messages"
+                "picasso" -> tr("{} · {} dessin{}", b.user?.name, b.value, if (b.value > 1) "s" else "")
+                "voice" -> tr("{} · vocal le plus long {}", b.user?.name, duration(b.value))
+                "gif" -> tr("« {} » envoyé {} fois", b.title, b.value)
+                "early" -> tr("{} · 1er message à {}h{}", b.user?.name, b.value / 60, (b.value % 60).toString().padStart(2, '0'))
+                else -> tr("{} · {} messages", b.user?.name, b.value)
             }
             Row(
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(22.dp)).background(c.card).padding(12.dp),
@@ -624,7 +626,7 @@ fun RecapScreen(groupId: Long, initialMonth: String?, onBack: () -> Unit) {
                 Icon(icon, null, tint = c.muted, modifier = Modifier.size(20.dp))
             }
         }
-        if (r.stats.messages > 0) PrimaryButton("Partager dans le groupe", {
+        if (r.stats.messages > 0) PrimaryButton(tr("Partager dans le groupe"), {
             scope.launch {
                 try {
                     app.api.shareRecap(groupId, r.month)

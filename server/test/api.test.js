@@ -367,6 +367,55 @@ describe('personal code', () => {
     expect(b.events.at(-1)).toEqual({ type: 'closed', code: 4002 });
     a.ws.close();
   });
+
+  it('sends videos and documents, up to MAX_UPLOAD_MB', async () => {
+    papote.close();
+    papote = createServer({ dataDir: dir, adminPassword: 'correct-horse-battery', logger: quiet, maxUploadMb: 1 });
+    agent = request(papote.app);
+    const { lou, group } = await setup();
+    const mp4 = Buffer.concat([Buffer.from([0, 0, 0, 0x18]), Buffer.from('ftypisom'), Buffer.alloc(64)]);
+    const video = await agent.post(`/api/groups/${group.id}/media`).set(auth(lou.token)).field('type', 'video').field('durationMs', '4200').attach('file', mp4, { filename: 'clip.mp4', contentType: 'video/mp4' });
+    expect(video.status).toBe(201);
+    expect(video.body).toMatchObject({ type: 'video', media: { mime: 'video/mp4' }, meta: { durationMs: 4200 } });
+    // A "video" that isn't one is refused.
+    const fake = await agent.post(`/api/groups/${group.id}/media`).set(auth(lou.token)).field('type', 'video').attach('file', PNG, { filename: 'x.mp4', contentType: 'video/mp4' });
+    expect(fake.status).toBe(415);
+
+    const doc = await agent.post(`/api/groups/${group.id}/media`).set(auth(lou.token)).field('type', 'file').attach('file', Buffer.from('<script>alert(1)</script>'), { filename: '../Facture été.html', contentType: 'text/html' });
+    expect(doc.status).toBe(201);
+    expect(doc.body.meta).toEqual({ name: 'Facture été.html', size: 25 });
+    const got = await agent.get(doc.body.media.url).set(auth(lou.token));
+    expect(got.headers['content-disposition']).toMatch(/^attachment; filename="Facture _t_.html"; filename\*=UTF-8''Facture%20%C3%A9t%C3%A9.html$/);
+    expect(got.headers['content-security-policy']).toContain('sandbox');
+
+    const big = await agent.post(`/api/groups/${group.id}/media`).set(auth(lou.token)).field('type', 'file').attach('file', Buffer.alloc(1024 * 1024 + 1), { filename: 'big.bin' });
+    expect(big.status).toBe(413);
+    expect(big.body.error).toBe('file_too_large');
+    expect((await agent.get('/api/server')).body.features.maxUploadMb).toBe(1);
+  });
+
+  it('shows what a reply answers and how far each member has read', async () => {
+    const { lou, group } = await setup();
+    const { member: sam } = await inviteAndJoin(lou.token, group.id, 'Sam');
+    const first = (await agent.post(`/api/groups/${group.id}/messages`).set(auth(lou.token)).send({ text: 'On se voit samedi ?' })).body;
+    const reply = (await agent.post(`/api/groups/${group.id}/messages`).set(auth(sam.token)).send({ text: 'Oui !', replyTo: first.id })).body;
+    expect(reply.reply).toEqual({ id: first.id, authorId: lou.user.id, type: 'text', text: 'On se voit samedi ?', deleted: false });
+
+    await new Promise((r) => papote.server.listen(0, '127.0.0.1', r));
+    const { port } = papote.server.address();
+    const ws = new WebSocket(`ws://127.0.0.1:${port}/ws`, { headers: auth(lou.token) });
+    const events = [];
+    ws.on('message', (d) => events.push(JSON.parse(d.toString())));
+    await new Promise((r) => ws.on('open', r));
+
+    await request(papote.server).post(`/api/groups/${group.id}/read`).set(auth(lou.token)).send({ messageId: reply.id });
+    const detail = (await agent.get(`/api/groups/${group.id}`).set(auth(sam.token))).body;
+    expect(detail.reads).toEqual({ [lou.user.id]: reply.id, [sam.user.id]: reply.id });
+    await new Promise((r) => setTimeout(r, 100));
+    // Lou's own read isn't echoed as a "member.read" to Lou.
+    expect(events.filter((e) => e.type === 'member.read')).toEqual([]);
+    ws.close();
+  });
 });
 
 describe('admin', () => {

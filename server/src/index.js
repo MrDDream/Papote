@@ -25,6 +25,8 @@ papote.server.listen(port, host, () => {
   console.log(`GIF (GIPHY) : ${config.giphyApiKey ? 'activés, via le serveur' : 'désactivés (GIPHY_API_KEY vide)'}`);
   console.log(`Transcription des vocaux : ${config.whisperUrl ? `via ${config.whisperUrl}` : 'désactivée (COMPOSE_PROFILES=whisper dans .env pour l’activer)'}`);
   papote.backups.start();
+  papote.updates.start();
+  console.log(config.updateCheck ? `Mises à jour : vérifiées sur github.com/${config.updateRepo}` : 'Vérification des mises à jour désactivée (UPDATE_CHECK=false)');
   console.log(
     papote.backups.everyHours
       ? `Sauvegardes automatiques toutes les ${papote.backups.everyHours} h dans ${papote.backups.dir} (${papote.backups.keep} gardées)`

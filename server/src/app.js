@@ -13,9 +13,10 @@ import { createBackups, restoreBackup } from './backup.js';
 import { createPush } from './push.js';
 import { createGifs } from './gifs.js';
 import { createWhisper } from './whisper.js';
+import { createUpdates } from './updates.js';
 import { HttpError, now } from './util.js';
 
-export const VERSION = '0.2.0';
+export const VERSION = '0.3.0';
 
 export function createServer({
   dataDir,
@@ -31,6 +32,9 @@ export function createServer({
   giphyApiKey = null,
   whisperUrl = null,
   whisperLanguage = 'fr',
+  updateCheck = false,
+  maxUploadMb = 20,
+  updateRepo = 'MrDDream/Papote',
   fetchImpl,
   /** Called once a backup has been restored from the admin: the process must start again (Docker does). */
   restart = () => {},
@@ -73,7 +77,8 @@ export function createServer({
   const push = createPush({ store, hub, dataDir, subject: vapidSubject, keys: vapidKeys, logger, ...(pushSend ? { send: pushSend } : {}) });
   const gifs = createGifs({ apiKey: giphyApiKey, dataDir, logger, ...(fetchImpl ? { fetchImpl } : {}) });
   const whisper = createWhisper({ url: whisperUrl, language: whisperLanguage, logger, ...(fetchImpl ? { fetchImpl } : {}) });
-  api = createApi({ store, hub, push, dataDir, serverName, version: VERSION, gifs, whisper });
+  const updates = createUpdates({ version: VERSION, repo: updateRepo, enabled: updateCheck, logger, ...(fetchImpl ? { fetchImpl } : {}) });
+  api = createApi({ store, hub, push, dataDir, serverName, version: VERSION, gifs, whisper, updates, maxUploadMb });
 
   const app = express();
   app.disable('x-powered-by');
@@ -100,6 +105,7 @@ export function createServer({
       backups,
       gifs,
       whisper,
+      updates,
       restore: restoreFrom,
       logger,
       version: VERSION,
@@ -111,7 +117,7 @@ export function createServer({
 
   app.use((err, req, res, _next) => {
     if (err instanceof multer.MulterError) {
-      err = new HttpError(err.code === 'LIMIT_FILE_SIZE' ? 413 : 400, err.code.toLowerCase());
+      err = err.code === 'LIMIT_FILE_SIZE' ? new HttpError(413, 'file_too_large', `Fichier trop lourd (${maxUploadMb} Mo maximum)`) : new HttpError(400, err.code.toLowerCase());
     } else if (err?.type === 'entity.parse.failed') {
       err = new HttpError(400, 'bad_json');
     } else if (err?.type === 'entity.too.large') {
@@ -150,11 +156,12 @@ export function createServer({
     if (closed) return;
     closed = true;
     backups.stop();
+    updates.stop();
     api.features.close();
     hub.close();
     server.close();
     db.close();
   }
 
-  return { app, server, store, hub, backups, push, features: api.features, bootstrapCode, close };
+  return { app, server, store, hub, backups, push, updates, features: api.features, bootstrapCode, close };
 }

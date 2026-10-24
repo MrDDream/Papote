@@ -1,5 +1,7 @@
 package fr.papote.app.ui.contacts
 
+import fr.papote.app.tr
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -62,14 +64,14 @@ fun ContactsScreen(onBack: () -> Unit, onOpen: (Long) -> Unit) {
     }
 
     Column(Modifier.fillMaxSize().padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        TopBar("Nouvelle discussion", onBack, subtitle = "Avec une personne de tes groupes")
-        PapoteField(query, { query = it }, placeholder = "Chercher quelqu’un…", leading = PIcons.Search, background = c.card, radius = 18.dp, label = "Chercher quelqu’un")
+        TopBar(tr("Nouvelle discussion"), onBack, subtitle = tr("Avec une personne de tes groupes"))
+        PapoteField(query, { query = it }, placeholder = tr("Chercher quelqu’un…"), leading = PIcons.Search, background = c.card, radius = 18.dp, label = tr("Chercher quelqu’un"))
         ErrorText(error)
         val list = contacts
         when {
             list == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = c.primary) }
             list.isEmpty() -> Text(
-                "Personne pour l’instant : invite quelqu’un dans un groupe, puis tu pourras lui écrire ici.",
+                tr("Personne pour l’instant : invite quelqu’un dans un groupe, puis tu pourras lui écrire ici."),
                 style = MaterialTheme.typography.bodyLarge,
                 color = c.muted,
                 textAlign = TextAlign.Center,
@@ -95,7 +97,7 @@ fun ContactsScreen(onBack: () -> Unit, onOpen: (Long) -> Unit) {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        Avatar(u.name, u.color, u.photo, size = 44.dp, online = u.online)
+                        Avatar(u.name, u.color, u.photo, size = 44.dp, online = u.online, zoomable = true)
                         Column(Modifier.weight(1f)) {
                             Text(u.name, style = MaterialTheme.typography.titleMedium, color = c.ink)
                             if (u.bio.isNotBlank()) {

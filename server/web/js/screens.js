@@ -30,6 +30,8 @@ import {
   sheet,
 } from './ui.js';
 import { qrScanner, canScan } from './qr.js';
+import { pendingPhoto, pendingShare } from './extras.js';
+import { tr, LANGS, lang, setLang } from './i18n.js';
 
 const CODE_CHARS = /[A-HJ-NP-Z2-9]/;
 const cleanCode = (s, length = 6) => [...(s ?? '').toUpperCase()].filter((c) => CODE_CHARS.test(c)).join('').slice(0, length);
@@ -57,7 +59,7 @@ export function joinScreen(query) {
     autocapitalize: 'characters',
     autocomplete: 'one-time-code',
     spellcheck: 'false',
-    'aria-label': `${linking ? 'Code personnel' : 'Code d’invitation'}, ${codeLength} caractères`,
+    'aria-label': tr`${linking ? tr('Code personnel') : tr('Code d’invitation')}, ${codeLength} caractères`,
     value: code,
   });
   // The cells are redrawn on each keystroke; the hidden input is never moved, or it would lose focus.
@@ -83,14 +85,14 @@ export function joinScreen(query) {
 
   const nameInput = h('input', { class: 'field', id: 'name', placeholder: 'Lou', maxlength: 40, autocomplete: 'nickname' });
   const totpWrap = h('div', { class: 'col', hidden: true });
-  const totpInput = h('input', { class: 'field', id: 'totp', autocomplete: 'one-time-code', placeholder: '123456 ou code de secours' });
-  totpWrap.append(h('label', { class: 'label', for: 'totp' }, 'Code de ton application d’authentification'), totpInput);
+  const totpInput = h('input', { class: 'field', id: 'totp', autocomplete: 'one-time-code', placeholder: tr('123456 ou code de secours') });
+  totpWrap.append(h('label', { class: 'label', for: 'totp' }, tr('Code de ton application d’authentification')), totpInput);
   nameInput.addEventListener('input', () => {
     name = nameInput.value;
     refresh();
   });
 
-  const submit = primaryButton('Rejoindre', null, { iconName: 'forward', type: 'submit' });
+  const submit = primaryButton(tr('Rejoindre'), null, { iconName: 'forward', type: 'submit' });
   const refresh = () => (submit.disabled = code.length !== codeLength || (!already && !linking && !name.trim()));
   refresh();
 
@@ -124,7 +126,7 @@ export function joinScreen(query) {
     },
     h('div', { class: 'blob', style: { width: '220px', height: '220px', top: '-60px', right: '-70px', background: '#FFE3C7' } }),
     h('div', { class: 'blob', style: { width: '110px', height: '110px', top: '120px', left: '-50px', background: '#CDEFE0' } }),
-    already && iconButton('back', 'Retour', () => back()),
+    already && iconButton('back', tr('Retour'), () => back()),
     h(
       'div',
       { class: 'hero' },
@@ -134,25 +136,25 @@ export function joinScreen(query) {
         'p',
         {},
         already
-          ? 'Entre le code qu’on t’a donné pour rejoindre un groupe.'
+          ? tr('Entre le code qu’on t’a donné pour rejoindre un groupe.')
           : linking
-            ? 'Retrouve ton compte avec ton code personnel : il est dans Paramètres → « Mon code personnel » sur ton autre appareil.'
-            : 'Tes petits groupes à toi, sur ton propre serveur.',
+            ? tr('Retrouve ton compte avec ton code personnel : il est dans Paramètres → « Mon code personnel » sur ton autre appareil.')
+            : tr('Tes petits groupes à toi, sur ton propre serveur.'),
       ),
     ),
     h(
       'div',
       { class: 'card', style: { position: 'relative' } },
-      h('div', { class: 'col' }, h('span', { class: 'label', 'aria-hidden': 'true' }, linking ? 'Mon code personnel' : 'Code d’invitation'), boxes),
+      h('div', { class: 'col' }, h('span', { class: 'label', 'aria-hidden': 'true' }, linking ? tr('Mon code personnel') : tr('Code d’invitation')), boxes),
       linking && totpWrap,
-      !already && !linking && h('div', { class: 'col' }, h('label', { class: 'label', for: 'name' }, 'Ton petit nom'), nameInput),
-      !already && !linking && h('div', { class: 'col', style: { gap: '8px' } }, h('span', { class: 'label' }, 'Ta frimousse'), swatches(color, (c) => (color = c), { face: true })),
+      !already && !linking && h('div', { class: 'col' }, h('label', { class: 'label', for: 'name' }, tr('Ton petit nom')), nameInput),
+      !already && !linking && h('div', { class: 'col', style: { gap: '8px' } }, h('span', { class: 'label' }, tr('Ta frimousse')), swatches(color, (c) => (color = c), { face: true })),
       err,
     ),
     h('div', { class: 'grow' }),
     submit,
     canScan() &&
-      button('Scanner un QR code', () =>
+      button(tr('Scanner un QR code'), () =>
         qrScanner((text) => {
           // An invitation (…/web/#/join?code=K7P2Q9) or a personal code (…&link=1).
           try {
@@ -163,17 +165,17 @@ export function joinScreen(query) {
           }
           const raw = cleanCode(text, 8);
           if (raw.length === 6 || raw.length === 8) go(`/join?${raw.length === 8 ? 'link=1&' : ''}code=${raw}`, { replace: true });
-          else err.show('Ce QR code n’est pas une invitation Papote');
+          else err.show(tr('Ce QR code n’est pas une invitation Papote'));
         }),
       { iconName: 'scan' }),
     !already &&
       h(
         'button',
         { type: 'button', class: 'link-btn', onclick: () => go(linking ? '/join' : '/join?link=1', { replace: true }) },
-        linking ? 'Je suis nouveau·elle ici' : 'J’ai déjà un compte sur un autre appareil',
+        linking ? tr('Je suis nouveau·elle ici') : tr('J’ai déjà un compte sur un autre appareil'),
       ),
   );
-  if (linking) submit.firstChild.textContent = 'Me connecter';
+  if (linking) submit.firstChild.textContent = tr('Me connecter');
   if (!code) input.setAttribute('autofocus', '');
   return { el: screen(form) };
 }
@@ -186,23 +188,23 @@ export function groupsScreen() {
   const status = h('span', { class: 'small muted row ellipsis', style: { gap: '6px' } });
   const err = errorBox();
   const searchWrap = h('div', { class: 'search' });
-  const FILTERS = [['all', 'Tous'], ['groups', 'Groupes'], ['direct', 'Discussions'], ['unread', 'Non lus']];
+  const FILTERS = [['all', tr('Tous')], ['groups', tr('Groupes')], ['direct', tr('Discussions')], ['unread', tr('Non lus')]];
   let filter = 'all';
-  const chips = h('div', { class: 'chips', role: 'radiogroup', 'aria-label': 'Filtrer' });
-  const search = h('input', { class: 'field', type: 'search', placeholder: 'Chercher…', 'aria-label': 'Chercher un groupe ou une discussion' });
+  const chips = h('div', { class: 'chips', role: 'radiogroup', 'aria-label': tr('Filtrer') });
+  const search = h('input', { class: 'field', type: 'search', placeholder: tr('Chercher…'), 'aria-label': tr('Chercher un groupe ou une discussion') });
   searchWrap.append(icon('search', 20), search);
   let groups = [];
   let waiting = []; // groups that still have to approve me
   const waitingEl = h('div', { class: 'col', style: { gap: '8px' } });
 
   const renderStatus = () =>
-    clear(status, h('span', { class: `dot${live.connected ? ' on' : ''}` }), live.connected ? `Connecté·e à ${location.host}` : `Connexion à ${location.host}…`);
+    clear(status, h('span', { class: `dot${live.connected ? ' on' : ''}` }), live.connected ? tr`Connecté·e à ${location.host}` : tr`Connexion à ${location.host}…`);
 
   function renderList() {
     clear(
       waitingEl,
       waiting.map((g) =>
-        h('div', { class: 'waiting-card' }, groupBadge(g, 40), h('div', { class: 'col grow', style: { gap: 0 } }, h('b', {}, g.name), h('span', { class: 'small muted' }, 'En attente : un·e admin du groupe doit valider ton arrivée'))),
+        h('div', { class: 'waiting-card' }, groupBadge(g, 40), h('div', { class: 'col grow', style: { gap: 0 } }, h('b', {}, g.name), h('span', { class: 'small muted' }, tr('En attente : un·e admin du groupe doit valider ton arrivée')))),
       ),
     );
     const q = search.value.trim().toLowerCase();
@@ -221,13 +223,13 @@ export function groupsScreen() {
     );
 
     if (groups.length && !visible.length) {
-      clear(list, h('p', { class: 'muted', style: { textAlign: 'center', margin: '24px 0' } }, 'Rien ici avec ce filtre.'));
+      clear(list, h('p', { class: 'muted', style: { textAlign: 'center', margin: '24px 0' } }, tr('Rien ici avec ce filtre.')));
       return;
     }
     if (!groups.length) {
       clear(
         list,
-        h('div', { class: 'empty' }, mascot(96), h('h2', { class: 'title', style: { fontSize: '20px' } }, 'Pas encore de groupe'), h('p', { class: 'muted', style: { margin: 0 } }, 'Crée le tien et partage son code, ou entre celui qu’on t’a donné.')),
+        h('div', { class: 'empty' }, mascot(96), h('h2', { class: 'title', style: { fontSize: '20px' } }, tr('Pas encore de groupe')), h('p', { class: 'muted', style: { margin: 0 } }, tr('Crée le tien et partage son code, ou entre celui qu’on t’a donné.'))),
       );
       return;
     }
@@ -236,15 +238,15 @@ export function groupsScreen() {
       visible.map((g) => {
         const t = tint(g.color);
         const last = g.lastMessage;
-        const author = last?.authorId && last.authorId === session.me?.id ? 'Toi' : g.lastAuthorName;
+        const author = last?.authorId && last.authorId === session.me?.id ? tr('Toi') : g.lastAuthorName;
         const line = last
-          ? g.direct && author !== 'Toi' && last.type === 'text'
+          ? g.direct && author !== tr('Toi') && last.type === 'text'
             ? last.text
             : preview(last, author)
           : g.direct
-            ? 'Dis bonjour !'
+            ? tr('Dis bonjour !')
             : `${g.memberCount} membre${g.memberCount > 1 ? 's' : ''}`;
-        const kind = { drawing: 'pencil', voice: 'mic', photo: 'photo', gif: 'gif', sticker: 'sticker', poll: 'poll', location: 'location', game: 'game', recap: 'sparkles' }[last?.type] ?? 'text';
+        const kind = { drawing: 'pencil', voice: 'mic', photo: 'photo', video: 'video', file: 'file', gif: 'gif', sticker: 'sticker', poll: 'poll', location: 'location', game: 'game', recap: 'sparkles' }[last?.type] ?? 'text';
         const active = g.id === activeId;
         return h(
           'button',
@@ -255,7 +257,7 @@ export function groupsScreen() {
             'aria-current': active ? 'page' : null,
             onclick: () => go(`/chat/${g.id}`),
           },
-          groupAvatar(g),
+          groupAvatar(g, 52, { zoom: true }),
           h(
             'div',
             { class: 'col grow', style: { gap: '2px', minWidth: 0 } },
@@ -265,7 +267,7 @@ export function groupsScreen() {
               { class: 'row', style: { gap: '6px' } },
               h('span', { class: 'muted', style: { display: 'flex' } }, icon(kind, 16)),
               h('span', { class: 'muted grow ellipsis' }, line),
-              g.unread > 0 && !active && h('span', { class: 'unread', 'aria-label': `${g.unread} non lus` }, g.unread > 99 ? '99+' : String(g.unread)),
+              g.unread > 0 && !active && h('span', { class: 'unread', 'aria-label': tr`${g.unread} non lus` }, g.unread > 99 ? '99+' : String(g.unread)),
             ),
           ),
         );
@@ -294,9 +296,9 @@ export function groupsScreen() {
     clear(
       head,
       h('div', { style: { padding: '3px', background: 'var(--card)', borderRadius: '50%' } }, avatar(session.me, 42)),
-      h('div', { class: 'col grow', style: { gap: 0, minWidth: 0 } }, h('h1', { class: 'ellipsis' }, `Coucou ${session.me.name} !`), status),
-      iconButton('chatPlus', 'Nouvelle discussion avec quelqu’un', () => go('/contacts')),
-      iconButton('settings', 'Paramètres', () => go('/profile')),
+      h('div', { class: 'col grow', style: { gap: 0, minWidth: 0 } }, h('h1', { class: 'ellipsis' }, session.me.name), status),
+      iconButton('chatPlus', tr('Nouvelle discussion avec quelqu’un'), () => go('/contacts')),
+      iconButton('settings', tr('Paramètres'), () => go('/profile')),
     );
   const onMe = () => {
     renderHead();
@@ -320,7 +322,7 @@ export function groupsScreen() {
     el: screen(
       h('div', { class: 'scroll' }, head, searchWrap, chips, err, waitingEl, list),
       banner,
-      h('div', { class: 'bottom-actions' }, primaryButton('Nouveau groupe', () => go('/new')), button('Rejoindre', () => go('/join'), { iconName: 'keypad' })),
+      h('div', { class: 'bottom-actions' }, primaryButton(tr('Nouveau groupe'), () => go('/new')), button(tr('Rejoindre'), () => go('/join'), { iconName: 'keypad' })),
     ),
     destroy: () => {
       clearTimeout(timer);
@@ -357,7 +359,7 @@ function pushBanner() {
   if (!dismissed) {
     pushState().then((state) => {
       if (state !== 'off') return;
-      const close = iconButton('close', 'Masquer', hide, { size: 18 });
+      const close = iconButton('close', tr('Masquer'), hide, { size: 18 });
       close.style.width = close.style.height = '36px';
       clear(
         wrap,
@@ -365,8 +367,8 @@ function pushBanner() {
           'div',
           { class: 'install' },
           h('span', { style: { display: 'flex', color: 'var(--primary)' } }, icon('bell', 24)),
-          h('span', { class: 'grow' }, 'Être prévenu·e des nouveaux messages ?'),
-          button('Activer', async () => {
+          h('span', { class: 'grow' }, tr('Être prévenu·e des nouveaux messages ?')),
+          button(tr('Activer'), async () => {
             await enablePush().catch(() => false);
             hide();
           }, { small: true }),
@@ -389,7 +391,7 @@ function installBanner() {
   }
   const render = () => {
     if (dismissed || install.standalone || !install.mobile || (!install.available && !install.ios)) return clear(wrap);
-    const close = iconButton('close', 'Masquer', () => {
+    const close = iconButton('close', tr('Masquer'), () => {
       dismissed = true;
       try {
         localStorage.setItem('papote.installDismissed', '1');
@@ -406,8 +408,8 @@ function installBanner() {
         { class: 'install' },
         mascot(36),
         install.available
-          ? [h('span', { class: 'grow' }, 'Installe Papote sur ton écran d’accueil.'), button('Installer', async () => (await install.prompt(), render()), { small: true })]
-          : h('span', { class: 'grow' }, 'Pour l’installer : touche Partager, puis « Sur l’écran d’accueil ».'),
+          ? [h('span', { class: 'grow' }, tr('Installe Papote sur ton écran d’accueil.')), button(tr('Installer'), async () => (await install.prompt(), render()), { small: true })]
+          : h('span', { class: 'grow' }, tr('Pour l’installer : touche Partager, puis « Sur l’écran d’accueil ».')),
         close,
       ),
     );
@@ -423,11 +425,11 @@ export function contactsScreen() {
   const body = h('div', { class: 'scroll' });
   const list = h('div', { class: 'col', style: { gap: '8px' } });
   const err = errorBox();
-  const search = h('input', { class: 'field', type: 'search', placeholder: 'Chercher quelqu’un…', 'aria-label': 'Chercher quelqu’un' });
+  const search = h('input', { class: 'field', type: 'search', placeholder: tr('Chercher quelqu’un…'), 'aria-label': tr('Chercher quelqu’un') });
   let contacts = null;
   const render = () => {
-    if (!contacts) return clear(list, h('p', { class: 'muted' }, 'Chargement…'));
-    if (!contacts.length) return clear(list, h('p', { class: 'muted' }, 'Personne pour l’instant : invite quelqu’un dans un groupe, puis tu pourras lui écrire ici.'));
+    if (!contacts) return clear(list, h('p', { class: 'muted' }, tr('Chargement…')));
+    if (!contacts.length) return clear(list, h('p', { class: 'muted' }, tr('Personne pour l’instant : invite quelqu’un dans un groupe, puis tu pourras lui écrire ici.')));
     const q = search.value.trim().toLowerCase();
     clear(
       list,
@@ -448,7 +450,7 @@ export function contactsScreen() {
                 }
               },
             },
-            avatar(u, 44, { online: u.online }),
+            avatar(u, 44, { online: u.online, zoom: true }),
             h('div', { class: 'col grow', style: { gap: 0, minWidth: 0 } }, h('span', { class: 'title', style: { fontSize: '18px' } }, u.name), u.bio && h('span', { class: 'small muted ellipsis' }, u.bio)),
           ),
         ),
@@ -456,7 +458,7 @@ export function contactsScreen() {
   };
   search.addEventListener('input', render);
   const wrap = h('div', { class: 'search' }, icon('search', 20), search);
-  clear(body, topBar('Nouvelle discussion', () => back(), { subtitle: 'Avec une personne de tes groupes' }), wrap, err, list);
+  clear(body, topBar(tr('Nouvelle discussion'), () => back(), { subtitle: tr('Avec une personne de tes groupes') }), wrap, err, list);
   api
     .contacts()
     .then((c) => ((contacts = c), render()))
@@ -466,21 +468,107 @@ export function contactsScreen() {
   return { el: screen(body) };
 }
 
+// --- share to Papote (from another app's "Partager") ------------------------------------
+
+/** What another app shared: the service worker keeps it until a conversation is chosen. */
+async function takeShared() {
+  try {
+    const cache = await caches.open('papote-share');
+    const meta = await (await cache.match('meta'))?.json();
+    const res = await cache.match('file');
+    const file = res ? new File([await res.blob()], decodeURIComponent(res.headers.get('X-Name') || 'photo'), { type: res.headers.get('Content-Type') || '' }) : null;
+    await caches.delete('papote-share');
+    // Apps often repeat the title or the link inside the text: keep each piece once.
+    const parts = [meta?.title, meta?.text, meta?.url].map((v) => v?.trim()).filter(Boolean);
+    const text = parts.filter((p, i) => !parts.some((o, j) => j !== i && o.includes(p) && (o.length > p.length || j < i))).join('\n');
+    return { text, file: file?.type.startsWith('image/') ? file : null };
+  } catch {
+    return { text: '', file: null };
+  }
+}
+
+export function shareScreen() {
+  const body = h('div', { class: 'scroll' });
+  const what = h('div');
+  const list = h('div', { class: 'col', style: { gap: '8px' } });
+  const err = errorBox();
+  const search = h('input', { class: 'field', type: 'search', placeholder: tr('Chercher un groupe ou quelqu’un…'), 'aria-label': tr('Chercher un groupe ou quelqu’un') });
+  let groups = null;
+  let shared = null;
+  let thumb = null;
+
+  const send = (g) => {
+    if (shared.file) {
+      // Through "Décorer la photo", like a photo picked in the conversation.
+      pendingPhoto.file = shared.file;
+      go(`/chat/${g.id}`, { replace: true });
+      go(`/photo/${g.id}`);
+    } else {
+      pendingShare.text = shared.text;
+      go(`/chat/${g.id}`, { replace: true });
+    }
+  };
+
+  const render = () => {
+    if (!shared || !groups) return clear(list, h('p', { class: 'muted' }, tr('Chargement…')));
+    if (!shared.text && !shared.file) return clear(list, h('p', { class: 'muted' }, tr('Rien à partager : choisis « Partager » puis « Papote » depuis une autre appli.')));
+    const q = search.value.trim().toLowerCase();
+    clear(
+      list,
+      groups
+        .filter((g) => !q || g.name.toLowerCase().includes(q))
+        .map((g) =>
+          h(
+            'button',
+            { type: 'button', class: 'contact', style: { background: surfaceOf(tint(g.color)) }, onclick: () => send(g) },
+            groupAvatar(g, 44),
+            h('div', { class: 'col grow', style: { gap: 0, minWidth: 0 } }, h('span', { class: 'title ellipsis', style: { fontSize: '18px' } }, g.name), h('span', { class: 'small muted' }, g.direct ? tr('Discussion à deux') : `${g.memberCount} membre${g.memberCount > 1 ? 's' : ''}`)),
+            icon('send', 20),
+          ),
+        ),
+    );
+  };
+
+  search.addEventListener('input', render);
+  clear(body, topBar(tr('Partager dans Papote'), () => back(), { subtitle: tr('Choisis un groupe ou une personne') }), what, h('div', { class: 'search' }, icon('search', 20), search), err, list);
+  takeShared().then((s) => {
+    shared = s;
+    if (s.file) thumb = URL.createObjectURL(s.file);
+    clear(
+      what,
+      (s.text || s.file) &&
+        h(
+          'div',
+          { class: 'notice', style: { marginBottom: '12px' } },
+          thumb ? h('img', { src: thumb, alt: tr('Image partagée'), style: { width: '56px', height: '56px', objectFit: 'cover', borderRadius: '12px' } }) : icon('share', 22),
+          h('span', { class: 'clamp' }, s.text || tr('Une image')),
+        ),
+    );
+    render();
+  });
+  api
+    .groups()
+    .then((g) => ((groups = g), render()))
+    .catch((e) => err.show(e.message));
+  render();
+  return { el: screen(body), destroy: () => thumb && URL.revokeObjectURL(thumb) };
+}
+
 // --- new group / invite -----------------------------------------------------------
 
-const EXPIRIES = [['1h', '1 h'], ['24h', '24 h'], ['7d', '7 jours'], ['never', 'Jamais']];
+const EXPIRIES = [['1h', '1 h'], ['24h', '24 h'], ['7d', '7 jours'], ['never', tr('Jamais')]];
 
 function expiryText(inv) {
-  const uses = inv.maxUses ? `${inv.uses}/${inv.maxUses} utilisation` : inv.uses ? `${inv.uses} utilisation${inv.uses > 1 ? 's' : ''}` : 'illimité';
-  if (!inv.expiresAt) return `sans date limite · ${uses}`;
+  const uses = inv.maxUses ? `${inv.uses}/${inv.maxUses} utilisation` : inv.uses ? `${inv.uses} utilisation${inv.uses > 1 ? 's' : ''}` : tr('illimité');
+  if (!inv.expiresAt) return tr`sans date limite · ${uses}`;
   const mins = Math.round((inv.expiresAt - Date.now()) / 60_000);
-  const exp = mins < 60 ? `expire dans ${mins} min` : mins < 48 * 60 ? `expire dans ${Math.round(mins / 60)} h` : `expire dans ${Math.round(mins / 1440)} jours`;
+  const exp = mins < 60 ? tr`expire dans ${mins} min` : mins < 48 * 60 ? tr`expire dans ${Math.round(mins / 60)} h` : tr`expire dans ${Math.round(mins / 1440)} jours`;
   return `${exp} · ${uses}`;
 }
 
 export function shareText(groupName, code) {
   const raw = code.replace('-', '');
-  return `Rejoins « ${groupName} » sur Papote !\nServeur : ${location.origin}\nCode : ${code}\n\nSur ordinateur ou iPhone : ${location.origin}/web/#/join?code=${raw}\nSur Android : papote://join?server=${encodeURIComponent(location.origin)}&code=${raw}`;
+  return tr`Rejoins « ${groupName} » sur Papote !\nServeur : ${location.origin}\nCode : ${code}\n\nSur ordinateur ou iPhone : ${location.origin}/web/#/join?code=${raw}\nSur Android : papote://join?server=${encodeURIComponent(location.origin)}&code=${raw}`;
 }
 
 /** Icon grid plus "own picture", used when creating a group and in its settings. */
@@ -494,20 +582,20 @@ function groupLookPicker({ iconKey, onIcon, hasImage, onImage, onClearImage }) {
   return h(
     'div',
     { class: 'col', style: { gap: '10px' } },
-    h('span', { class: 'label' }, hasImage ? 'Image' : 'Icône ou image'),
+    h('span', { class: 'label' }, hasImage ? 'Image' : tr('Icône ou image')),
     h(
       'div',
       { class: 'row', style: { flexWrap: 'wrap' } },
-      button(hasImage ? 'Changer l’image' : 'Choisir une image', () => file.click(), { iconName: 'image', small: true }),
-      hasImage && button('Revenir à l’icône', onClearImage, { small: true }),
+      button(hasImage ? tr('Changer l’image') : tr('Choisir une image'), () => file.click(), { iconName: 'image', small: true }),
+      hasImage && button(tr('Revenir à l’icône'), onClearImage, { small: true }),
       file,
     ),
     !hasImage &&
       h(
         'div',
-        { class: 'icon-grid', role: 'radiogroup', 'aria-label': 'Icône du groupe' },
+        { class: 'icon-grid', role: 'radiogroup', 'aria-label': tr('Icône du groupe') },
         GROUP_ICONS.map((k) =>
-          h('button', { type: 'button', class: 'icon-choice', 'aria-pressed': String(k === iconKey), 'aria-label': `Icône ${k}`, title: k, onclick: () => onIcon(k) }, icon(k, 22)),
+          h('button', { type: 'button', class: 'icon-choice', 'aria-pressed': String(k === iconKey), 'aria-label': tr`Icône ${k}`, title: k, onclick: () => onIcon(k) }, icon(k, 22)),
         ),
       ),
   );
@@ -561,7 +649,7 @@ export function inviteScreen(groupId) {
     err.show(null);
   }
 
-  const nameInput = h('input', { class: 'field', id: 'gname', placeholder: 'Soirée jeux', maxlength: 40, style: { background: 'var(--card)' } });
+  const nameInput = h('input', { class: 'field', id: 'gname', placeholder: tr('Soirée jeux'), maxlength: 40, style: { background: 'var(--card)' } });
   nameInput.addEventListener('input', () => {
     name = nameInput.value;
     footer();
@@ -571,12 +659,12 @@ export function inviteScreen(groupId) {
     clear(
       footerEl,
       !group
-        ? primaryButton(busy ? 'Création…' : 'Créer le groupe', generate, { disabled: !name.trim() || busy })
+        ? primaryButton(busy ? tr('Création…') : tr('Créer le groupe'), generate, { disabled: !name.trim() || busy })
         : creating
-          ? primaryButton('Aller au groupe', () => go(`/chat/${group.id}`, { replace: true }), { iconName: 'forward' })
+          ? primaryButton(tr('Aller au groupe'), () => go(`/chat/${group.id}`, { replace: true }), { iconName: 'forward' })
           : !invite
-            ? primaryButton(busy ? 'Un instant…' : 'Générer un code', generate, { disabled: busy })
-            : primaryButton('C’est bon', () => back(`/chat/${group.id}`)),
+            ? primaryButton(busy ? tr('Un instant…') : tr('Générer un code'), generate, { disabled: busy })
+            : primaryButton(tr('C’est bon'), () => back(`/chat/${group.id}`)),
     );
   }
 
@@ -585,15 +673,15 @@ export function inviteScreen(groupId) {
     const others = active.filter((a) => a.code !== invite?.code);
     clear(
       body,
-      topBar(creating ? 'Nouveau groupe' : 'Inviter', () => back(), { subtitle: !creating ? group?.name : null }),
+      topBar(creating ? tr('Nouveau groupe') : tr('Inviter'), () => back(), { subtitle: !creating ? group?.name : null }),
       creating &&
         h(
           'div',
           { class: 'row', style: { background: surfaceOf(t), borderRadius: '24px', padding: '14px', gap: '14px' } },
           groupBadge({ color, icon: iconKey, photo: group?.photo ?? image?.url }, 56),
-          h('div', { class: 'col grow' }, h('label', { class: 'label', for: 'gname' }, 'Nom du groupe'), group ? h('span', { class: 'title', style: { fontSize: '18px' } }, group.name) : nameInput),
+          h('div', { class: 'col grow' }, h('label', { class: 'label', for: 'gname' }, tr('Nom du groupe')), group ? h('span', { class: 'title', style: { fontSize: '18px' } }, group.name) : nameInput),
         ),
-      creating && !group && h('div', { class: 'col', style: { gap: '8px' } }, h('span', { class: 'label' }, 'Couleur'), swatches(color, (c) => ((color = c), render()))),
+      creating && !group && h('div', { class: 'col', style: { gap: '8px' } }, h('span', { class: 'label' }, tr('Couleur')), swatches(color, (c) => ((color = c), render()))),
       creating &&
         !group &&
         groupLookPicker({
@@ -606,7 +694,7 @@ export function inviteScreen(groupId) {
               if (image) URL.revokeObjectURL(image.url);
               image = { blob, url: URL.createObjectURL(blob) };
             } catch {
-              err.show('Cette image n’a pas pu être lue');
+              err.show(tr('Cette image n’a pas pu être lue'));
             }
             render();
           },
@@ -619,39 +707,39 @@ export function inviteScreen(groupId) {
       h(
         'div',
         { class: 'card' },
-        h('div', { class: 'row between' }, h('h2', { class: 'title', style: { fontSize: '18px' } }, 'Code d’invitation'), h('span', { class: 'small muted', style: { fontWeight: 800 } }, 'Généré par ton serveur')),
+        h('div', { class: 'row between' }, h('h2', { class: 'title', style: { fontSize: '18px' } }, tr('Code d’invitation')), h('span', { class: 'small muted', style: { fontWeight: 800 } }, tr('Généré par ton serveur'))),
         invite && [
           h('div', { class: 'code-display' }, h('div', { class: 'code' }, invite.code), h('div', { class: 'small muted' }, expiryText(invite))),
-          qrBlock(inviteLink(invite.code), 'Fais scanner ce QR code avec l’appareil photo : il ouvre l’invitation directement.'),
+          qrBlock(inviteLink(invite.code), tr('Fais scanner ce QR code avec l’appareil photo : il ouvre l’invitation directement.')),
           h(
             'div',
             { class: 'row' },
             copyButton(invite.code),
-            button('Partager', () => share(invite), { iconName: 'share', wide: true }),
+            button(tr('Partager'), () => share(invite), { iconName: 'share', wide: true }),
           ),
         ],
-        h('div', { class: 'col', style: { gap: '8px' } }, h('span', { class: 'label' }, 'Le code expire'), segmented(EXPIRIES, expiry, (v) => (expiry = v), 'Durée de validité du code')),
+        h('div', { class: 'col', style: { gap: '8px' } }, h('span', { class: 'label' }, tr('Le code expire')), segmented(EXPIRIES, expiry, (v) => (expiry = v), tr('Durée de validité du code'))),
         h(
           'div',
           { class: 'row' },
-          h('div', { class: 'col grow', style: { gap: 0 } }, h('span', { class: 'label' }, 'Usage unique'), h('span', { class: 'small muted' }, 'Le code ne marche qu’une fois')),
-          toggle(single, (v) => (single = v), 'Usage unique'),
+          h('div', { class: 'col grow', style: { gap: 0 } }, h('span', { class: 'label' }, tr('Usage unique')), h('span', { class: 'small muted' }, tr('Le code ne marche qu’une fois'))),
+          toggle(single, (v) => (single = v), tr('Usage unique')),
         ),
-        group && button(invite ? 'Générer un autre code' : 'Générer un code', generate, { iconName: 'plus', disabled: busy }),
+        group && button(invite ? tr('Générer un autre code') : tr('Générer un code'), generate, { iconName: 'plus', disabled: busy }),
       ),
       !creating &&
         others.length > 0 &&
         h(
           'div',
           { class: 'card' },
-          h('h2', { class: 'title', style: { fontSize: '18px' } }, 'Codes encore valables'),
+          h('h2', { class: 'title', style: { fontSize: '18px' } }, tr('Codes encore valables')),
           others.map((a) =>
             h(
               'div',
               { class: 'row' },
               h('div', { class: 'col grow', style: { gap: 0 } }, h('span', { class: 'title', style: { fontSize: '18px', letterSpacing: '1px' } }, a.code), h('span', { class: 'small muted' }, expiryText(a))),
-              iconButton('qr', `QR code de ${a.code}`, () => sheet(() => [h('h2', { class: 'title', style: { fontSize: '20px', textAlign: 'center' } }, a.code), h('img', { class: 'qr big', src: api.qrUrl(inviteLink(a.code)), alt: `QR code de l’invitation ${a.code}` })])),
-              button('Révoquer', async () => {
+              iconButton('qr', tr`QR code de ${a.code}`, () => sheet(() => [h('h2', { class: 'title', style: { fontSize: '20px', textAlign: 'center' } }, a.code), h('img', { class: 'qr big', src: api.qrUrl(inviteLink(a.code)), alt: tr`QR code de l’invitation ${a.code}` })])),
+              button(tr('Révoquer'), async () => {
                 try {
                   await api.revokeInvite(a.code);
                   active = active.filter((x) => x !== a);
@@ -688,22 +776,22 @@ const inviteLink = (code, link = false) => `${location.origin}/web/#/join?${link
 
 /** The QR code is drawn by the server (no outside service). Tap it to make it bigger. */
 function qrBlock(data, hint) {
-  const img = h('img', { class: 'qr', src: api.qrUrl(data), alt: 'QR code', width: 168, height: 168 });
+  const img = h('img', { class: 'qr', src: api.qrUrl(data), alt: tr('QR code'), width: 168, height: 168 });
   return h(
     'button',
-    { type: 'button', class: 'qr-wrap', 'aria-label': 'Afficher le QR code en grand', onclick: () => sheet(() => [h('img', { class: 'qr big', src: api.qrUrl(data), alt: 'QR code' }), h('p', { class: 'small muted', style: { textAlign: 'center', margin: 0 } }, hint)]) },
+    { type: 'button', class: 'qr-wrap', 'aria-label': tr('Afficher le QR code en grand'), onclick: () => sheet(() => [h('img', { class: 'qr big', src: api.qrUrl(data), alt: tr('QR code') }), h('p', { class: 'small muted', style: { textAlign: 'center', margin: 0 } }, hint)]) },
     img,
     h('span', { class: 'small muted' }, hint),
   );
 }
 
 function copyButton(text) {
-  const b = button('Copier', async () => {
+  const b = button(tr('Copier'), async () => {
     try {
       await navigator.clipboard.writeText(text);
-      clear(b, icon('check', 20), 'Copié !');
+      clear(b, icon('check', 20), tr('Copié !'));
     } catch {
-      clear(b, 'Copie impossible');
+      clear(b, tr('Copie impossible'));
     }
   }, { iconName: 'copy', wide: true });
   return b;
@@ -752,9 +840,9 @@ export function membersScreen(groupId) {
         saveWrap,
         (gName.trim() !== group.name || gColor !== group.color || gIcon !== group.icon) &&
           gName.trim() &&
-          button('Enregistrer', act(() => api.updateGroup(groupId, { name: gName.trim(), color: gColor, icon: gIcon })), { iconName: 'check' }),
+          button(tr('Enregistrer'), act(() => api.updateGroup(groupId, { name: gName.trim(), color: gColor, icon: gIcon })), { iconName: 'check' }),
       );
-    const nameField = h('input', { class: 'field', value: group.name, maxlength: 40, 'aria-label': 'Nom du groupe' });
+    const nameField = h('input', { class: 'field', value: group.name, maxlength: 40, 'aria-label': tr('Nom du groupe') });
     nameField.addEventListener('input', () => ((gName = nameField.value), renderSave()));
 
     const waiting = members.filter((m) => m.status === 'pending');
@@ -762,37 +850,37 @@ export function membersScreen(groupId) {
     const rules = group.settings ?? {};
     const muteMenu = (m) =>
       sheet((close) => [
-        h('h2', { class: 'title', style: { fontSize: '20px' } }, `Rendre ${m.name} muet·te`),
-        h('p', { class: 'small muted', style: { margin: 0 } }, `${m.name} pourra lire le groupe, mais pas y écrire.`),
-        [['1h', 'Pendant 1 heure'], ['24h', 'Pendant 24 heures'], ['7d', 'Pendant 7 jours'], ['forever', 'Jusqu’à nouvel ordre']].map(([d, l]) =>
+        h('h2', { class: 'title', style: { fontSize: '20px' } }, tr`Rendre ${m.name} muet·te`),
+        h('p', { class: 'small muted', style: { margin: 0 } }, tr`${m.name} pourra lire le groupe, mais pas y écrire.`),
+        [['1h', 'Pendant 1 heure'], ['24h', 'Pendant 24 heures'], ['7d', 'Pendant 7 jours'], ['forever', tr('Jusqu’à nouvel ordre')]].map(([d, l]) =>
           button(l, () => (close(), act(() => api.mute(groupId, m.id, d))()), { iconName: 'mute' }),
         ),
       ]);
 
     clear(
       body,
-      topBar(direct ? 'Discussion' : 'Membres', () => back(`/settings/${groupId}`), {
-        subtitle: group.name + (isOwner && !direct ? ' · tu l’as créé' : ''),
+      topBar(direct ? tr('Discussion') : tr('Membres'), () => back(`/settings/${groupId}`), {
+        subtitle: group.name + (isOwner && !direct ? tr(' · tu l’as créé') : ''),
       }),
-      !direct && (rules.anyoneInvites !== false || isAdmin) && button('Inviter quelqu’un dans le groupe', () => go(`/invite/${groupId}`), { iconName: 'personPlus' }),
+      !direct && (rules.anyoneInvites !== false || isAdmin) && button(tr('Inviter quelqu’un dans le groupe'), () => go(`/invite/${groupId}`), { iconName: 'personPlus' }),
       isAdmin &&
         waiting.length > 0 &&
         h(
           'div',
           { class: 'card pending-card' },
-          h('h2', { class: 'title', style: { fontSize: '18px' } }, 'Veulent rejoindre'),
+          h('h2', { class: 'title', style: { fontSize: '18px' } }, tr('Veulent rejoindre')),
           waiting.map((m) =>
             h(
               'div',
               { class: 'row' },
               avatar(m, 40, { initial: true }),
-              h('div', { class: 'col grow', style: { gap: 0 } }, h('b', {}, m.name), h('span', { class: 'small muted' }, 'attend que tu valides')),
-              button('Refuser', act(() => api.refuse(groupId, m.id)), { small: true }),
-              button('Accepter', act(() => api.approve(groupId, m.id)), { small: true, iconName: 'check' }),
+              h('div', { class: 'col grow', style: { gap: 0 } }, h('b', {}, m.name), h('span', { class: 'small muted' }, tr('attend que tu valides'))),
+              button(tr('Refuser'), act(() => api.refuse(groupId, m.id)), { small: true }),
+              button(tr('Accepter'), act(() => api.approve(groupId, m.id)), { small: true, iconName: 'check' }),
             ),
           ),
         ),
-      h('h2', { class: 'title', style: { fontSize: '18px' } }, direct ? 'Avec' : 'Membres'),
+      h('h2', { class: 'title', style: { fontSize: '18px' } }, direct ? tr('Avec') : tr('Membres')),
       h(
         'div',
         { class: 'card', style: { padding: '8px', gap: '0' }, role: 'list' },
@@ -804,14 +892,17 @@ export function membersScreen(groupId) {
             'div',
             { role: 'listitem' },
             h(
-              'button',
-              { type: 'button', class: 'member', disabled: !(canManage || (isOwner && !self)), 'aria-expanded': String(expanded), onclick: () => ((open = expanded ? null : m.id), render()) },
-              avatar(m, 44, { online: m.online }),
+              // A plain row when there's nothing to manage, so the photo still opens big when tapped.
+              canManage || (isOwner && !self) ? 'button' : 'div',
+              canManage || (isOwner && !self)
+                ? { type: 'button', class: 'member', 'aria-expanded': String(expanded), onclick: () => ((open = expanded ? null : m.id), render()) }
+                : { class: 'member' },
+              avatar(m, 44, { online: m.online, zoom: true }),
               h(
                 'div',
                 { class: 'col grow', style: { gap: 0, minWidth: 0 } },
                 h('span', { class: 'title ellipsis', style: { fontSize: '18px' } }, m.name + (self ? ' (toi)' : '')),
-                h('span', { class: 'small muted ellipsis' }, [m.mutedUntil ? 'en sourdine' : null, lastSeen(m), m.bio].filter(Boolean).join(' · ')),
+                h('span', { class: 'small muted ellipsis' }, [m.mutedUntil ? tr('en sourdine') : null, lastSeen(m), m.bio].filter(Boolean).join(' · ')),
               ),
               h('span', { class: `role${m.role !== 'member' ? ' admin' : ''}` }, m.role === 'owner' && icon('crown', 14), roleLabel(m.role)),
             ),
@@ -819,19 +910,19 @@ export function membersScreen(groupId) {
               h(
                 'div',
                 { class: 'member-actions' },
-                isOwner && button(m.role === 'admin' ? 'Retirer admin' : 'Nommer admin', act(() => api.setRole(groupId, m.id, m.role === 'admin' ? 'member' : 'admin')), { small: true }),
+                isOwner && button(m.role === 'admin' ? tr('Retirer admin') : tr('Nommer admin'), act(() => api.setRole(groupId, m.id, m.role === 'admin' ? 'member' : 'admin')), { small: true }),
                 isOwner &&
-                  button('Lui confier le groupe', async () => {
-                    if (await confirmDialog(`Confier le groupe à ${m.name} ?`, `Tu deviendras admin, et ${m.name} aura le dernier mot sur le groupe.`)) act(() => api.setRole(groupId, m.id, 'owner'))();
+                  button(tr('Lui confier le groupe'), async () => {
+                    if (await confirmDialog(tr`Confier le groupe à ${m.name} ?`, tr`Tu deviendras admin, et ${m.name} aura le dernier mot sur le groupe.`)) act(() => api.setRole(groupId, m.id, 'owner'))();
                   }, { small: true }),
                 canManage &&
                   !direct &&
                   (m.mutedUntil
-                    ? button('Rendre la parole', act(() => api.unmute(groupId, m.id)), { small: true })
-                    : button('Rendre muet·te', () => muteMenu(m), { small: true, iconName: 'mute' })),
+                    ? button(tr('Rendre la parole'), act(() => api.unmute(groupId, m.id)), { small: true })
+                    : button(tr('Rendre muet·te'), () => muteMenu(m), { small: true, iconName: 'mute' })),
                 canManage &&
-                  button('Retirer du groupe', async () => {
-                    if (await confirmDialog(`Retirer ${m.name} ?`, `${m.name} ne verra plus les messages du groupe.`)) act(() => api.removeMember(groupId, m.id))();
+                  button(tr('Retirer du groupe'), async () => {
+                    if (await confirmDialog(`Retirer ${m.name} ?`, tr`${m.name} ne verra plus les messages du groupe.`)) act(() => api.removeMember(groupId, m.id))();
                   }, { small: true, danger: true }),
               ),
           );
@@ -842,11 +933,11 @@ export function membersScreen(groupId) {
         h(
           'div',
           { class: 'card' },
-          h('div', { class: 'row' }, h('h2', { class: 'title grow', style: { fontSize: '18px' } }, 'Règles du groupe'), h('span', { class: 'small muted' }, '(admins seulement)')),
+          h('div', { class: 'row' }, h('h2', { class: 'title grow', style: { fontSize: '18px' } }, tr('Règles du groupe')), h('span', { class: 'small muted' }, '(admins seulement)')),
           [
-            ['anyoneInvites', 'Tout le monde peut inviter', rules.anyoneInvites !== false],
-            ['adminsTheme', 'Seuls les admins changent le thème', !!rules.adminsTheme],
-            ['approval', 'Valider les nouveaux membres', !!rules.approval],
+            ['anyoneInvites', tr('Tout le monde peut inviter'), rules.anyoneInvites !== false],
+            ['adminsTheme', tr('Seuls les admins changent le thème'), !!rules.adminsTheme],
+            ['approval', tr('Valider les nouveaux membres'), !!rules.approval],
           ].map(([k, label, on]) => h('div', { class: 'row' }, h('span', { class: 'grow' }, label), toggle(on, (v) => act(() => api.groupSettings(groupId, { [k]: v }))(), label))),
         ),
       isAdmin &&
@@ -854,9 +945,9 @@ export function membersScreen(groupId) {
         h(
           'div',
           { class: 'card' },
-          h('div', { class: 'row' }, groupBadge(group, 48), h('h2', { class: 'title', style: { fontSize: '18px' } }, 'Le groupe')),
-          h('div', { class: 'col' }, h('span', { class: 'label' }, 'Nom'), nameField),
-          h('div', { class: 'col', style: { gap: '8px' } }, h('span', { class: 'label' }, 'Couleur'), swatches(gColor, (c) => ((gColor = c), renderSave()))),
+          h('div', { class: 'row' }, groupBadge(group, 48), h('h2', { class: 'title', style: { fontSize: '18px' } }, tr('Le groupe'))),
+          h('div', { class: 'col' }, h('span', { class: 'label' }, tr('Nom')), nameField),
+          h('div', { class: 'col', style: { gap: '8px' } }, h('span', { class: 'label' }, tr('Couleur')), swatches(gColor, (c) => ((gColor = c), renderSave()))),
           groupLookPicker({
             iconKey: gIcon,
             onIcon: (k) => {
@@ -871,7 +962,7 @@ export function membersScreen(groupId) {
                 group = await api.setGroupPhoto(groupId, blob);
                 render();
               } catch (e) {
-                err.show(e instanceof ApiError ? e.message : 'Cette image n’a pas pu être lue');
+                err.show(e instanceof ApiError ? e.message : tr('Cette image n’a pas pu être lue'));
               }
             },
             onClearImage: act(() => api.deleteGroupPhoto(groupId)),
@@ -879,11 +970,11 @@ export function membersScreen(groupId) {
           saveWrap,
         ),
       err,
-      button(direct ? 'Quitter la discussion' : 'Quitter le groupe', async () => {
+      button(direct ? tr('Quitter la discussion') : tr('Quitter le groupe'), async () => {
         const msg = direct
-          ? 'Tu pourras en recommencer une depuis « Nouvelle discussion ».'
-          : (isOwner ? 'Le groupe sera confié à un autre membre. ' : '') + 'Il te faudra un nouveau code pour revenir.';
-        if (!(await confirmDialog(direct ? 'Quitter la discussion ?' : 'Quitter le groupe ?', msg))) return;
+          ? tr('Tu pourras en recommencer une depuis « Nouvelle discussion ».')
+          : (isOwner ? tr('Le groupe sera confié à un autre membre. ') : '') + tr('Il te faudra un nouveau code pour revenir.');
+        if (!(await confirmDialog(direct ? tr('Quitter la discussion ?') : tr('Quitter le groupe ?'), msg))) return;
         try {
           await api.leaveGroup(groupId);
           go('/groups', { replace: true });
@@ -893,8 +984,8 @@ export function membersScreen(groupId) {
       }, { iconName: 'exit', danger: true }),
       isOwner &&
         !direct &&
-        button('Supprimer le groupe pour tout le monde', async () => {
-          if (!(await confirmDialog('Supprimer le groupe ?', 'Le groupe disparaîtra pour tout le monde. L’admin du serveur pourra encore le restaurer pendant 30 jours, puis il sera effacé avec ses messages et ses médias.', 'Supprimer'))) return;
+        button(tr('Supprimer le groupe pour tout le monde'), async () => {
+          if (!(await confirmDialog(tr('Supprimer le groupe ?'), tr('Le groupe disparaîtra pour tout le monde. L’admin du serveur pourra encore le restaurer pendant 30 jours, puis il sera effacé avec ses messages et ses médias.'), tr('Supprimer')))) return;
           try {
             await api.deleteGroup(groupId);
             go('/groups', { replace: true });
@@ -916,14 +1007,14 @@ export function membersScreen(groupId) {
     }),
     live.on('group.removed', (e) => e.groupId === groupId && go('/groups', { replace: true })),
   ];
-  body.append(topBar('Réglages', () => back(`/chat/${groupId}`)), err);
+  body.append(topBar(tr('Réglages'), () => back(`/chat/${groupId}`)), err);
   load();
   return { el: screen(body), destroy: () => offs.forEach((off) => off()) };
 }
 
 // --- profile ------------------------------------------------------------------------
 
-const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+const MONTHS = [tr('janvier'), tr('février'), tr('mars'), tr('avril'), tr('mai'), tr('juin'), tr('juillet'), tr('août'), tr('septembre'), tr('octobre'), tr('novembre'), tr('décembre')];
 
 const birthdayToField = (b) => {
   const m = /-(\d{2})-(\d{2})$/.exec(b ?? '');
@@ -947,17 +1038,17 @@ export function profileScreen() {
   const err = errorBox();
   const body = h('div', { class: 'scroll' });
   const name = h('input', { class: 'field', id: 'pn', maxlength: 40, value: me.name });
-  const bio = h('input', { class: 'field', id: 'bio', maxlength: 140, value: me.bio ?? '', placeholder: 'Fan de pop-corn et de dessins ratés' });
+  const bio = h('input', { class: 'field', id: 'bio', maxlength: 140, value: me.bio ?? '', placeholder: tr('Fan de pop-corn et de dessins ratés') });
   const bday = h('input', { class: 'field', id: 'bd', maxlength: 5, inputmode: 'numeric', value: birthdayToField(me.birthday), placeholder: 'JJ/MM' });
   const bdayHint = h('span', { class: 'small muted' });
   const photoWrap = h('div', { class: 'row', style: { gap: '16px' } });
-  const save = primaryButton('Enregistrer', null);
+  const save = primaryButton(tr('Enregistrer'), null);
 
   const dirty = () =>
     name.value.trim() !== me.name || bio.value.trim() !== (me.bio ?? '') || bday.value !== birthdayToField(me.birthday) || color !== me.color;
   const refresh = () => {
     save.disabled = !dirty() || !name.value.trim();
-    save.hidden = !dirty() && save.textContent !== 'Enregistré !';
+    save.hidden = !dirty() && save.textContent !== tr('Enregistré !');
     const b = fieldToBirthday(bday.value);
     bdayHint.textContent = b.ok && b.value ? `Le ${b.day} ${MONTHS[b.month - 1]}` : '';
   };
@@ -977,7 +1068,7 @@ export function profileScreen() {
       const { blob } = await resizeImage(file, 800);
       update(await api.setPhoto(blob));
     } catch (e) {
-      err.show(e instanceof ApiError ? e.message : 'Cette image n’a pas pu être lue');
+      err.show(e instanceof ApiError ? e.message : tr('Cette image n’a pas pu être lue'));
     }
   });
 
@@ -991,20 +1082,20 @@ export function profileScreen() {
   function renderPhoto() {
     clear(
       photoWrap,
-      h('div', { class: 'profile-photo' }, avatar({ ...me, color }, 88), iconButton('photo', 'Changer la photo de profil', () => fileInput.click(), { cls: 'primary', size: 18 })),
+      h('div', { class: 'profile-photo' }, avatar({ ...me, color }, 88), iconButton('photo', tr('Changer la photo de profil'), () => fileInput.click(), { cls: 'primary', size: 18 })),
       h(
         'div',
         { class: 'col grow', style: { gap: '8px' } },
-        h('span', { class: 'label' }, 'Image de profil'),
+        h('span', { class: 'label' }, tr('Image de profil')),
         me.photo
-          ? button('Revenir à la frimousse', async () => {
+          ? button(tr('Revenir à la frimousse'), async () => {
               try {
                 update(await api.deletePhoto());
               } catch (e) {
                 err.show(e.message);
               }
             }, { small: true })
-          : h('span', { class: 'small muted' }, 'Ta frimousse prend ta couleur. Touche l’appareil photo pour mettre une photo.'),
+          : h('span', { class: 'small muted' }, tr('Ta frimousse prend ta couleur. Touche l’appareil photo pour mettre une photo.')),
       ),
       fileInput,
     );
@@ -1012,12 +1103,12 @@ export function profileScreen() {
 
   save.addEventListener('click', async () => {
     const b = fieldToBirthday(bday.value);
-    if (!b.ok) return err.show('Anniversaire : écris le jour puis le mois, par exemple 14/03');
+    if (!b.ok) return err.show(tr('Anniversaire : écris le jour puis le mois, par exemple 14/03'));
     save.disabled = true;
     err.show(null);
     try {
       update(await api.updateMe({ name: name.value.trim(), bio: bio.value.trim(), birthday: b.value, color }));
-      save.textContent = 'Enregistré !';
+      save.textContent = tr('Enregistré !');
     } catch (e) {
       err.show(e.message);
       refresh();
@@ -1028,17 +1119,17 @@ export function profileScreen() {
   refresh();
   clear(
     body,
-    topBar('Paramètres', () => back()),
+    topBar(tr('Paramètres'), () => back()),
     h(
       'div',
       { class: 'settings-grid' },
       h('div', { class: 'card' }, photoWrap),
       settingsCard(
-        'Mon profil',
-        h('div', { class: 'col' }, h('label', { class: 'label', for: 'pn' }, 'Mon petit nom'), name),
-        h('div', { class: 'col' }, h('label', { class: 'label', for: 'bio' }, 'Ma petite phrase'), bio),
-        h('div', { class: 'col' }, h('label', { class: 'label', for: 'bd' }, 'Anniversaire'), bday, bdayHint),
-        h('div', { class: 'col', style: { gap: '8px' } }, h('span', { class: 'label' }, 'Ma couleur'), swatches(color, (c) => ((color = c), renderPhoto(), refresh()))),
+        tr('Mon profil'),
+        h('div', { class: 'col' }, h('label', { class: 'label', for: 'pn' }, tr('Mon petit nom')), name),
+        h('div', { class: 'col' }, h('label', { class: 'label', for: 'bio' }, tr('Ma petite phrase')), bio),
+        h('div', { class: 'col' }, h('label', { class: 'label', for: 'bd' }, tr('Anniversaire')), bday, bdayHint),
+        h('div', { class: 'col', style: { gap: '8px' } }, h('span', { class: 'label' }, tr('Ma couleur')), swatches(color, (c) => ((color = c), renderPhoto(), refresh()))),
         err,
         save,
       ),
@@ -1046,17 +1137,19 @@ export function profileScreen() {
       devicesCard(),
       securityCard(),
       settingsCard(
-        'Apparence',
-        h('span', { class: 'label' }, 'Style'),
+        tr('Apparence'),
+        h('span', { class: 'label' }, tr('Style')),
         stylePicker(),
-        h('span', { class: 'label' }, 'Mode'),
-        segmented([['light', 'Clair'], ['dark', 'Sombre'], ['auto', 'Auto']], getTheme(), setTheme, 'Mode clair ou sombre'),
+        h('span', { class: 'label' }, tr('Mode')),
+        segmented([['light', tr('Clair')], ['dark', tr('Sombre')], ['auto', 'Auto']], getTheme(), setTheme, tr('Mode clair ou sombre')),
+        h('span', { class: 'label' }, tr('Langue')),
+        segmented(LANGS.map(([code, name, flag]) => [code, `${flag} ${name}`]), lang, (code) => code !== lang && setLang(code), tr('Langue')),
       ),
       notificationsCard(),
       settingsCard(
-        'Serveur',
-        h('div', { class: 'row' }, h('span', { class: 'dot on' }), h('div', { class: 'col grow', style: { gap: 0 } }, h('span', { class: 'label' }, location.host), h('span', { class: 'small muted' }, 'Papote auto-hébergé'))),
-        button('Se déconnecter', async () => {
+        tr('Serveur'),
+        h('div', { class: 'row' }, h('span', { class: 'dot on' }), h('div', { class: 'col grow', style: { gap: 0 } }, h('span', { class: 'label' }, location.host), h('span', { class: 'small muted' }, tr('Papote auto-hébergé')))),
+        button(tr('Se déconnecter'), async () => {
           await disablePush().catch(() => {});
           await api.logout().catch(() => {});
           window.dispatchEvent(new CustomEvent('papote:logout'));
@@ -1068,12 +1161,12 @@ export function profileScreen() {
 }
 
 const PUSH_TEXT = {
-  on: 'Activées sur ce navigateur',
-  off: 'Désactivées sur ce navigateur',
-  denied: 'Bloquées : autorise-les pour ce site dans les réglages du navigateur (icône à gauche de l’adresse).',
-  'ios-install': 'Sur iPhone, ajoute d’abord Papote à l’écran d’accueil (Partager → « Sur l’écran d’accueil »), puis ouvre-le depuis l’icône et active-les ici.',
-  insecure: 'Il faut ouvrir Papote en https (par son nom de domaine) pour recevoir des notifications.',
-  unsupported: 'Ce navigateur ne sait pas recevoir de notifications.',
+  on: tr('Activées sur ce navigateur'),
+  off: tr('Désactivées sur ce navigateur'),
+  denied: tr('Bloquées : autorise-les pour ce site dans les réglages du navigateur (icône à gauche de l’adresse).'),
+  'ios-install': tr('Sur iPhone, ajoute d’abord Papote à l’écran d’accueil (Partager → « Sur l’écran d’accueil »), puis ouvre-le depuis l’icône et active-les ici.'),
+  insecure: tr('Il faut ouvrir Papote en https (par son nom de domaine) pour recevoir des notifications.'),
+  unsupported: tr('Ce navigateur ne sait pas recevoir de notifications.'),
 };
 
 /** Web Push: a notification for new messages when Papote isn't open in this browser. */
@@ -1087,10 +1180,10 @@ function notificationsCard() {
       h(
         'div',
         { class: 'row between' },
-        h('h2', { class: 'title', style: { fontSize: '18px' } }, 'Notifications'),
+        h('h2', { class: 'title', style: { fontSize: '18px' } }, tr('Notifications')),
         infoButton(
-          'Notifications',
-          'Quand Papote n’est pas ouvert dans ce navigateur, un nouveau message s’affiche en notification, comme une app. Le contenu est chiffré pour ton navigateur : le service de notification (Google, Mozilla, Apple ou Microsoft) le transporte sans pouvoir le lire.\n\nÀ activer sur chaque navigateur ou téléphone.',
+          tr('Notifications'),
+          tr('Quand Papote n’est pas ouvert dans ce navigateur, un nouveau message s’affiche en notification, comme une app. Le contenu est chiffré pour ton navigateur : le service de notification (Google, Mozilla, Apple ou Microsoft) le transporte sans pouvoir le lire.\n\nÀ activer sur chaque navigateur ou téléphone.'),
         ),
       ),
       h(
@@ -1100,15 +1193,15 @@ function notificationsCard() {
         h('span', { class: 'small muted grow' }, PUSH_TEXT[state]),
       ),
       state === 'off' &&
-        button('Activer les notifications', async () => {
+        button(tr('Activer les notifications'), async () => {
           try {
-            if (!(await enablePush())) err.show('Les notifications n’ont pas été autorisées.');
+            if (!(await enablePush())) err.show(tr('Les notifications n’ont pas été autorisées.'));
           } catch (e) {
-            err.show(e.message || 'Activation impossible');
+            err.show(e.message || tr('Activation impossible'));
           }
           render();
         }, { iconName: 'bell' }),
-      state === 'on' && button('Désactiver sur ce navigateur', async () => (await disablePush(), render()), { small: true }),
+      state === 'on' && button(tr('Désactiver sur ce navigateur'), async () => (await disablePush(), render()), { small: true }),
       err,
     );
   }
@@ -1123,16 +1216,16 @@ function settingsCard(title, ...children) {
 
 const STYLES = [
   ['papote', 'Papote', '#6A47D6', '#EDE6FF'],
-  ['menthe', 'Menthe', '#23845A', '#DDF4E9'],
-  ['ocean', 'Océan', '#2E6FD6', '#E2EEFF'],
-  ['corail', 'Corail', '#C23660', '#FFE0E8'],
-  ['soleil', 'Soleil', '#A65A05', '#FFEBD6'],
-  ['encre', 'Encre', '#3A3D52', '#E8E9EF'],
+  ['menthe', tr('Menthe'), '#23845A', '#DDF4E9'],
+  ['ocean', tr('Océan'), '#2E6FD6', '#E2EEFF'],
+  ['corail', tr('Corail'), '#C23660', '#FFE0E8'],
+  ['soleil', tr('Soleil'), '#A65A05', '#FFEBD6'],
+  ['encre', tr('Encre'), '#3A3D52', '#E8E9EF'],
 ];
 
 /** The complete looks (same as the Android app); Papote, the original, is the default. */
 function stylePicker() {
-  const wrap = h('div', { class: 'style-picker', role: 'radiogroup', 'aria-label': 'Style' });
+  const wrap = h('div', { class: 'style-picker', role: 'radiogroup', 'aria-label': tr('Style') });
   const render = () =>
     clear(
       wrap,
@@ -1161,21 +1254,21 @@ function securityCard() {
       h(
         'div',
         { class: 'row between' },
-        h('h2', { class: 'title', style: { fontSize: '18px' } }, 'Sécurité'),
+        h('h2', { class: 'title', style: { fontSize: '18px' } }, tr('Sécurité')),
         infoButton(
-          'Double authentification',
-          'Quand ton code personnel sert à ouvrir ton compte sur un nouvel appareil, Papote demande aussi le code à 6 chiffres de ton application d’authentification (Aegis, 2FAS, Google Authenticator…). Quelqu’un qui verrait ton code personnel ne pourrait donc pas s’en servir seul.',
+          tr('Double authentification'),
+          tr('Quand ton code personnel sert à ouvrir ton compte sur un nouvel appareil, Papote demande aussi le code à 6 chiffres de ton application d’authentification (Aegis, 2FAS, Google Authenticator…). Quelqu’un qui verrait ton code personnel ne pourrait donc pas s’en servir seul.'),
         ),
       ),
       h(
         'div',
         { class: 'row' },
         h('span', { style: { display: 'flex', color: on ? 'var(--ok)' : 'var(--muted)' } }, icon('shield', 22)),
-        h('div', { class: 'col grow', style: { gap: 0 } }, h('span', { class: 'label' }, 'Double authentification'), h('span', { class: 'small muted' }, on ? 'Activée' : 'Désactivée')),
+        h('div', { class: 'col grow', style: { gap: 0 } }, h('span', { class: 'label' }, tr('Double authentification')), h('span', { class: 'small muted' }, on ? tr('Activée') : tr('Désactivée'))),
       ),
       on
-        ? button('Désactiver', () => disableTotpDialog(render), { danger: true, small: true })
-        : button('Activer la double authentification', () => totpSetupDialog(render), { iconName: 'shield' }),
+        ? button(tr('Désactiver'), () => disableTotpDialog(render), { danger: true, small: true })
+        : button(tr('Activer la double authentification'), () => totpSetupDialog(render), { iconName: 'shield' }),
       err,
     );
   };
@@ -1201,11 +1294,11 @@ function modal(title, build) {
 }
 
 function totpSetupDialog(onDone) {
-  modal('Double authentification', async (dialog, close) => {
+  modal(tr('Double authentification'), async (dialog, close) => {
     const err = errorBox();
-    const code = h('input', { class: 'field', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: 6, placeholder: '123456', 'aria-label': 'Code à 6 chiffres' });
-    const confirm = button('Activer', null, { small: true });
-    dialog.append(h('p', { class: 'muted', style: { margin: 0 } }, 'Chargement…'));
+    const code = h('input', { class: 'field', inputmode: 'numeric', autocomplete: 'one-time-code', maxlength: 6, placeholder: '123456', 'aria-label': tr('Code à 6 chiffres') });
+    const confirm = button(tr('Activer'), null, { small: true });
+    dialog.append(h('p', { class: 'muted', style: { margin: 0 } }, tr('Chargement…')));
     let setup;
     try {
       setup = await api.startTotp();
@@ -1217,21 +1310,21 @@ function totpSetupDialog(onDone) {
     // The QR comes from our own server, built from the otpauth link only: safe to show as SVG.
     const qr = new DOMParser().parseFromString(setup.qrSvg, 'image/svg+xml').documentElement;
     qr.setAttribute('role', 'img');
-    qr.setAttribute('aria-label', 'QR code à scanner avec ton application d’authentification');
+    qr.setAttribute('aria-label', tr('QR code à scanner avec ton application d’authentification'));
     confirm.addEventListener('click', async () => {
       try {
         const { recoveryCodes } = await api.confirmTotp(code.value.trim());
         session.setMe({ ...session.me, totp: true });
         clear(
           dialog,
-          h('h2', { class: 'title', style: { fontSize: '20px' } }, 'Codes de secours'),
-          h('p', { class: 'muted', style: { margin: 0 } }, 'Note-les maintenant : ils ne seront plus affichés. Chacun remplace une fois le code de l’application.'),
+          h('h2', { class: 'title', style: { fontSize: '20px' } }, tr('Codes de secours')),
+          h('p', { class: 'muted', style: { margin: 0 } }, tr('Note-les maintenant : ils ne seront plus affichés. Chacun remplace une fois le code de l’application.')),
           h('pre', { class: 'recovery' }, recoveryCodes.join('\n')),
           h(
             'div',
             { class: 'actions' },
-            button('Copier', () => navigator.clipboard?.writeText(recoveryCodes.join('\n')), { small: true, iconName: 'copy' }),
-            button('C’est noté', () => (close(), onDone()), { small: true }),
+            button(tr('Copier'), () => navigator.clipboard?.writeText(recoveryCodes.join('\n')), { small: true, iconName: 'copy' }),
+            button(tr('C’est noté'), () => (close(), onDone()), { small: true }),
           ),
         );
       } catch (e) {
@@ -1240,31 +1333,31 @@ function totpSetupDialog(onDone) {
     });
     clear(
       dialog,
-      h('h2', { class: 'title', style: { fontSize: '20px' } }, 'Double authentification'),
-      h('p', { class: 'muted', style: { margin: 0 } }, '1. Scanne ce QR code avec ton application d’authentification :'),
+      h('h2', { class: 'title', style: { fontSize: '20px' } }, tr('Double authentification')),
+      h('p', { class: 'muted', style: { margin: 0 } }, tr('1. Scanne ce QR code avec ton application d’authentification :')),
       h('div', { class: 'qr' }, qr),
-      h('p', { class: 'small muted', style: { margin: 0 } }, 'ou saisis la clé : ', h('code', {}, setup.secret.match(/.{1,4}/g).join(' '))),
-      h('p', { class: 'muted', style: { margin: 0 } }, '2. Entre le code à 6 chiffres qu’elle affiche :'),
+      h('p', { class: 'small muted', style: { margin: 0 } }, tr('ou saisis la clé : '), h('code', {}, setup.secret.match(/.{1,4}/g).join(' '))),
+      h('p', { class: 'muted', style: { margin: 0 } }, tr('2. Entre le code à 6 chiffres qu’elle affiche :')),
       code,
       err,
-      h('div', { class: 'actions' }, button('Annuler', close, { small: true }), confirm),
+      h('div', { class: 'actions' }, button(tr('Annuler'), close, { small: true }), confirm),
     );
     code.focus();
   });
 }
 
 function disableTotpDialog(onDone) {
-  modal('Désactiver la double authentification', (dialog, close) => {
+  modal(tr('Désactiver la double authentification'), (dialog, close) => {
     const err = errorBox();
-    const code = h('input', { class: 'field', autocomplete: 'one-time-code', placeholder: 'Code ou code de secours', 'aria-label': 'Code de l’application ou code de secours' });
+    const code = h('input', { class: 'field', autocomplete: 'one-time-code', placeholder: tr('Code ou code de secours'), 'aria-label': tr('Code de l’application ou code de secours') });
     dialog.append(
       code,
       err,
       h(
         'div',
         { class: 'actions' },
-        button('Annuler', close, { small: true }),
-        button('Désactiver', async () => {
+        button(tr('Annuler'), close, { small: true }),
+        button(tr('Désactiver'), async () => {
           try {
             await api.disableTotp(code.value.trim());
             session.setMe({ ...session.me, totp: false });
@@ -1284,36 +1377,36 @@ function disableTotpDialog(onDone) {
 function personalCodeCard() {
   const codeEl = h('div', { class: 'code' }, '…');
   const err = errorBox();
-  const copy = button('Copier', async () => {
+  const copy = button(tr('Copier'), async () => {
     try {
       await navigator.clipboard.writeText(codeEl.textContent);
-      clear(copy, icon('check', 20), 'Copié !');
+      clear(copy, icon('check', 20), tr('Copié !'));
     } catch {
-      clear(copy, 'Copie impossible');
+      clear(copy, tr('Copie impossible'));
     }
   }, { iconName: 'copy', small: true, wide: true });
-  const regen = button('Régénérer', async () => {
-    if (!(await confirmDialog('Régénérer ton code ?', 'L’ancien code ne marchera plus. Les appareils déjà connectés le restent : déconnecte-les dans « Mes appareils » si besoin.', 'Régénérer'))) return;
+  const regen = button(tr('Régénérer'), async () => {
+    if (!(await confirmDialog(tr('Régénérer ton code ?'), tr('L’ancien code ne marchera plus. Les appareils déjà connectés le restent : déconnecte-les dans « Mes appareils » si besoin.'), tr('Régénérer')))) return;
     try {
       codeEl.textContent = (await api.regeneratePersonalCode()).code;
       showQr(codeEl.textContent);
-      clear(copy, icon('copy', 20), 'Copier');
+      clear(copy, icon('copy', 20), tr('Copier'));
     } catch (e) {
       err.show(e.message);
     }
   }, { small: true, wide: true });
   const qrSlot = h('div');
-  const showQr = (code) => clear(qrSlot, qrBlock(inviteLink(code, true), 'Scanne-le depuis ton autre appareil (« J’ai déjà un compte ») pour ouvrir ton compte.'));
+  const showQr = (code) => clear(qrSlot, qrBlock(inviteLink(code, true), tr('Scanne-le depuis ton autre appareil (« J’ai déjà un compte ») pour ouvrir ton compte.')));
   api
     .personalCode()
     .then(({ code }) => ((codeEl.textContent = code), showQr(code)))
     .catch((e) => err.show(e.message));
   return settingsCard(
     [
-      h('h2', { class: 'title', style: { fontSize: '18px' } }, 'Mon code personnel'),
+      h('h2', { class: 'title', style: { fontSize: '18px' } }, tr('Mon code personnel')),
       infoButton(
-        'Ton code personnel',
-        'Sur un autre appareil (téléphone, tablette, ordinateur), choisis « J’ai déjà un compte » puis entre l’adresse du serveur et ce code : c’est ton compte qui s’ouvre, avec tes groupes. Il sert aussi à fusionner un compte créé en double.\n\nGarde-le pour toi : il sert de mot de passe. Si quelqu’un l’a vu, régénère-le.',
+        tr('Ton code personnel'),
+        tr('Sur un autre appareil (téléphone, tablette, ordinateur), choisis « J’ai déjà un compte » puis entre l’adresse du serveur et ce code : c’est ton compte qui s’ouvre, avec tes groupes. Il sert aussi à fusionner un compte créé en double.\n\nGarde-le pour toi : il sert de mot de passe. Si quelqu’un l’a vu, régénère-le.'),
       ),
     ],
     h('div', { class: 'code-display' }, codeEl, h('div', { class: 'small muted' }, location.origin)),
@@ -1341,7 +1434,7 @@ function devicesCard() {
   function render() {
     clear(
       card,
-      h('h2', { class: 'title', style: { fontSize: '18px' } }, 'Mes appareils'),
+      h('h2', { class: 'title', style: { fontSize: '18px' } }, tr('Mes appareils')),
       devices.map((d) =>
         h(
           'div',
@@ -1351,11 +1444,11 @@ function devicesCard() {
             'div',
             { class: 'col grow', style: { gap: 0, minWidth: 0 } },
             h('span', { class: 'label ellipsis' }, d.label),
-            h('span', { class: 'small muted' }, d.current ? 'Cet appareil' : d.online ? 'Connecté en ce moment' : `Utilisé ${shortWhen(d.lastUsedAt).toLowerCase()}`),
+            h('span', { class: 'small muted' }, d.current ? tr('Cet appareil') : d.online ? tr('Connecté en ce moment') : tr`Utilisé ${shortWhen(d.lastUsedAt).toLowerCase()}`),
           ),
           !d.current &&
-            button('Déconnecter', async () => {
-              if (!(await confirmDialog(`Déconnecter « ${d.label} » ?`, 'Il faudra ton code personnel pour revenir sur cet appareil.', 'Déconnecter'))) return;
+            button(tr('Déconnecter'), async () => {
+              if (!(await confirmDialog(tr`Déconnecter « ${d.label} » ?`, tr('Il faudra ton code personnel pour revenir sur cet appareil.'), tr('Déconnecter')))) return;
               try {
                 await api.revokeDevice(d.id);
               } catch (e) {
@@ -1368,10 +1461,10 @@ function devicesCard() {
       h(
         'div',
         { class: 'row' },
-        button('Fusionner avec mon autre compte', () => mergeDialog(load), { iconName: 'personPlus', wide: true }),
+        button(tr('Fusionner avec mon autre compte'), () => mergeDialog(load), { iconName: 'personPlus', wide: true }),
         infoButton(
-          'Fusionner deux comptes',
-          'Tu as rejoint avec une invitation sur un autre appareil et tu te retrouves avec deux comptes ? Depuis le compte en trop, entre le code personnel du bon compte : groupes, messages et appareils y seront regroupés.',
+          tr('Fusionner deux comptes'),
+          tr('Tu as rejoint avec une invitation sur un autre appareil et tu te retrouves avec deux comptes ? Depuis le compte en trop, entre le code personnel du bon compte : groupes, messages et appareils y seront regroupés.'),
         ),
       ),
       err,
@@ -1386,9 +1479,9 @@ function devicesCard() {
 function mergeDialog(onDone) {
   const backdrop = h('div', { class: 'backdrop dialog-wrap' });
   const err = errorBox();
-  const input = h('input', { class: 'field', placeholder: 'ABCD-EF23', maxlength: 9, autocapitalize: 'characters', spellcheck: 'false', 'aria-label': 'Code personnel de l’autre compte' });
-  const totp = h('input', { class: 'field', placeholder: 'Code de l’application d’authentification', autocomplete: 'one-time-code', hidden: true, 'aria-label': 'Code de double authentification' });
-  const confirmMerge = button('Fusionner', null, { small: true, danger: true, disabled: true });
+  const input = h('input', { class: 'field', placeholder: 'ABCD-EF23', maxlength: 9, autocapitalize: 'characters', spellcheck: 'false', 'aria-label': tr('Code personnel de l’autre compte') });
+  const totp = h('input', { class: 'field', placeholder: tr('Code de l’application d’authentification'), autocomplete: 'one-time-code', hidden: true, 'aria-label': tr('Code de double authentification') });
+  const confirmMerge = button(tr('Fusionner'), null, { small: true, danger: true, disabled: true });
   const clean = () => cleanCode(input.value, 8);
   const close = () => {
     backdrop.remove();
@@ -1416,18 +1509,18 @@ function mergeDialog(onDone) {
   backdrop.append(
     h(
       'div',
-      { class: 'dialog', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Fusionner avec mon autre compte' },
-      h('h2', { class: 'title', style: { fontSize: '20px' } }, 'Fusionner avec mon autre compte'),
+      { class: 'dialog', role: 'dialog', 'aria-modal': 'true', 'aria-label': tr('Fusionner avec mon autre compte') },
+      h('h2', { class: 'title', style: { fontSize: '20px' } }, tr('Fusionner avec mon autre compte')),
       h(
         'p',
         { class: 'muted', style: { margin: 0 } },
-        'Entre le code personnel de ton autre compte (dans son Profil). Ce compte-ci y sera fondu : groupes, messages, réactions et appareils. Tu garderas le nom et la photo de l’autre compte.',
+        tr('Entre le code personnel de ton autre compte (dans son Profil). Ce compte-ci y sera fondu : groupes, messages, réactions et appareils. Tu garderas le nom et la photo de l’autre compte.'),
       ),
       input,
       totp,
-      h('p', { class: 'small', style: { margin: 0, fontWeight: 800, color: 'var(--danger)' } }, 'C’est définitif.'),
+      h('p', { class: 'small', style: { margin: 0, fontWeight: 800, color: 'var(--danger)' } }, tr('C’est définitif.')),
       err,
-      h('div', { class: 'actions' }, button('Annuler', close, { small: true }), confirmMerge),
+      h('div', { class: 'actions' }, button(tr('Annuler'), close, { small: true }), confirmMerge),
     ),
   );
   document.body.append(backdrop);

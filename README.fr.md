@@ -134,7 +134,7 @@ location / {
     proxy_set_header Host $host;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
-    client_max_body_size 16m;
+    client_max_body_size 25m;   # un peu plus que MAX_UPLOAD_MB
 }
 ```
 
@@ -154,6 +154,8 @@ Le serveur ne croit `X-Forwarded-For` que s'il vient d'une adresse de `TRUST_PRO
 | `BACKUP_EVERY_HOURS` / `BACKUP_KEEP` | `24` / `14` | Sauvegardes automatiques (0 = désactivées) et combien en garder. |
 | `BACKUP_HOST_DIR` | `./backups` | Où écrire les sauvegardes sur l'hôte. Idéalement un autre disque ou un NAS. |
 | `TZ` | `Europe/Paris` | Fuseau horaire pour les anniversaires et le récap du mois. |
+| `MAX_UPLOAD_MB` | `20` | Taille maximale d’une vidéo ou d’un document (« Fichier »). Derrière nginx, monte `client_max_body_size` d’autant. |
+| `UPDATE_CHECK` | `true` | Le serveur regarde sur GitHub deux fois par jour s’il y a une nouvelle version : affichée dans `/admin`, et l’appli Android propose le nouvel APK (elle ne demande qu’à ton serveur). `false` = ne jamais contacter GitHub. |
 | `GIPHY_API_KEY` | *(vide)* | Clé gratuite sur [developers.giphy.com](https://developers.giphy.com). Vide = pas de GIF. |
 | `COMPOSE_PROFILES` | *(vide)* | `whisper` lance aussi le conteneur de transcription (son image n'est téléchargée que dans ce cas). |
 | `WHISPER_MODEL` / `WHISPER_LANGUAGE` | `small` / `fr` | Modèle Whisper (`base`, `small`, `medium`…) et langue des vocaux. |

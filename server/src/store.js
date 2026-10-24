@@ -69,9 +69,31 @@ export function createStore(db) {
     return out;
   }
 
+  /** What a reply shows of the message it answers: who, what kind, and the start of the text. */
+  function replyPreviews(ids) {
+    if (ids.length === 0) return new Map();
+    const rows = q(
+      `SELECT id, user_id, type, text, meta, deleted FROM messages WHERE id IN (SELECT value FROM json_each(?))`,
+    ).all(JSON.stringify(ids));
+    return new Map(
+      rows.map((r) => [
+        r.id,
+        {
+          id: r.id,
+          authorId: r.user_id ?? null,
+          type: r.type,
+          // A document has no text: its name stands in.
+          text: r.deleted ? '' : (r.type === 'file' ? (JSON.parse(r.meta ?? '{}').name ?? '') : r.text).slice(0, 160),
+          deleted: !!r.deleted,
+        },
+      ]),
+    );
+  }
+
   function messageDtos(rows) {
     const reactions = reactionsFor(rows.map((r) => r.id));
     const votes = pollVotes(rows.filter((r) => r.type === 'poll').map((r) => r.id));
+    const replies = replyPreviews([...new Set(rows.map((r) => r.reply_to).filter(Boolean))]);
     return rows.map((m) => ({
       id: m.id,
       groupId: m.group_id,
@@ -84,6 +106,7 @@ export function createStore(db) {
           : null,
       meta: m.meta && !m.deleted ? JSON.parse(m.meta) : null,
       replyTo: m.reply_to ?? null,
+      reply: m.reply_to ? (replies.get(m.reply_to) ?? null) : null,
       deleted: !!m.deleted,
       reactions: reactions.get(m.id) ?? {},
       // Poll answers: option index -> user ids.
@@ -195,6 +218,12 @@ export function createStore(db) {
       mutedUntil: m.muted_until && m.muted_until > now() ? m.muted_until : null,
       memberCount: memberIds(groupId).length,
       birthdaysToday,
+      // How far each member has read (user id -> last read message id): the ticks under my messages.
+      reads: Object.fromEntries(
+        q(`SELECT user_id, last_read_id FROM members WHERE group_id = ? AND status = 'active'`)
+          .all(groupId)
+          .map((r) => [r.user_id, r.last_read_id]),
+      ),
     };
   }
 

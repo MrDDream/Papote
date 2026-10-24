@@ -53,6 +53,10 @@ data class Member(
 @Serializable
 data class Media(val id: String, val url: String, val mime: String? = null)
 
+/** What a reply shows of the message it answers. */
+@Serializable
+data class ReplyPreview(val id: Long, val authorId: Long? = null, val type: String = "text", val text: String = "", val deleted: Boolean = false)
+
 @Serializable
 data class Message(
     val id: Long,
@@ -63,6 +67,7 @@ data class Message(
     val media: Media? = null,
     val meta: JsonObject? = null,
     val replyTo: Long? = null,
+    val reply: ReplyPreview? = null,
     val deleted: Boolean = false,
     val reactions: Map<String, List<Long>> = emptyMap(),
     /** Poll answers: option index -> user ids. */
@@ -108,6 +113,8 @@ data class GroupSummary(
     val birthdaysToday: List<Long> = emptyList(),
     /** Set when an admin muted me in this group. */
     val mutedUntil: Long? = null,
+    /** How far each member has read: user id -> last read message id (only in the group's detail). */
+    val reads: Map<String, Long> = emptyMap(),
 )
 
 @Serializable
@@ -121,7 +128,7 @@ data class GroupSettings(
 )
 
 @Serializable
-data class Features(val gifs: Boolean = false, val transcription: Boolean = false)
+data class Features(val gifs: Boolean = false, val transcription: Boolean = false, val maxUploadMb: Int = 20)
 
 @Serializable
 data class Story(

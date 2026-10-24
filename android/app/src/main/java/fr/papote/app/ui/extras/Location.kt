@@ -1,5 +1,7 @@
 package fr.papote.app.ui.extras
 
+import fr.papote.app.tr
+
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
@@ -75,6 +77,6 @@ object LocationSharing {
 }
 
 fun openInMaps(context: Context, lat: Double, lon: Double, label: String) {
-    val uri = Uri.parse("geo:$lat,$lon?q=$lat,$lon(${Uri.encode(label.ifBlank { "Position" })})")
+    val uri = Uri.parse("geo:$lat,$lon?q=$lat,$lon(${Uri.encode(label.ifBlank { tr("Position") })})")
     runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, uri).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
 }

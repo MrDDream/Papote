@@ -134,7 +134,7 @@ location / {
     proxy_set_header Host $host;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     proxy_set_header X-Forwarded-Proto $scheme;
-    client_max_body_size 16m;
+    client_max_body_size 25m;   # a bit more than MAX_UPLOAD_MB
 }
 ```
 
@@ -154,6 +154,8 @@ The server only trusts `X-Forwarded-For` from the addresses listed in `TRUST_PRO
 | `BACKUP_EVERY_HOURS` / `BACKUP_KEEP` | `24` / `14` | Automatic backups (0 = off) and how many to keep. |
 | `BACKUP_HOST_DIR` | `./backups` | Where backups go on the host. Ideally another disk or a NAS. |
 | `TZ` | `Europe/Paris` | Time zone for birthdays and the monthly recap. |
+| `MAX_UPLOAD_MB` | `20` | Largest video or document ("File") a member can send. Behind nginx, raise `client_max_body_size` to match. |
+| `UPDATE_CHECK` | `true` | The server checks GitHub for a new release twice a day: shown in `/admin`, and the Android app offers the new APK (it only asks your server). `false` = never contact GitHub. |
 | `GIPHY_API_KEY` | *(empty)* | Free key from [developers.giphy.com](https://developers.giphy.com). Empty = no GIFs. |
 | `COMPOSE_PROFILES` | *(empty)* | `whisper` also runs the transcription container (its image is only pulled then). |
 | `WHISPER_MODEL` / `WHISPER_LANGUAGE` | `small` / `fr` | Whisper model (`base`, `small`, `medium`…) and the language of voice notes. |

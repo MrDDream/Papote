@@ -1,5 +1,7 @@
 package fr.papote.app.ui.components
 
+import fr.papote.app.tr
+
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -47,14 +49,14 @@ object Emojis {
     private fun split(s: String) = s.split(' ').filter { it.isNotBlank() }
 
     val categories = listOf(
-        Category("Sourires", "😀", split("😀 😃 😄 😁 😆 😅 🤣 😂 🙂 🙃 😉 😊 😇 🥰 😍 🤩 😘 😗 😚 😋 😛 😜 🤪 😝 🤗 🤭 🤫 🤔 🤐 🤨 😐 😑 😶 😏 😒 🙄 😬 😌 😔 😪 🤤 😴 😷 🤒 🤕 🤢 🥵 🥶 🥴 😵 🤯 🤠 🥳 😎 🤓 🧐 😕 😟 🙁 😮 😯 😲 😳 🥺 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😠 🤬 😈 💀 💩 🤡 👻 👽 🤖 😺 😸 😹 😻 😼 😽 🙀 😿 😾")),
-        Category("Gestes", "👋", split("👋 🤚 🖐️ ✋ 🖖 👌 🤌 🤏 ✌️ 🤞 🤟 🤘 🤙 👈 👉 👆 👇 ☝️ 👍 👎 ✊ 👊 🤛 🤜 👏 🙌 👐 🤲 🤝 🙏 ✍️ 💅 🤳 💪 🦵 🦶 👂 👃 🧠 👀 👁️ 👅 👄 💋 👶 🧒 👦 👧 🧑 👱 👨 🧔 👩 🧓 👴 👵 🙋 🙆 🙅 🤷 🤦 💁 🙇 🧑‍🍳 🧑‍🎨 🧑‍💻 🧑‍🚀 🦸 🧙 🧚 💃 🕺 👯 🧘 🛀 👫 👭 👬 💏 💑 👪")),
-        Category("Cœurs", "❤️", split("❤️ 🧡 💛 💚 💙 💜 🤎 🖤 🤍 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝 💟 ❤️‍🔥 ❤️‍🩹 💌 💐 🌹 🥀 🌷 🌸 💮 🏵️ 🌻 🌼 ✨ 💫 ⭐ 🌟 🔥 💥 💯 💢 💦 💨 🕊️ 🫶 😻 💑 💏")),
-        Category("Animaux", "🐶", split("🐶 🐱 🐭 🐹 🐰 🦊 🐻 🐼 🐨 🐯 🦁 🐮 🐷 🐸 🐵 🙈 🙉 🙊 🐔 🐧 🐦 🐤 🦆 🦉 🦇 🐺 🐗 🐴 🦄 🐝 🐛 🦋 🐌 🐞 🐜 🐢 🐍 🦎 🐙 🦑 🦀 🐡 🐠 🐟 🐬 🐳 🐋 🦈 🐊 🐅 🦓 🦒 🐘 🦛 🐪 🦘 🐕 🐈 🐇 🦔 🦥 🦦 🌵 🎄 🌲 🌳 🌴 🌱 🌿 🍀 🍁 🍂 🍃 🍄 🌍 🌙 ☀️ ⛅ 🌧️ ⛈️ 🌈 ❄️ ☃️ 🌊")),
-        Category("Miam", "🍕", split("🍏 🍎 🍐 🍊 🍋 🍌 🍉 🍇 🍓 🫐 🍒 🍑 🥭 🍍 🥥 🥝 🍅 🥑 🍆 🥕 🌽 🌶️ 🥔 🥐 🥖 🥨 🧀 🥚 🍳 🥞 🧇 🥓 🍗 🍖 🌭 🍔 🍟 🍕 🥪 🌮 🌯 🥗 🍝 🍜 🍲 🍛 🍣 🍱 🥟 🍤 🍙 🍚 🍦 🍧 🍨 🍩 🍪 🎂 🍰 🧁 🍫 🍬 🍭 🍮 🍯 🍿 🥤 🧋 ☕ 🍵 🍺 🍻 🥂 🍷 🍸 🍹 🧉")),
-        Category("Fête", "🎉", split("🎉 🎊 🎈 🎁 🎀 🎂 🪅 🎆 🎇 🧨 🎃 🎄 🎅 🤶 🎓 🏆 🥇 🥈 🥉 🏅 ⚽ 🏀 🏈 ⚾ 🎾 🏐 🏓 🏸 🥊 🛹 ⛸️ 🎿 🏊 🚴 🧗 🎮 🕹️ 🎲 🧩 ♟️ 🎯 🎳 🎨 🖍️ ✏️ 🎭 🎬 🎤 🎧 🎼 🎹 🥁 🎷 🎺 🎸 🎻 📸 🎥 📺 📚 📖")),
-        Category("Voyage", "✈️", split("🚗 🚕 🚙 🚌 🏎️ 🚓 🚑 🚒 🚲 🛴 🛵 🏍️ 🚂 🚆 🚇 ✈️ 🛫 🛬 🚀 🛸 🚁 ⛵ 🚤 🛳️ ⚓ 🗺️ 🧭 🏔️ ⛰️ 🏕️ 🏖️ 🏝️ 🏠 🏡 🏰 🗼 🗽 ⛺ 🎡 🎢 🎠 🌅 🌄 🌃 🌉 🎑 ⌚ 📱 💻 ⌨️ 🖨️ 💡 🔦 🕯️ 💸 💰 💳 🔑 🗝️ 🔨 🧸 🛏️ 🛋️ 🚿 🧼 🧺 🧻 🎒 👓 🕶️ 👕 👖 👗 👙 👠 👟 🧢 👑 💍 ☂️")),
-        Category("Symboles", "💬", split("💬 💭 🗯️ 💤 ✅ ☑️ ✔️ ❌ ❎ ➕ ➖ ❓ ❔ ❗ ❕ ‼️ ⁉️ 💲 ♻️ ⚠️ 🚫 ⛔ 🔞 📵 🆗 🆒 🆕 🆙 🆓 🔝 🔜 ⏰ ⏳ 📅 📌 📍 📎 🔔 🔕 🎵 🎶 ➡️ ⬅️ ⬆️ ⬇️ 🔄 🔁 ▶️ ⏸️ ⏹️ ⏺️ 🔴 🟠 🟡 🟢 🔵 🟣 ⚫ ⚪ 🟤 🔺 🔻 💠 🔷 🔶 🏳️‍🌈 🏴‍☠️ 🇫🇷 🇧🇪 🇨🇭 🇨🇦 🇪🇺")),
+        Category(tr("Sourires"), "😀", split("😀 😃 😄 😁 😆 😅 🤣 😂 🙂 🙃 😉 😊 😇 🥰 😍 🤩 😘 😗 😚 😋 😛 😜 🤪 😝 🤗 🤭 🤫 🤔 🤐 🤨 😐 😑 😶 😏 😒 🙄 😬 😌 😔 😪 🤤 😴 😷 🤒 🤕 🤢 🥵 🥶 🥴 😵 🤯 🤠 🥳 😎 🤓 🧐 😕 😟 🙁 😮 😯 😲 😳 🥺 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😠 🤬 😈 💀 💩 🤡 👻 👽 🤖 😺 😸 😹 😻 😼 😽 🙀 😿 😾")),
+        Category(tr("Gestes"), "👋", split("👋 🤚 🖐️ ✋ 🖖 👌 🤌 🤏 ✌️ 🤞 🤟 🤘 🤙 👈 👉 👆 👇 ☝️ 👍 👎 ✊ 👊 🤛 🤜 👏 🙌 👐 🤲 🤝 🙏 ✍️ 💅 🤳 💪 🦵 🦶 👂 👃 🧠 👀 👁️ 👅 👄 💋 👶 🧒 👦 👧 🧑 👱 👨 🧔 👩 🧓 👴 👵 🙋 🙆 🙅 🤷 🤦 💁 🙇 🧑‍🍳 🧑‍🎨 🧑‍💻 🧑‍🚀 🦸 🧙 🧚 💃 🕺 👯 🧘 🛀 👫 👭 👬 💏 💑 👪")),
+        Category(tr("Cœurs"), "❤️", split("❤️ 🧡 💛 💚 💙 💜 🤎 🖤 🤍 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝 💟 ❤️‍🔥 ❤️‍🩹 💌 💐 🌹 🥀 🌷 🌸 💮 🏵️ 🌻 🌼 ✨ 💫 ⭐ 🌟 🔥 💥 💯 💢 💦 💨 🕊️ 🫶 😻 💑 💏")),
+        Category(tr("Animaux"), "🐶", split("🐶 🐱 🐭 🐹 🐰 🦊 🐻 🐼 🐨 🐯 🦁 🐮 🐷 🐸 🐵 🙈 🙉 🙊 🐔 🐧 🐦 🐤 🦆 🦉 🦇 🐺 🐗 🐴 🦄 🐝 🐛 🦋 🐌 🐞 🐜 🐢 🐍 🦎 🐙 🦑 🦀 🐡 🐠 🐟 🐬 🐳 🐋 🦈 🐊 🐅 🦓 🦒 🐘 🦛 🐪 🦘 🐕 🐈 🐇 🦔 🦥 🦦 🌵 🎄 🌲 🌳 🌴 🌱 🌿 🍀 🍁 🍂 🍃 🍄 🌍 🌙 ☀️ ⛅ 🌧️ ⛈️ 🌈 ❄️ ☃️ 🌊")),
+        Category(tr("Miam"), "🍕", split("🍏 🍎 🍐 🍊 🍋 🍌 🍉 🍇 🍓 🫐 🍒 🍑 🥭 🍍 🥥 🥝 🍅 🥑 🍆 🥕 🌽 🌶️ 🥔 🥐 🥖 🥨 🧀 🥚 🍳 🥞 🧇 🥓 🍗 🍖 🌭 🍔 🍟 🍕 🥪 🌮 🌯 🥗 🍝 🍜 🍲 🍛 🍣 🍱 🥟 🍤 🍙 🍚 🍦 🍧 🍨 🍩 🍪 🎂 🍰 🧁 🍫 🍬 🍭 🍮 🍯 🍿 🥤 🧋 ☕ 🍵 🍺 🍻 🥂 🍷 🍸 🍹 🧉")),
+        Category(tr("Fête"), "🎉", split("🎉 🎊 🎈 🎁 🎀 🎂 🪅 🎆 🎇 🧨 🎃 🎄 🎅 🤶 🎓 🏆 🥇 🥈 🥉 🏅 ⚽ 🏀 🏈 ⚾ 🎾 🏐 🏓 🏸 🥊 🛹 ⛸️ 🎿 🏊 🚴 🧗 🎮 🕹️ 🎲 🧩 ♟️ 🎯 🎳 🎨 🖍️ ✏️ 🎭 🎬 🎤 🎧 🎼 🎹 🥁 🎷 🎺 🎸 🎻 📸 🎥 📺 📚 📖")),
+        Category(tr("Voyage"), "✈️", split("🚗 🚕 🚙 🚌 🏎️ 🚓 🚑 🚒 🚲 🛴 🛵 🏍️ 🚂 🚆 🚇 ✈️ 🛫 🛬 🚀 🛸 🚁 ⛵ 🚤 🛳️ ⚓ 🗺️ 🧭 🏔️ ⛰️ 🏕️ 🏖️ 🏝️ 🏠 🏡 🏰 🗼 🗽 ⛺ 🎡 🎢 🎠 🌅 🌄 🌃 🌉 🎑 ⌚ 📱 💻 ⌨️ 🖨️ 💡 🔦 🕯️ 💸 💰 💳 🔑 🗝️ 🔨 🧸 🛏️ 🛋️ 🚿 🧼 🧺 🧻 🎒 👓 🕶️ 👕 👖 👗 👙 👠 👟 🧢 👑 💍 ☂️")),
+        Category(tr("Symboles"), "💬", split("💬 💭 🗯️ 💤 ✅ ☑️ ✔️ ❌ ❎ ➕ ➖ ❓ ❔ ❗ ❕ ‼️ ⁉️ 💲 ♻️ ⚠️ 🚫 ⛔ 🔞 📵 🆗 🆒 🆕 🆙 🆓 🔝 🔜 ⏰ ⏳ 📅 📌 📍 📎 🔔 🔕 🎵 🎶 ➡️ ⬅️ ⬆️ ⬇️ 🔄 🔁 ▶️ ⏸️ ⏹️ ⏺️ 🔴 🟠 🟡 🟢 🔵 🟣 ⚫ ⚪ 🟤 🔺 🔻 💠 🔷 🔶 🏳️‍🌈 🏴‍☠️ 🇫🇷 🇧🇪 🇨🇭 🇨🇦 🇪🇺")),
     )
 
     val quickReactions = listOf("😂", "😮", "😢", "🎉", "🔥", "👏")
@@ -94,7 +96,7 @@ fun EmojiPicker(onPick: (String) -> Unit, modifier: Modifier = Modifier, height:
     val context = LocalContext.current
     var recents by remember { mutableStateOf(Emojis.recents(context)) }
     var tab by rememberSaveable { mutableStateOf(if (Emojis.recents(context).isEmpty()) 1 else 0) }
-    val tabs = listOf(Emojis.Category("Récents", "🕘", recents)) + Emojis.categories
+    val tabs = listOf(Emojis.Category(tr("Récents"), "🕘", recents)) + Emojis.categories
 
     Column(modifier.fillMaxWidth().height(height).clip(RoundedCornerShape(24.dp)).background(c.card)) {
         Row(
@@ -108,7 +110,7 @@ fun EmojiPicker(onPick: (String) -> Unit, modifier: Modifier = Modifier, height:
                         .clickable(role = Role.Tab) { tab = i }
                         .semantics {
                             contentDescription = cat.label
-                            stateDescription = if (on) "affichée" else ""
+                            stateDescription = if (on) tr("affichée") else ""
                         },
                     contentAlignment = Alignment.Center,
                 ) { Text(cat.icon, fontSize = 20.sp) }
@@ -117,7 +119,7 @@ fun EmojiPicker(onPick: (String) -> Unit, modifier: Modifier = Modifier, height:
         val list = tabs[tab].emojis
         if (list.isEmpty()) {
             Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
-                Text("Tes emoji récents apparaîtront ici.", style = MaterialTheme.typography.bodyMedium, color = c.muted)
+                Text(tr("Tes emoji récents apparaîtront ici."), style = MaterialTheme.typography.bodyMedium, color = c.muted)
             }
         } else {
             LazyVerticalGrid(GridCells.Adaptive(44.dp), Modifier.fillMaxWidth().padding(horizontal = 6.dp)) {

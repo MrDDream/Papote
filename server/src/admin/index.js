@@ -27,7 +27,7 @@ const CSP = [
   "base-uri 'none'",
 ].join('; ');
 
-export function createAdmin({ store, hub, dataDir, adminPassword, allowedIps, requireTotp = false, version, secure, serverName = 'Papote', backups, gifs = null, whisper = null, restore = null, logger = console }) {
+export function createAdmin({ store, hub, dataDir, adminPassword, allowedIps, requireTotp = false, version, secure, serverName = 'Papote', backups, gifs = null, whisper = null, updates = null, restore = null, logger = console }) {
   const router = express.Router();
   const { q } = store;
   const sec = createAdminSecurity({ store, dataDir, adminPassword, allowedIps, secure, requireTotp });
@@ -208,6 +208,38 @@ ${Object.entries(EXPIRY_LABELS).map(([k, l]) => html`<option value="${k}" ${k ==
 
   // The admin sees that backups exist, never what's inside: there is deliberately no download.
   // "Restaurer…" opens a confirmation box made with :target (admin pages run no inline script).
+  /** New Papote version on GitHub: what's new, and how to install it (Docker image, Android APK). */
+  function updatesCard() {
+    const u = updates?.cached();
+    if (!u) return '';
+    const latest = u.latest;
+    const pill = !u.enabled
+      ? html`<span class="pill warn">Désactivée</span>`
+      : u.available
+        ? html`<span class="pill warn">v${latest.version} disponible</span>`
+        : u.checkedAt && !u.error
+          ? html`<span class="pill">À jour</span>`
+          : html`<span class="pill warn">${u.checkedAt ? 'GitHub injoignable' : 'Vérification…'}</span>`;
+    return html`<section class="card" aria-labelledby="maj">
+<div class="card-head"><h2 id="maj">${icon('refresh')} Mises à jour</h2>${pill}</div>
+${
+  !u.enabled
+    ? html`<p class="empty">Le serveur ne contacte pas GitHub (UPDATE_CHECK=false dans .env). Les nouvelles versions sont sur <a href="${u.releasesUrl}" rel="noopener noreferrer" target="_blank">GitHub</a>.</p>`
+    : u.available
+      ? html`<p><b>${latest.name}</b> est sortie${latest.publishedAt ? html` ${relative(latest.publishedAt)}` : ''}. Ce serveur est en v${u.current}.</p>
+${latest.notes ? html`<details class="release-notes"><summary>Nouveautés</summary><pre>${latest.notes}</pre></details>` : ''}
+<p class="empty">Serveur : dans le dossier de Papote, lance <code>docker compose pull &amp;&amp; docker compose up -d</code> (une sauvegarde avant ne fait pas de mal).${
+          latest.apk ? html` Android : l’appli propose elle-même la nouvelle version, ou <a href="${latest.apk.url}" rel="noopener noreferrer">télécharge l’APK</a>.` : ''
+        }</p>
+<div class="actions"><a class="btn primary" href="${latest.url}" rel="noopener noreferrer" target="_blank">Voir la version sur GitHub</a></div>`
+      : html`<p class="empty">${
+          u.error ? `Dernier essai : ${u.error}.` : `v${u.current} est la dernière version${latest ? '' : ' (aucune publiée sur GitHub pour l’instant)'}.`
+        }${u.checkedAt ? ` Vérifié ${relative(u.checkedAt)}.` : ''}</p>`
+}
+${u.enabled ? html`<form method="post" action="/admin/updates/check"><button type="submit" class="ghost">${icon('refresh')} Vérifier maintenant</button></form>` : ''}
+</section>`;
+  }
+
   function backupsCard() {
     const list = backups.list();
     const next = backups.nextAt();
@@ -284,6 +316,7 @@ ${totp ? codeField : ''}
       [sec.restrictedByIp, 'Accès à l’admin', sec.restrictedByIp ? 'Limité par adresse IP' : 'Ouvert à toutes les adresses', '/admin/security'],
       [!!lastBackup && now() - lastBackup.at < 2 * 86_400_000, 'Sauvegardes', lastBackup ? `Dernière ${relative(lastBackup.at)}` : 'Aucune pour l’instant', '#bk'],
       [secure, 'Connexion', secure ? 'HTTPS' : 'HTTP (tests en local)', '/admin/security'],
+      ...(updates?.status().available ? [[false, 'Mise à jour', `Papote v${updates.status().latest.version} est disponible`, '#maj']] : []),
       // Optional services: shown as "off" (not a problem), with how to turn them on in the README.
       [!!gifs?.enabled, 'GIF (GIPHY)', gifs?.enabled ? 'Activés, passent par le serveur' : 'Désactivés : clé GIPHY_API_KEY à mettre dans .env', '#services'],
       [!!whisper?.enabled, 'Transcription des vocaux', whisper?.enabled ? `Conteneur Whisper${whisper.pending ? ` · ${whisper.pending} en attente` : ''}` : 'Désactivée : COMPOSE_PROFILES=whisper dans .env pour l’activer', '#services'],
@@ -339,6 +372,7 @@ ${byKind.map((k) => html`<span><i style="background:${raw(KIND_COLORS[k.kind] ??
 </div>
 <small class="empty">${formatBytes(used)} utilisés${disk ? html` · ${formatBytes(disk.free)} libres sur le disque` : ''}</small>
 </section>
+${updatesCard()}
 ${backupsCard()}
 </div>
 
@@ -358,6 +392,14 @@ ${otherInvites.length ? inviteRows(otherInvites.slice(0, 5)) : html`<p class="em
 </div>
 </div>`,
     );
+  });
+
+  router.post('/updates/check', async (req, res) => {
+    const u = await updates?.check();
+    if (!u) flash(res, 'error', 'Vérification indisponible');
+    else if (u.error) flash(res, 'error', `GitHub injoignable : ${u.error}`);
+    else flash(res, 'ok', u.available ? `Papote v${u.latest.version} est disponible` : 'Papote est à jour');
+    res.redirect(303, '/admin#maj');
   });
 
   router.post('/server-code/regenerate', (req, res) => {

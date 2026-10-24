@@ -1,35 +1,36 @@
+import { tr } from './i18n.js';
 // REST client and live connection. The browser session is an HttpOnly cookie set by /api/join.
 
 const FRIENDLY = {
-  invalid_code: 'Ce code n’existe pas ou a été révoqué',
-  code_expired: 'Ce code a expiré',
-  code_used: 'Ce code a déjà servi',
-  too_many_attempts: 'Trop d’essais, réessaie dans quelques minutes',
-  unauthorized: 'Ta session a expiré, reconnecte-toi',
-  group_not_found: 'Ce groupe n’existe plus',
-  file_too_large: 'Fichier trop lourd',
-  unsupported_media: 'Format de fichier non pris en charge',
-  not_group_admin: 'Réservé aux admins du groupe',
-  not_group_owner: 'Réservé à la personne qui a créé le groupe',
-  too_many_reactions: 'Ce message a déjà trop de réactions différentes',
-  invalid_personal_code: 'Ce code personnel est inconnu (il a peut-être été régénéré)',
-  same_account: 'C’est le code de ce compte-ci : entre celui de ton autre compte',
-  totp_required: 'Entre le code de ton application d’authentification',
-  totp_invalid: 'Code incorrect ou déjà utilisé',
-  direct_group: 'Pas possible dans une discussion à deux',
-  contact_not_found: 'Tu ne peux écrire qu’aux personnes de tes groupes',
-  muted: 'Tu es en sourdine dans ce groupe pour l’instant',
-  gifs_disabled: 'Les GIF ne sont pas activés sur ce serveur',
-  gifs_unavailable: 'GIPHY ne répond pas pour l’instant',
-  not_your_turn: 'Ce n’est pas ton tour',
-  not_a_player: 'Cette partie se joue à deux, et tu n’en fais pas partie',
-  waiting_opponent: 'On attend encore quelqu’un pour jouer',
-  game_over: 'La partie est terminée',
-  poll_closed: 'Le sondage est terminé',
-  location_ended: 'Le partage de position est terminé',
-  not_enough_messages: 'Pas encore assez de messages dans le groupe pour ce jeu',
-  not_enough_players: 'Il faut au moins deux joueurs',
-  too_many_pins: 'Déjà 30 messages épinglés',
+  invalid_code: tr('Ce code n’existe pas ou a été révoqué'),
+  code_expired: tr('Ce code a expiré'),
+  code_used: tr('Ce code a déjà servi'),
+  too_many_attempts: tr('Trop d’essais, réessaie dans quelques minutes'),
+  unauthorized: tr('Ta session a expiré, reconnecte-toi'),
+  group_not_found: tr('Ce groupe n’existe plus'),
+  file_too_large: tr('Fichier trop lourd'),
+  unsupported_media: tr('Format de fichier non pris en charge'),
+  not_group_admin: tr('Réservé aux admins du groupe'),
+  not_group_owner: tr('Réservé à la personne qui a créé le groupe'),
+  too_many_reactions: tr('Ce message a déjà trop de réactions différentes'),
+  invalid_personal_code: tr('Ce code personnel est inconnu (il a peut-être été régénéré)'),
+  same_account: tr('C’est le code de ce compte-ci : entre celui de ton autre compte'),
+  totp_required: tr('Entre le code de ton application d’authentification'),
+  totp_invalid: tr('Code incorrect ou déjà utilisé'),
+  direct_group: tr('Pas possible dans une discussion à deux'),
+  contact_not_found: tr('Tu ne peux écrire qu’aux personnes de tes groupes'),
+  muted: tr('Tu es en sourdine dans ce groupe pour l’instant'),
+  gifs_disabled: tr('Les GIF ne sont pas activés sur ce serveur'),
+  gifs_unavailable: tr('GIPHY ne répond pas pour l’instant'),
+  not_your_turn: tr('Ce n’est pas ton tour'),
+  not_a_player: tr('Cette partie se joue à deux, et tu n’en fais pas partie'),
+  waiting_opponent: tr('On attend encore quelqu’un pour jouer'),
+  game_over: tr('La partie est terminée'),
+  poll_closed: tr('Le sondage est terminé'),
+  location_ended: tr('Le partage de position est terminé'),
+  not_enough_messages: tr('Pas encore assez de messages dans le groupe pour ce jeu'),
+  not_enough_players: tr('Il faut au moins deux joueurs'),
+  too_many_pins: tr('Déjà 30 messages épinglés'),
 };
 
 /** "Firefox sur Linux", "Safari sur iPhone (app)": shown in "Mes appareils" on the person's other devices. */
@@ -60,13 +61,13 @@ async function call(method, path, body) {
   try {
     res = await fetch(path, init);
   } catch {
-    throw new ApiError(0, 'network', 'Impossible de joindre le serveur');
+    throw new ApiError(0, 'network', tr('Impossible de joindre le serveur'));
   }
   if (res.status === 204) return null;
   const data = await res.json().catch(() => null);
   if (!res.ok) {
     const code = data?.error ?? `http_${res.status}`;
-    const message = FRIENDLY[code] ?? (res.status < 500 && data?.message) ?? `Oups, le serveur a eu un souci (${res.status})`;
+    const message = FRIENDLY[code] ?? (res.status < 500 && data?.message) ?? tr`Oups, le serveur a eu un souci (${res.status})`;
     const err = new ApiError(res.status, code, message);
     if (res.status === 401 && path !== '/api/me') window.dispatchEvent(new CustomEvent('papote:logout'));
     throw err;
@@ -127,7 +128,7 @@ export const api = {
   messages: (id, before) => call('GET', `/api/groups/${id}/messages?limit=50${before ? `&before=${before}` : ''}`),
   messagesAround: (id, mid) => call('GET', `/api/groups/${id}/messages?limit=60&around=${mid}`),
   messagesAfter: (id, mid) => call('GET', `/api/groups/${id}/messages?limit=100&after=${mid}`),
-  sendText: (id, text) => call('POST', `/api/groups/${id}/messages`, { text }),
+  sendText: (id, text, replyTo = null) => call('POST', `/api/groups/${id}/messages`, { text, ...(replyTo ? { replyTo } : {}) }),
   sendMedia: (id, type, blob, filename, fields = {}) => {
     const f = new FormData();
     f.append('type', type);

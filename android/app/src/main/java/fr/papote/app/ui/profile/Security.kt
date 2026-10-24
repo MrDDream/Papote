@@ -1,5 +1,7 @@
 package fr.papote.app.ui.profile
 
+import fr.papote.app.tr
+
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
@@ -74,43 +76,43 @@ fun SecurityCard(totpEnabled: Boolean, onTotpChanged: () -> Unit) {
     /** Changing or removing the lock first needs the current one. */
     fun confirmCurrent(then: () -> Unit) {
         when (session.lock) {
-            Session.LockMode.Biometric -> Biometric.prompt(activity, "Confirmer", then)
+            Session.LockMode.Biometric -> Biometric.prompt(activity, tr("Confirmer"), then)
             else -> then()
         }
     }
 
-    SettingsCard("Sécurité") {
+    SettingsCard(tr("Sécurité")) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Icon(PIcons.Shield, null, tint = if (totpEnabled) c.ok else c.muted)
             Column(Modifier.weight(1f)) {
-                Text("Double authentification", style = MaterialTheme.typography.labelLarge, color = c.ink)
+                Text(tr("Double authentification"), style = MaterialTheme.typography.labelLarge, color = c.ink)
                 Text(
-                    if (totpEnabled) "Activée : un code est demandé en plus du code personnel" else "Désactivée",
+                    if (totpEnabled) tr("Activée : un code est demandé en plus du code personnel") else tr("Désactivée"),
                     style = MaterialTheme.typography.bodySmall,
                     color = c.muted,
                 )
             }
             InfoButton(
-                "Double authentification",
-                "Quand ton code personnel sert à ouvrir ton compte sur un nouvel appareil, Papote demande aussi le code à 6 chiffres " +
-                    "de ton application d’authentification (Aegis, 2FAS, Google Authenticator…). Quelqu’un qui verrait ton code personnel ne pourrait donc pas s’en servir seul.",
+                tr("Double authentification"),
+                tr("Quand ton code personnel sert à ouvrir ton compte sur un nouvel appareil, Papote demande aussi le code à 6 chiffres ") +
+                    tr("de ton application d’authentification (Aegis, 2FAS, Google Authenticator…). Quelqu’un qui verrait ton code personnel ne pourrait donc pas s’en servir seul."),
             )
         }
         if (totpEnabled) {
-            SecondaryButton("Désactiver la double authentification", { disablingTotp = true }, Modifier.fillMaxWidth(), height = 44.dp, danger = true)
+            SecondaryButton(tr("Désactiver la double authentification"), { disablingTotp = true }, Modifier.fillMaxWidth(), height = 44.dp, danger = true)
         } else {
-            SecondaryButton("Activer la double authentification", { settingUpTotp = true }, Modifier.fillMaxWidth(), icon = PIcons.Shield, height = 44.dp)
+            SecondaryButton(tr("Activer la double authentification"), { settingUpTotp = true }, Modifier.fillMaxWidth(), icon = PIcons.Shield, height = 44.dp)
         }
 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 6.dp)) {
             Icon(PIcons.Lock, null, tint = if (session.lock != Session.LockMode.None) c.ok else c.muted)
             Column(Modifier.weight(1f)) {
-                Text("Verrouillage de l’app", style = MaterialTheme.typography.labelLarge, color = c.ink)
-                Text("Demandé à l’ouverture de Papote", style = MaterialTheme.typography.bodySmall, color = c.muted)
+                Text(tr("Verrouillage de l’app"), style = MaterialTheme.typography.labelLarge, color = c.ink)
+                Text(tr("Demandé à l’ouverture de Papote"), style = MaterialTheme.typography.bodySmall, color = c.muted)
             }
         }
         Segmented(
-            listOf(Session.LockMode.None to "Aucun", Session.LockMode.Pin to "Code", Session.LockMode.Biometric to "Empreinte"),
+            listOf(Session.LockMode.None to tr("Aucun"), Session.LockMode.Pin to "Code", Session.LockMode.Biometric to tr("Empreinte")),
             session.lock,
             { mode ->
                 error = null
@@ -121,17 +123,17 @@ fun SecurityCard(totpEnabled: Boolean, onTotpChanged: () -> Unit) {
                         Session.LockMode.Pin -> settingPin = true
                         Session.LockMode.Biometric ->
                             if (Biometric.available(activity)) {
-                                Biometric.prompt(activity, "Activer le verrouillage") { app.session.setLock(Session.LockMode.Biometric) }
+                                Biometric.prompt(activity, tr("Activer le verrouillage")) { app.session.setLock(Session.LockMode.Biometric) }
                             } else {
-                                error = "Aucune empreinte ni verrouillage d’écran configuré sur ce téléphone"
+                                error = tr("Aucune empreinte ni verrouillage d’écran configuré sur ce téléphone")
                             }
                     }
                 }
             },
         )
         if (session.lock != Session.LockMode.None) {
-            Text("Verrouiller après", style = MaterialTheme.typography.bodySmall, color = c.muted)
-            Segmented(listOf(0 to "Tout de suite", 60 to "1 min", 300 to "5 min", 1800 to "30 min"), session.lockAfter, app.session::setLockAfter)
+            Text(tr("Verrouiller après"), style = MaterialTheme.typography.bodySmall, color = c.muted)
+            Segmented(listOf(0 to tr("Tout de suite"), 60 to "1 min", 300 to "5 min", 1800 to "30 min"), session.lockAfter, app.session::setLockAfter)
         }
         ErrorText(error)
     }
@@ -139,9 +141,9 @@ fun SecurityCard(totpEnabled: Boolean, onTotpChanged: () -> Unit) {
     if (settingUpTotp) TotpSetupDialog(onDismiss = { settingUpTotp = false }, onDone = onTotpChanged)
     if (disablingTotp) {
         CodeDialog(
-            title = "Désactiver la double authentification",
-            body = "Entre un code de ton application (ou un code de secours).",
-            confirm = "Désactiver",
+            title = tr("Désactiver la double authentification"),
+            body = tr("Entre un code de ton application (ou un code de secours)."),
+            confirm = tr("Désactiver"),
             onDismiss = { disablingTotp = false },
             action = { code ->
                 app.api.disableTotp(code)
@@ -176,34 +178,34 @@ private fun TotpSetupDialog(onDismiss: () -> Unit, onDone: () -> Unit) {
     AlertDialog(
         onDismissRequest = { if (codes == null) onDismiss() },
         containerColor = c.card,
-        title = { Text(if (codes == null) "Double authentification" else "Codes de secours", style = MaterialTheme.typography.titleLarge, color = c.ink) },
+        title = { Text(if (codes == null) tr("Double authentification") else tr("Codes de secours"), style = MaterialTheme.typography.titleLarge, color = c.ink) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (codes != null) {
                     Text(
-                        "Note-les maintenant (gestionnaire de mots de passe, papier…) : ils ne seront plus affichés. Chacun remplace une fois le code de l’application.",
+                        tr("Note-les maintenant (gestionnaire de mots de passe, papier…) : ils ne seront plus affichés. Chacun remplace une fois le code de l’application."),
                         style = MaterialTheme.typography.bodyMedium,
                         color = c.muted,
                     )
                     Text(codes.joinToString("\n"), fontFamily = Baloo, fontSize = 18.sp, letterSpacing = 1.sp, color = c.ink)
-                    SecondaryButton("Copier les codes", { clipboard.setText(AnnotatedString(codes.joinToString("\n"))) }, Modifier.fillMaxWidth(), icon = PIcons.Copy, height = 44.dp)
+                    SecondaryButton(tr("Copier les codes"), { clipboard.setText(AnnotatedString(codes.joinToString("\n"))) }, Modifier.fillMaxWidth(), icon = PIcons.Copy, height = 44.dp)
                 } else {
                     val s = setup
-                    Text("1. Ajoute Papote à ton application d’authentification :", style = MaterialTheme.typography.bodyMedium, color = c.muted)
+                    Text(tr("1. Ajoute Papote à ton application d’authentification :"), style = MaterialTheme.typography.bodyMedium, color = c.muted)
                     if (s != null) {
-                        SecondaryButton("Ouvrir l’application", {
+                        SecondaryButton(tr("Ouvrir l’application"), {
                             try {
                                 context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(s.url)))
                             } catch (_: ActivityNotFoundException) {
-                                error = "Aucune application d’authentification installée : copie la clé à la main"
+                                error = tr("Aucune application d’authentification installée : copie la clé à la main")
                             }
                         }, Modifier.fillMaxWidth(), icon = PIcons.Shield, height = 44.dp)
-                        Text("ou saisis la clé :", style = MaterialTheme.typography.bodySmall, color = c.muted)
+                        Text(tr("ou saisis la clé :"), style = MaterialTheme.typography.bodySmall, color = c.muted)
                         Text(s.secret.chunked(4).joinToString(" "), fontFamily = Baloo, fontWeight = FontWeight.Bold, fontSize = 16.sp, color = c.ink)
-                        SecondaryButton("Copier la clé", { clipboard.setText(AnnotatedString(s.secret)) }, Modifier.fillMaxWidth(), icon = PIcons.Copy, height = 40.dp)
+                        SecondaryButton(tr("Copier la clé"), { clipboard.setText(AnnotatedString(s.secret)) }, Modifier.fillMaxWidth(), icon = PIcons.Copy, height = 40.dp)
                     }
-                    Text("2. Entre le code à 6 chiffres qu’elle affiche :", style = MaterialTheme.typography.bodyMedium, color = c.muted)
-                    PapoteField(code, { code = it.filter(Char::isDigit).take(6) }, placeholder = "123456", keyboardType = KeyboardType.Number, label = "Code à 6 chiffres")
+                    Text(tr("2. Entre le code à 6 chiffres qu’elle affiche :"), style = MaterialTheme.typography.bodyMedium, color = c.muted)
+                    PapoteField(code, { code = it.filter(Char::isDigit).take(6) }, placeholder = "123456", keyboardType = KeyboardType.Number, label = tr("Code à 6 chiffres"))
                 }
                 ErrorText(error)
             }
@@ -213,7 +215,7 @@ private fun TotpSetupDialog(onDismiss: () -> Unit, onDone: () -> Unit) {
                 TextButton(onClick = {
                     onDone()
                     onDismiss()
-                }) { Text("C’est noté", style = MaterialTheme.typography.labelLarge, color = c.primary) }
+                }) { Text(tr("C’est noté"), style = MaterialTheme.typography.labelLarge, color = c.primary) }
             } else {
                 TextButton(enabled = code.length == 6, onClick = {
                     scope.launch {
@@ -224,11 +226,11 @@ private fun TotpSetupDialog(onDismiss: () -> Unit, onDone: () -> Unit) {
                             error = e.message
                         }
                     }
-                }) { Text("Activer", style = MaterialTheme.typography.labelLarge, color = c.primary) }
+                }) { Text(tr("Activer"), style = MaterialTheme.typography.labelLarge, color = c.primary) }
             }
         },
         dismissButton = {
-            if (codes == null) TextButton(onClick = onDismiss) { Text("Annuler", style = MaterialTheme.typography.labelLarge, color = c.ink) }
+            if (codes == null) TextButton(onClick = onDismiss) { Text(tr("Annuler"), style = MaterialTheme.typography.labelLarge, color = c.ink) }
         },
     )
 }
@@ -263,7 +265,7 @@ private fun CodeDialog(title: String, body: String, confirm: String, onDismiss: 
                 }
             }) { Text(confirm, style = MaterialTheme.typography.labelLarge, color = c.danger) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler", style = MaterialTheme.typography.labelLarge, color = c.ink) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Annuler"), style = MaterialTheme.typography.labelLarge, color = c.ink) } },
     )
 }
 
@@ -277,22 +279,22 @@ private fun PinSetupDialog(onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = c.card,
-        title = { Text("Choisis un code", style = MaterialTheme.typography.titleLarge, color = c.ink) },
+        title = { Text(tr("Choisis un code"), style = MaterialTheme.typography.titleLarge, color = c.ink) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("4 à 6 chiffres, demandés à l’ouverture de Papote.", style = MaterialTheme.typography.bodyMedium, color = c.muted)
-                PapoteField(first, { first = it.filter(Char::isDigit).take(6) }, placeholder = "Code", keyboardType = KeyboardType.NumberPassword, label = "Nouveau code")
-                PapoteField(second, { second = it.filter(Char::isDigit).take(6) }, placeholder = "Encore une fois", keyboardType = KeyboardType.NumberPassword, label = "Confirmer le code")
-                if (mismatch) ErrorText("Les deux codes ne sont pas identiques")
+                Text(tr("4 à 6 chiffres, demandés à l’ouverture de Papote."), style = MaterialTheme.typography.bodyMedium, color = c.muted)
+                PapoteField(first, { first = it.filter(Char::isDigit).take(6) }, placeholder = "Code", keyboardType = KeyboardType.NumberPassword, label = tr("Nouveau code"))
+                PapoteField(second, { second = it.filter(Char::isDigit).take(6) }, placeholder = tr("Encore une fois"), keyboardType = KeyboardType.NumberPassword, label = tr("Confirmer le code"))
+                if (mismatch) ErrorText(tr("Les deux codes ne sont pas identiques"))
             }
         },
         confirmButton = {
             TextButton(enabled = first.length >= 4 && first == second, onClick = {
                 app.session.setLock(Session.LockMode.Pin, first)
                 onDismiss()
-            }) { Text("Activer", style = MaterialTheme.typography.labelLarge, color = c.primary) }
+            }) { Text(tr("Activer"), style = MaterialTheme.typography.labelLarge, color = c.primary) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Annuler", style = MaterialTheme.typography.labelLarge, color = c.ink) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(tr("Annuler"), style = MaterialTheme.typography.labelLarge, color = c.ink) } },
     )
 }
 

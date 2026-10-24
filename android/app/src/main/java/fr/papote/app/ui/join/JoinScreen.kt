@@ -1,5 +1,7 @@
 package fr.papote.app.ui.join
 
+import fr.papote.app.tr
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -114,7 +116,7 @@ fun JoinScreen(initialServer: String, initialCode: String, onBack: (() -> Unit)?
         val text = result.contents ?: return@rememberLauncherForActivityResult
         val scanned = parseScan(text)
         if (scanned == null) {
-            error = "Ce QR code n’est pas une invitation Papote"
+            error = tr("Ce QR code n’est pas une invitation Papote")
             return@rememberLauncherForActivityResult
         }
         scanned.server?.let { server = it }
@@ -144,7 +146,7 @@ fun JoinScreen(initialServer: String, initialCode: String, onBack: (() -> Unit)?
             } catch (e: ApiException) {
                 if (e.code == "totp_required" || e.code == "totp_invalid") needsTotp = true
                 error = if (e.code == "network" || e.status == 404 && e.code.startsWith("http")) {
-                    "Pas de serveur Papote à cette adresse"
+                    tr("Pas de serveur Papote à cette adresse")
                 } else {
                     e.message
                 }
@@ -161,15 +163,15 @@ fun JoinScreen(initialServer: String, initialCode: String, onBack: (() -> Unit)?
             Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 20.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
-            if (onBack != null) SquareIconButton(PIcons.Back, "Retour", onBack)
+            if (onBack != null) SquareIconButton(PIcons.Back, tr("Retour"), onBack)
             Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Mascot()
                 Text("Papote", style = MaterialTheme.typography.displaySmall, color = c.ink)
                 Text(
                     when {
-                        loggedIn -> "Entre le code qu’on t’a donné pour rejoindre un groupe."
-                        linking -> "Retrouve ton compte avec ton code personnel : il est dans Paramètres → « Mon code personnel » sur ton autre appareil."
-                        else -> "Tes petits groupes à toi, sur ton propre serveur."
+                        loggedIn -> tr("Entre le code qu’on t’a donné pour rejoindre un groupe.")
+                        linking -> tr("Retrouve ton compte avec ton code personnel : il est dans Paramètres → « Mon code personnel » sur ton autre appareil.")
+                        else -> tr("Tes petits groupes à toi, sur ton propre serveur.")
                     },
                     style = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp),
                     color = c.muted,
@@ -183,7 +185,7 @@ fun JoinScreen(initialServer: String, initialCode: String, onBack: (() -> Unit)?
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FieldLabel("Adresse du serveur")
+                    FieldLabel(tr("Adresse du serveur"))
                     if (serverLocked) {
                         Text(server, style = MaterialTheme.typography.bodyLarge, color = c.muted, modifier = Modifier.padding(vertical = 6.dp))
                     } else {
@@ -191,35 +193,35 @@ fun JoinScreen(initialServer: String, initialCode: String, onBack: (() -> Unit)?
                             server, { server = it.trim() },
                             placeholder = "https://papote.mondomaine.fr",
                             keyboardType = KeyboardType.Uri,
-                            label = "Adresse du serveur",
+                            label = tr("Adresse du serveur"),
                         )
                         if (normalized?.startsWith("http://") == true) {
-                            Text("Connexion non chiffrée : à réserver au réseau local.", style = MaterialTheme.typography.bodySmall, color = c.muted)
+                            Text(tr("Connexion non chiffrée : à réserver au réseau local."), style = MaterialTheme.typography.bodySmall, color = c.muted)
                         }
                     }
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FieldLabel(if (linking) "Mon code personnel" else "Code d’invitation")
+                    FieldLabel(if (linking) tr("Mon code personnel") else tr("Code d’invitation"))
                     CodeInput(code, { code = it }, length = if (linking) 8 else 6)
                 }
                 if (linking && needsTotp) {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        FieldLabel("Code de ton application d’authentification")
+                        FieldLabel(tr("Code de ton application d’authentification"))
                         PapoteField(
                             totp, { totp = it.take(12) },
-                            placeholder = "123456 ou code de secours",
+                            placeholder = tr("123456 ou code de secours"),
                             keyboardType = KeyboardType.Ascii,
-                            label = "Code de double authentification",
+                            label = tr("Code de double authentification"),
                         )
                     }
                 }
                 if (!loggedIn && !linking) {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        FieldLabel("Ton petit nom")
-                        PapoteField(name, { name = it.take(40) }, placeholder = "Lou", label = "Ton petit nom", imeAction = ImeAction.Done, onIme = { if (ready) submit() })
+                        FieldLabel(tr("Ton petit nom"))
+                        PapoteField(name, { name = it.take(40) }, placeholder = "Lou", label = tr("Ton petit nom"), imeAction = ImeAction.Done, onIme = { if (ready) submit() })
                     }
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        FieldLabel("Ta frimousse")
+                        FieldLabel(tr("Ta frimousse"))
                         TintPicker(color, { color = it }, face = true)
                     }
                 }
@@ -227,19 +229,19 @@ fun JoinScreen(initialServer: String, initialCode: String, onBack: (() -> Unit)?
             }
 
             Spacer(Modifier.weight(1f))
-            PrimaryButton(if (linking) "Me connecter" else "Rejoindre", ::submit, Modifier.fillMaxWidth(), enabled = ready, loading = busy, icon = PIcons.Forward)
-            fr.papote.app.ui.components.SecondaryButton("Scanner un QR code", {
+            PrimaryButton(if (linking) tr("Me connecter") else tr("Rejoindre"), ::submit, Modifier.fillMaxWidth(), enabled = ready, loading = busy, icon = PIcons.Forward)
+            fr.papote.app.ui.components.SecondaryButton(tr("Scanner un QR code"), {
                 scanner.launch(
                     com.journeyapps.barcodescanner.ScanOptions()
                         .setDesiredBarcodeFormats(com.journeyapps.barcodescanner.ScanOptions.QR_CODE)
-                        .setPrompt("Vise le QR code d’invitation")
+                        .setPrompt(tr("Vise le QR code d’invitation"))
                         .setBeepEnabled(false)
                         .setOrientationLocked(false),
                 )
             }, Modifier.fillMaxWidth(), icon = PIcons.Scan)
             if (!loggedIn) {
                 Text(
-                    if (linking) "Je suis nouveau·elle ici" else "J’ai déjà un compte sur un autre appareil",
+                    if (linking) tr("Je suis nouveau·elle ici") else tr("J’ai déjà un compte sur un autre appareil"),
                     style = MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp),
                     color = if (c.dark) c.ink else c.primaryDark,
                     textAlign = TextAlign.Center,
@@ -270,7 +272,7 @@ private fun CodeInput(code: String, onChange: (String) -> Unit, length: Int = 6)
         value = TextFieldValue(code, TextRange(code.length)),
         onValueChange = { onChange(cleanCode(it.text, length)) },
         keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Characters, autoCorrectEnabled = false, keyboardType = KeyboardType.Ascii, imeAction = ImeAction.Next),
-        modifier = Modifier.focusRequester(focus).semantics { contentDescription = "Code, $length caractères" },
+        modifier = Modifier.focusRequester(focus).semantics { contentDescription = tr("Code, {} caractères", length) },
         decorationBox = {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 for (i in 0 until length) {

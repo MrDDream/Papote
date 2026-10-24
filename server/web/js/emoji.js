@@ -1,15 +1,16 @@
 // Same curated set as the Android app (EmojiPicker.kt), so both pickers feel alike.
 import { h, clear } from './ui.js';
+import { tr } from './i18n.js';
 
 export const CATEGORIES = [
-  { label: "Sourires", icon: "😀", emojis: "😀 😃 😄 😁 😆 😅 🤣 😂 🙂 🙃 😉 😊 😇 🥰 😍 🤩 😘 😗 😚 😋 😛 😜 🤪 😝 🤗 🤭 🤫 🤔 🤐 🤨 😐 😑 😶 😏 😒 🙄 😬 😌 😔 😪 🤤 😴 😷 🤒 🤕 🤢 🥵 🥶 🥴 😵 🤯 🤠 🥳 😎 🤓 🧐 😕 😟 🙁 😮 😯 😲 😳 🥺 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😠 🤬 😈 💀 💩 🤡 👻 👽 🤖 😺 😸 😹 😻 😼 😽 🙀 😿 😾".split(" ") },
-  { label: "Gestes", icon: "👋", emojis: "👋 🤚 🖐️ ✋ 🖖 👌 🤌 🤏 ✌️ 🤞 🤟 🤘 🤙 👈 👉 👆 👇 ☝️ 👍 👎 ✊ 👊 🤛 🤜 👏 🙌 👐 🤲 🤝 🙏 ✍️ 💅 🤳 💪 🦵 🦶 👂 👃 🧠 👀 👁️ 👅 👄 💋 👶 🧒 👦 👧 🧑 👱 👨 🧔 👩 🧓 👴 👵 🙋 🙆 🙅 🤷 🤦 💁 🙇 🧑\u200d🍳 🧑\u200d🎨 🧑\u200d💻 🧑\u200d🚀 🦸 🧙 🧚 💃 🕺 👯 🧘 🛀 👫 👭 👬 💏 💑 👪".split(" ") },
-  { label: "Cœurs", icon: "❤️", emojis: "❤️ 🧡 💛 💚 💙 💜 🤎 🖤 🤍 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝 💟 ❤️\u200d🔥 ❤️\u200d🩹 💌 💐 🌹 🥀 🌷 🌸 💮 🏵️ 🌻 🌼 ✨ 💫 ⭐ 🌟 🔥 💥 💯 💢 💦 💨 🕊️ 🫶 😻 💑 💏".split(" ") },
-  { label: "Animaux", icon: "🐶", emojis: "🐶 🐱 🐭 🐹 🐰 🦊 🐻 🐼 🐨 🐯 🦁 🐮 🐷 🐸 🐵 🙈 🙉 🙊 🐔 🐧 🐦 🐤 🦆 🦉 🦇 🐺 🐗 🐴 🦄 🐝 🐛 🦋 🐌 🐞 🐜 🐢 🐍 🦎 🐙 🦑 🦀 🐡 🐠 🐟 🐬 🐳 🐋 🦈 🐊 🐅 🦓 🦒 🐘 🦛 🐪 🦘 🐕 🐈 🐇 🦔 🦥 🦦 🌵 🎄 🌲 🌳 🌴 🌱 🌿 🍀 🍁 🍂 🍃 🍄 🌍 🌙 ☀️ ⛅ 🌧️ ⛈️ 🌈 ❄️ ☃️ 🌊".split(" ") },
-  { label: "Miam", icon: "🍕", emojis: "🍏 🍎 🍐 🍊 🍋 🍌 🍉 🍇 🍓 🫐 🍒 🍑 🥭 🍍 🥥 🥝 🍅 🥑 🍆 🥕 🌽 🌶️ 🥔 🥐 🥖 🥨 🧀 🥚 🍳 🥞 🧇 🥓 🍗 🍖 🌭 🍔 🍟 🍕 🥪 🌮 🌯 🥗 🍝 🍜 🍲 🍛 🍣 🍱 🥟 🍤 🍙 🍚 🍦 🍧 🍨 🍩 🍪 🎂 🍰 🧁 🍫 🍬 🍭 🍮 🍯 🍿 🥤 🧋 ☕ 🍵 🍺 🍻 🥂 🍷 🍸 🍹 🧉".split(" ") },
-  { label: "Fête", icon: "🎉", emojis: "🎉 🎊 🎈 🎁 🎀 🎂 🪅 🎆 🎇 🧨 🎃 🎄 🎅 🤶 🎓 🏆 🥇 🥈 🥉 🏅 ⚽ 🏀 🏈 ⚾ 🎾 🏐 🏓 🏸 🥊 🛹 ⛸️ 🎿 🏊 🚴 🧗 🎮 🕹️ 🎲 🧩 ♟️ 🎯 🎳 🎨 🖍️ ✏️ 🎭 🎬 🎤 🎧 🎼 🎹 🥁 🎷 🎺 🎸 🎻 📸 🎥 📺 📚 📖".split(" ") },
-  { label: "Voyage", icon: "✈️", emojis: "🚗 🚕 🚙 🚌 🏎️ 🚓 🚑 🚒 🚲 🛴 🛵 🏍️ 🚂 🚆 🚇 ✈️ 🛫 🛬 🚀 🛸 🚁 ⛵ 🚤 🛳️ ⚓ 🗺️ 🧭 🏔️ ⛰️ 🏕️ 🏖️ 🏝️ 🏠 🏡 🏰 🗼 🗽 ⛺ 🎡 🎢 🎠 🌅 🌄 🌃 🌉 🎑 ⌚ 📱 💻 ⌨️ 🖨️ 💡 🔦 🕯️ 💸 💰 💳 🔑 🗝️ 🔨 🧸 🛏️ 🛋️ 🚿 🧼 🧺 🧻 🎒 👓 🕶️ 👕 👖 👗 👙 👠 👟 🧢 👑 💍 ☂️".split(" ") },
-  { label: "Symboles", icon: "💬", emojis: "💬 💭 🗯️ 💤 ✅ ☑️ ✔️ ❌ ❎ ➕ ➖ ❓ ❔ ❗ ❕ ‼️ ⁉️ 💲 ♻️ ⚠️ 🚫 ⛔ 🔞 📵 🆗 🆒 🆕 🆙 🆓 🔝 🔜 ⏰ ⏳ 📅 📌 📍 📎 🔔 🔕 🎵 🎶 ➡️ ⬅️ ⬆️ ⬇️ 🔄 🔁 ▶️ ⏸️ ⏹️ ⏺️ 🔴 🟠 🟡 🟢 🔵 🟣 ⚫ ⚪ 🟤 🔺 🔻 💠 🔷 🔶 🏳️\u200d🌈 🏴\u200d☠️ 🇫🇷 🇧🇪 🇨🇭 🇨🇦 🇪🇺".split(" ") },
+  { label: tr("Sourires"), icon: "😀", emojis: "😀 😃 😄 😁 😆 😅 🤣 😂 🙂 🙃 😉 😊 😇 🥰 😍 🤩 😘 😗 😚 😋 😛 😜 🤪 😝 🤗 🤭 🤫 🤔 🤐 🤨 😐 😑 😶 😏 😒 🙄 😬 😌 😔 😪 🤤 😴 😷 🤒 🤕 🤢 🥵 🥶 🥴 😵 🤯 🤠 🥳 😎 🤓 🧐 😕 😟 🙁 😮 😯 😲 😳 🥺 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😠 🤬 😈 💀 💩 🤡 👻 👽 🤖 😺 😸 😹 😻 😼 😽 🙀 😿 😾".split(" ") },
+  { label: tr("Gestes"), icon: "👋", emojis: "👋 🤚 🖐️ ✋ 🖖 👌 🤌 🤏 ✌️ 🤞 🤟 🤘 🤙 👈 👉 👆 👇 ☝️ 👍 👎 ✊ 👊 🤛 🤜 👏 🙌 👐 🤲 🤝 🙏 ✍️ 💅 🤳 💪 🦵 🦶 👂 👃 🧠 👀 👁️ 👅 👄 💋 👶 🧒 👦 👧 🧑 👱 👨 🧔 👩 🧓 👴 👵 🙋 🙆 🙅 🤷 🤦 💁 🙇 🧑\u200d🍳 🧑\u200d🎨 🧑\u200d💻 🧑\u200d🚀 🦸 🧙 🧚 💃 🕺 👯 🧘 🛀 👫 👭 👬 💏 💑 👪".split(" ") },
+  { label: tr("Cœurs"), icon: "❤️", emojis: "❤️ 🧡 💛 💚 💙 💜 🤎 🖤 🤍 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝 💟 ❤️\u200d🔥 ❤️\u200d🩹 💌 💐 🌹 🥀 🌷 🌸 💮 🏵️ 🌻 🌼 ✨ 💫 ⭐ 🌟 🔥 💥 💯 💢 💦 💨 🕊️ 🫶 😻 💑 💏".split(" ") },
+  { label: tr("Animaux"), icon: "🐶", emojis: "🐶 🐱 🐭 🐹 🐰 🦊 🐻 🐼 🐨 🐯 🦁 🐮 🐷 🐸 🐵 🙈 🙉 🙊 🐔 🐧 🐦 🐤 🦆 🦉 🦇 🐺 🐗 🐴 🦄 🐝 🐛 🦋 🐌 🐞 🐜 🐢 🐍 🦎 🐙 🦑 🦀 🐡 🐠 🐟 🐬 🐳 🐋 🦈 🐊 🐅 🦓 🦒 🐘 🦛 🐪 🦘 🐕 🐈 🐇 🦔 🦥 🦦 🌵 🎄 🌲 🌳 🌴 🌱 🌿 🍀 🍁 🍂 🍃 🍄 🌍 🌙 ☀️ ⛅ 🌧️ ⛈️ 🌈 ❄️ ☃️ 🌊".split(" ") },
+  { label: tr("Miam"), icon: "🍕", emojis: "🍏 🍎 🍐 🍊 🍋 🍌 🍉 🍇 🍓 🫐 🍒 🍑 🥭 🍍 🥥 🥝 🍅 🥑 🍆 🥕 🌽 🌶️ 🥔 🥐 🥖 🥨 🧀 🥚 🍳 🥞 🧇 🥓 🍗 🍖 🌭 🍔 🍟 🍕 🥪 🌮 🌯 🥗 🍝 🍜 🍲 🍛 🍣 🍱 🥟 🍤 🍙 🍚 🍦 🍧 🍨 🍩 🍪 🎂 🍰 🧁 🍫 🍬 🍭 🍮 🍯 🍿 🥤 🧋 ☕ 🍵 🍺 🍻 🥂 🍷 🍸 🍹 🧉".split(" ") },
+  { label: tr("Fête"), icon: "🎉", emojis: "🎉 🎊 🎈 🎁 🎀 🎂 🪅 🎆 🎇 🧨 🎃 🎄 🎅 🤶 🎓 🏆 🥇 🥈 🥉 🏅 ⚽ 🏀 🏈 ⚾ 🎾 🏐 🏓 🏸 🥊 🛹 ⛸️ 🎿 🏊 🚴 🧗 🎮 🕹️ 🎲 🧩 ♟️ 🎯 🎳 🎨 🖍️ ✏️ 🎭 🎬 🎤 🎧 🎼 🎹 🥁 🎷 🎺 🎸 🎻 📸 🎥 📺 📚 📖".split(" ") },
+  { label: tr("Voyage"), icon: "✈️", emojis: "🚗 🚕 🚙 🚌 🏎️ 🚓 🚑 🚒 🚲 🛴 🛵 🏍️ 🚂 🚆 🚇 ✈️ 🛫 🛬 🚀 🛸 🚁 ⛵ 🚤 🛳️ ⚓ 🗺️ 🧭 🏔️ ⛰️ 🏕️ 🏖️ 🏝️ 🏠 🏡 🏰 🗼 🗽 ⛺ 🎡 🎢 🎠 🌅 🌄 🌃 🌉 🎑 ⌚ 📱 💻 ⌨️ 🖨️ 💡 🔦 🕯️ 💸 💰 💳 🔑 🗝️ 🔨 🧸 🛏️ 🛋️ 🚿 🧼 🧺 🧻 🎒 👓 🕶️ 👕 👖 👗 👙 👠 👟 🧢 👑 💍 ☂️".split(" ") },
+  { label: tr("Symboles"), icon: "💬", emojis: "💬 💭 🗯️ 💤 ✅ ☑️ ✔️ ❌ ❎ ➕ ➖ ❓ ❔ ❗ ❕ ‼️ ⁉️ 💲 ♻️ ⚠️ 🚫 ⛔ 🔞 📵 🆗 🆒 🆕 🆙 🆓 🔝 🔜 ⏰ ⏳ 📅 📌 📍 📎 🔔 🔕 🎵 🎶 ➡️ ⬅️ ⬆️ ⬇️ 🔄 🔁 ▶️ ⏸️ ⏹️ ⏺️ 🔴 🟠 🟡 🟢 🔵 🟣 ⚫ ⚪ 🟤 🔺 🔻 💠 🔷 🔶 🏳️\u200d🌈 🏴\u200d☠️ 🇫🇷 🇧🇪 🇨🇭 🇨🇦 🇪🇺".split(" ") },
 ];
 
 export const QUICK_REACTIONS = ['😂', '😮', '😢', '🎉', '🔥', '👏'];
@@ -44,13 +45,13 @@ export function isEmojiOnly(text) {
 }
 
 export function emojiPicker(onPick) {
-  const tabs = h('div', { class: 'emoji-tabs', role: 'tablist', 'aria-label': 'Catégories d’emoji' });
+  const tabs = h('div', { class: 'emoji-tabs', role: 'tablist', 'aria-label': tr('Catégories d’emoji') });
   const grid = h('div', { class: 'emoji-grid', role: 'tabpanel' });
   const el = h('div', { class: 'emoji-picker' }, tabs, grid);
   let current = recents().length ? 0 : 1;
 
   function render() {
-    const all = [{ label: 'Récents', icon: '🕘', emojis: recents() }, ...CATEGORIES];
+    const all = [{ label: tr('Récents'), icon: '🕘', emojis: recents() }, ...CATEGORIES];
     clear(
       tabs,
       all.map((c, i) =>
@@ -58,7 +59,7 @@ export function emojiPicker(onPick) {
       ),
     );
     const list = all[current].emojis;
-    if (!list.length) clear(grid, h('div', { class: 'emoji-empty' }, 'Tes emoji récents apparaîtront ici.'));
+    if (!list.length) clear(grid, h('div', { class: 'emoji-empty' }, tr('Tes emoji récents apparaîtront ici.')));
     else
       clear(
         grid,

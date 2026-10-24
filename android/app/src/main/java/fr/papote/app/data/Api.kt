@@ -1,5 +1,7 @@
 package fr.papote.app.data
 
+import fr.papote.app.tr
+
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.encodeToString
@@ -53,7 +55,7 @@ class Api(
     private val token: () -> String?,
 ) {
     private fun url(path: String): String {
-        val base = baseUrl() ?: throw ApiException(0, "no_server", "Aucun serveur configuré")
+        val base = baseUrl() ?: throw ApiException(0, "no_server", tr("Aucun serveur configuré"))
         return base.trimEnd('/') + path
     }
 
@@ -66,7 +68,7 @@ class Api(
             val res = try {
                 client.newCall(req.build()).execute()
             } catch (e: IOException) {
-                throw ApiException(0, "network", "Impossible de joindre le serveur")
+                throw ApiException(0, "network", tr("Impossible de joindre le serveur"))
             }
             res.use {
                 val text = it.body?.string().orEmpty()
@@ -82,7 +84,7 @@ class Api(
     private inline fun <reified T> decode(text: String): T = try {
         PapoteJson.decodeFromString(text)
     } catch (e: IllegalArgumentException) {
-        throw ApiException(0, "bad_response", "Réponse inattendue du serveur")
+        throw ApiException(0, "bad_response", tr("Réponse inattendue du serveur"))
     }
 
     private suspend inline fun <reified T> get(path: String): T = decode(call("GET", path))
@@ -113,6 +115,7 @@ class Api(
     suspend fun revokeDevice(id: Long) = sendUnit("DELETE", "/api/me/devices/$id")
 
     suspend fun me(): User = get("/api/me")
+    suspend fun updates(): UpdateInfo = get("/api/updates")
     suspend fun updateMe(changes: JsonObject): User = send("PATCH", "/api/me", changes)
     suspend fun setPhoto(bytes: ByteArray, mime: String): User =
         decode(call("PUT", "/api/me/photo", multipart(bytes, mime, "avatar.jpg")))
@@ -264,7 +267,7 @@ class Api(
         val res = try {
             client.newCall(req.build()).execute()
         } catch (e: IOException) {
-            throw ApiException(0, "network", "Impossible de joindre le serveur")
+            throw ApiException(0, "network", tr("Impossible de joindre le serveur"))
         }
         res.use {
             if (!it.isSuccessful) throw ApiException(it.code, "http_${it.code}", friendly(null, null, it.code))
@@ -279,44 +282,44 @@ class Api(
 
     companion object {
         /** Shown in "Mes appareils" on the person's other devices. */
-        val DEVICE_LABEL: String = "Android · " + listOf(android.os.Build.MANUFACTURER, android.os.Build.MODEL)
+        val DEVICE_LABEL: String = tr("Android · ") + listOf(android.os.Build.MANUFACTURER, android.os.Build.MODEL)
             .filter { it.isNotBlank() }
             .distinctBy { it.lowercase() }
             .joinToString(" ")
             .replaceFirstChar { it.uppercase() }
-            .ifBlank { "téléphone" }
+            .ifBlank { tr("téléphone") }
 
         fun friendly(code: String?, serverMessage: String?, status: Int): String = when (code) {
-            "invalid_code" -> "Ce code n’existe pas ou a été révoqué"
-            "invalid_personal_code" -> "Ce code personnel est inconnu (il a peut-être été régénéré)"
-            "same_account" -> "C’est le code de ce compte-ci : entre celui de ton autre compte"
-            "totp_required" -> "Entre le code de ton application d’authentification"
-            "totp_invalid" -> "Code incorrect ou déjà utilisé"
-            "direct_group" -> "Pas possible dans une discussion à deux"
-            "contact_not_found" -> "Tu ne peux écrire qu’aux personnes de tes groupes"
-            "code_expired" -> "Ce code a expiré"
-            "code_used" -> "Ce code a déjà servi"
-            "name_required" -> serverMessage ?: "Il manque un nom"
-            "too_many_attempts" -> "Trop d’essais, réessaie dans quelques minutes"
-            "unauthorized" -> "Ta session a expiré, reconnecte-toi"
-            "group_not_found" -> "Ce groupe n’existe plus"
-            "file_too_large" -> "Fichier trop lourd"
-            "unsupported_media" -> "Format de fichier non pris en charge"
-            "not_group_admin" -> "Réservé aux admins du groupe"
-            "not_group_owner" -> "Réservé à la personne qui a créé le groupe"
-            "muted" -> "Tu es en sourdine dans ce groupe pour l’instant"
-            "gifs_disabled" -> "Les GIF ne sont pas activés sur ce serveur"
-            "gifs_unavailable" -> "GIPHY ne répond pas pour l’instant"
-            "not_your_turn" -> "Ce n’est pas ton tour"
-            "not_a_player" -> "Cette partie se joue à deux, et tu n’en fais pas partie"
-            "waiting_opponent" -> "On attend encore quelqu’un pour jouer"
-            "game_over" -> "La partie est terminée"
-            "poll_closed" -> "Le sondage est terminé"
-            "location_ended" -> "Le partage de position est terminé"
-            "not_enough_messages" -> "Pas encore assez de messages dans le groupe pour ce jeu"
-            "not_enough_players" -> "Il faut au moins deux joueurs"
-            "too_many_pins" -> "Déjà 30 messages épinglés"
-            else -> serverMessage?.takeIf { status < 500 } ?: "Oups, le serveur a eu un souci ($status)"
+            "invalid_code" -> tr("Ce code n’existe pas ou a été révoqué")
+            "invalid_personal_code" -> tr("Ce code personnel est inconnu (il a peut-être été régénéré)")
+            "same_account" -> tr("C’est le code de ce compte-ci : entre celui de ton autre compte")
+            "totp_required" -> tr("Entre le code de ton application d’authentification")
+            "totp_invalid" -> tr("Code incorrect ou déjà utilisé")
+            "direct_group" -> tr("Pas possible dans une discussion à deux")
+            "contact_not_found" -> tr("Tu ne peux écrire qu’aux personnes de tes groupes")
+            "code_expired" -> tr("Ce code a expiré")
+            "code_used" -> tr("Ce code a déjà servi")
+            "name_required" -> serverMessage ?: tr("Il manque un nom")
+            "too_many_attempts" -> tr("Trop d’essais, réessaie dans quelques minutes")
+            "unauthorized" -> tr("Ta session a expiré, reconnecte-toi")
+            "group_not_found" -> tr("Ce groupe n’existe plus")
+            "file_too_large" -> tr("Fichier trop lourd")
+            "unsupported_media" -> tr("Format de fichier non pris en charge")
+            "not_group_admin" -> tr("Réservé aux admins du groupe")
+            "not_group_owner" -> tr("Réservé à la personne qui a créé le groupe")
+            "muted" -> tr("Tu es en sourdine dans ce groupe pour l’instant")
+            "gifs_disabled" -> tr("Les GIF ne sont pas activés sur ce serveur")
+            "gifs_unavailable" -> tr("GIPHY ne répond pas pour l’instant")
+            "not_your_turn" -> tr("Ce n’est pas ton tour")
+            "not_a_player" -> tr("Cette partie se joue à deux, et tu n’en fais pas partie")
+            "waiting_opponent" -> tr("On attend encore quelqu’un pour jouer")
+            "game_over" -> tr("La partie est terminée")
+            "poll_closed" -> tr("Le sondage est terminé")
+            "location_ended" -> tr("Le partage de position est terminé")
+            "not_enough_messages" -> tr("Pas encore assez de messages dans le groupe pour ce jeu")
+            "not_enough_players" -> tr("Il faut au moins deux joueurs")
+            "too_many_pins" -> tr("Déjà 30 messages épinglés")
+            else -> serverMessage?.takeIf { status < 500 } ?: tr("Oups, le serveur a eu un souci ({})", status)
         }
     }
 }

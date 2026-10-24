@@ -31,6 +31,7 @@ import {
 import { emojiPicker } from './emoji.js';
 import { gameInfo, pendingPhoto, of } from './extras.js';
 import { createBoard, streamer } from './draw.js';
+import { tr, locale } from './i18n.js';
 
 const screen = (...children) => h('div', { class: 'screen' }, ...children);
 const pref = (key, fallback) => {
@@ -47,9 +48,9 @@ const setPref = (key, value) => {
     /* private mode */
   }
 };
-const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+const MONTHS = [tr('janvier'), tr('février'), tr('mars'), tr('avril'), tr('mai'), tr('juin'), tr('juillet'), tr('août'), tr('septembre'), tr('octobre'), tr('novembre'), tr('décembre')];
 const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
-const PATTERNS = [['none', 'Uni'], ['dots', 'Pois'], ['stripes', 'Rayures'], ['grid', 'Grille']];
+const PATTERNS = [['none', tr('Uni')], ['dots', tr('Pois')], ['stripes', tr('Rayures')], ['grid', tr('Grille')]];
 
 function linkRow(ic, label, sub, onclick) {
   return h('button', { type: 'button', class: 'link-row', onclick }, h('span', { class: 'link-icon' }, icon(ic, 20)), h('span', { class: 'col grow', style: { gap: 0, textAlign: 'left' } }, h('b', {}, label), sub && h('span', { class: 'small muted' }, sub)), icon('forward', 18));
@@ -94,8 +95,8 @@ export function groupSettingsScreen(groupId) {
     const preview = h(
       'div',
       { class: 'theme-preview', 'data-pattern': s.pattern, style: { backgroundColor: surfaceOf(t) }, 'aria-hidden': 'true' },
-      h('span', { class: 'pv-bubble' }, 'Coucou !'),
-      h('span', { class: 'pv-bubble mine' }, 'Salut'),
+      h('span', { class: 'pv-bubble' }, tr('Coucou !')),
+      h('span', { class: 'pv-bubble mine' }, tr('Salut')),
     );
     const reactionsRow = h(
       'div',
@@ -110,7 +111,7 @@ export function groupSettingsScreen(groupId) {
             style: r ? { background: r.bg, color: r.fg } : {},
             disabled: !canTheme || s.reactions.length <= 1,
             'aria-label': `${r?.label ?? k} : retirer`,
-            title: 'Tape pour retirer',
+            title: tr('Tape pour retirer'),
             onclick: act(() => api.groupSettings(groupId, { reactions: s.reactions.filter((x) => x !== k) })),
           },
           r ? icon(r.icon, 24) : k,
@@ -123,10 +124,10 @@ export function groupSettingsScreen(groupId) {
           {
             type: 'button',
             class: 'reaction-btn add',
-            'aria-label': 'Ajouter une réaction',
+            'aria-label': tr('Ajouter une réaction'),
             onclick: () =>
               sheet((close) => [
-                h('h2', { class: 'title', style: { fontSize: '20px' } }, 'Ajouter une réaction'),
+                h('h2', { class: 'title', style: { fontSize: '20px' } }, tr('Ajouter une réaction')),
                 h(
                   'div',
                   { class: 'reaction-row' },
@@ -144,21 +145,21 @@ export function groupSettingsScreen(groupId) {
 
     clear(
       body,
-      topBar(direct ? 'Réglages de la discussion' : 'Réglages du groupe', () => back(`/chat/${groupId}`), { subtitle: group.name }),
+      topBar(direct ? tr('Réglages de la discussion') : tr('Réglages du groupe'), () => back(`/chat/${groupId}`), { subtitle: group.name }),
       h(
         'div',
         { class: 'card', style: { padding: '6px', gap: '0' } },
-        linkRow('personPlus', direct ? 'La discussion' : 'Membres', direct ? 'Avec qui tu papotes' : `${active.length} membre${active.length > 1 ? 's' : ''}${admin && members.some((m) => m.status === 'pending') ? ' · des demandes en attente' : ''}`, () => go(`/members/${groupId}`)),
-        !direct && (s.anyoneInvites || admin) && linkRow('share', 'Inviter quelqu’un', 'Code et QR code', () => go(`/invite/${groupId}`)),
-        linkRow('grid', 'Galerie', 'Dessins, photos, GIF, vocaux', () => go(`/gallery/${groupId}`)),
-        linkRow('search', 'Épinglés et recherche', null, () => go(`/search/${groupId}`)),
+        linkRow('personPlus', direct ? tr('La discussion') : tr('Membres'), direct ? tr('Avec qui tu papotes') : `${active.length} membre${active.length > 1 ? 's' : ''}${admin && members.some((m) => m.status === 'pending') ? tr(' · des demandes en attente') : ''}`, () => go(`/members/${groupId}`)),
+        !direct && (s.anyoneInvites || admin) && linkRow('share', tr('Inviter quelqu’un'), tr('Code et QR code'), () => go(`/invite/${groupId}`)),
+        linkRow('grid', tr('Galerie'), 'Dessins, photos, GIF, vocaux', () => go(`/gallery/${groupId}`)),
+        linkRow('search', tr('Épinglés et recherche'), null, () => go(`/search/${groupId}`)),
         linkRow('game', 'Mini-jeux', null, () => go(`/games/${groupId}`)),
-        linkRow('sparkles', 'Le récap du mois', null, () => go(`/recap/${groupId}`)),
+        linkRow('sparkles', tr('Le récap du mois'), null, () => go(`/recap/${groupId}`)),
       ),
       h(
         'div',
         { class: 'card' },
-        h('div', { class: 'row' }, h('h2', { class: 'title grow', style: { fontSize: '18px' } }, 'Thème'), !canTheme && h('span', { class: 'small muted' }, 'réservé aux admins')),
+        h('div', { class: 'row' }, h('h2', { class: 'title grow', style: { fontSize: '18px' } }, tr('Thème')), !canTheme && h('span', { class: 'small muted' }, tr('réservé aux admins'))),
         h(
           'div',
           { class: 'row', style: { alignItems: 'flex-start', gap: '14px' } },
@@ -169,17 +170,17 @@ export function groupSettingsScreen(groupId) {
             !direct && canTheme && swatches(group.color, (c) => act(() => api.updateGroup(groupId, { color: c }))()),
             h(
               'div',
-              { class: 'segmented small', role: 'group', 'aria-label': 'Motif du fond' },
+              { class: 'segmented small', role: 'group', 'aria-label': tr('Motif du fond') },
               PATTERNS.map(([k, l]) => h('button', { type: 'button', 'aria-pressed': String(s.pattern === k), disabled: !canTheme, onclick: act(() => api.groupSettings(groupId, { pattern: k })) }, l)),
             ),
           ),
         ),
       ),
-      h('div', { class: 'card' }, h('div', { class: 'row' }, h('h2', { class: 'title grow', style: { fontSize: '18px' } }, 'Réactions du groupe'), h('span', { class: 'small muted' }, 'Tape pour changer')), reactionsRow),
+      h('div', { class: 'card' }, h('div', { class: 'row' }, h('h2', { class: 'title grow', style: { fontSize: '18px' } }, tr('Réactions du groupe')), h('span', { class: 'small muted' }, tr('Tape pour changer'))), reactionsRow),
       h(
         'div',
         { class: 'card' },
-        h('h2', { class: 'title', style: { fontSize: '18px' } }, 'Mon humeur'),
+        h('h2', { class: 'title', style: { fontSize: '18px' } }, tr('Mon humeur')),
         h(
           'div',
           { class: 'row wrap' },
@@ -204,7 +205,7 @@ export function groupSettingsScreen(groupId) {
             ),
           ),
         ),
-        h('span', { class: 'small muted' }, 'Visible sur ton avatar, dans tous tes groupes.'),
+        h('span', { class: 'small muted' }, tr('Visible sur ton avatar, dans tous tes groupes.')),
       ),
       h(
         'div',
@@ -212,20 +213,20 @@ export function groupSettingsScreen(groupId) {
         h(
           'div',
           { class: 'row' },
-          h('div', { class: 'col grow', style: { gap: 0 } }, h('b', {}, 'Fêter les anniversaires'), h('span', { class: 'small muted' }, session.me.birthday ? `Confettis le jour J · le tien : ${birthdayText(session.me.birthday)}` : 'Confettis le jour J · ajoute ta date dans Paramètres')),
-          toggle(s.birthdays, (v) => act(() => api.groupSettings(groupId, { birthdays: v }))(), 'Fêter les anniversaires'),
+          h('div', { class: 'col grow', style: { gap: 0 } }, h('b', {}, tr('Fêter les anniversaires')), h('span', { class: 'small muted' }, session.me.birthday ? tr`Confettis le jour J · le tien : ${birthdayText(session.me.birthday)}` : tr('Confettis le jour J · ajoute ta date dans Paramètres'))),
+          toggle(s.birthdays, (v) => act(() => api.groupSettings(groupId, { birthdays: v }))(), tr('Fêter les anniversaires')),
         ),
         h(
           'div',
           { class: 'row' },
-          h('div', { class: 'col grow', style: { gap: 0 } }, h('b', {}, 'Mode talkie'), h('span', { class: 'small muted' }, 'Les vocaux des autres se lancent tout seuls quand la discussion est ouverte')),
-          toggle(talkieOn, (v) => setPref(`papote.talkie.${groupId}`, v ? '1' : '0'), 'Mode talkie'),
+          h('div', { class: 'col grow', style: { gap: 0 } }, h('b', {}, tr('Mode talkie')), h('span', { class: 'small muted' }, tr('Les vocaux des autres se lancent tout seuls quand la discussion est ouverte'))),
+          toggle(talkieOn, (v) => setPref(`papote.talkie.${groupId}`, v ? '1' : '0'), tr('Mode talkie')),
         ),
       ),
       err,
       h('a', { class: 'btn', href: api.exportUrl(groupId), download: '' }, icon('download', 20), 'Exporter (.zip)'),
-      button(direct ? 'Quitter la discussion' : 'Quitter le groupe', async () => {
-        if (!(await confirmDialog(direct ? 'Quitter la discussion ?' : 'Quitter le groupe ?', direct ? 'Tu pourras en recommencer une depuis « Nouvelle discussion ».' : 'Il te faudra un nouveau code pour revenir.'))) return;
+      button(direct ? tr('Quitter la discussion') : tr('Quitter le groupe'), async () => {
+        if (!(await confirmDialog(direct ? tr('Quitter la discussion ?') : tr('Quitter le groupe ?'), direct ? tr('Tu pourras en recommencer une depuis « Nouvelle discussion ».') : tr('Il te faudra un nouveau code pour revenir.')))) return;
         try {
           await api.leaveGroup(groupId);
           go('/groups', { replace: true });
@@ -240,7 +241,7 @@ export function groupSettingsScreen(groupId) {
     ...['member.joined', 'member.left', 'member.updated', 'member.pending', 'group.updated'].map((t) => live.on(t, (e) => (e.groupId ?? e.group?.id) === groupId && load())),
     live.on('group.removed', (e) => e.groupId === groupId && go('/groups', { replace: true })),
   ];
-  body.append(topBar('Réglages du groupe', () => back(`/chat/${groupId}`)), err);
+  body.append(topBar(tr('Réglages du groupe'), () => back(`/chat/${groupId}`)), err);
   load();
   return { el: screen(body), destroy: () => offs.forEach((off) => off()) };
 }
@@ -257,7 +258,7 @@ export function searchScreen(groupId) {
   let pins = [];
   let filter = 'all';
   let timer = null;
-  const input = h('input', { class: 'field', type: 'search', placeholder: 'Rechercher', 'aria-label': 'Rechercher dans la discussion', autofocus: true });
+  const input = h('input', { class: 'field', type: 'search', placeholder: tr('Rechercher'), 'aria-label': tr('Rechercher dans la discussion'), autofocus: true });
   const pinsEl = h('div');
   const chips = h('div', { class: 'chips' });
   const title = h('h2', { class: 'title', style: { fontSize: '18px' } });
@@ -281,7 +282,7 @@ export function searchScreen(groupId) {
     clear(
       pinsEl,
       pins.length > 0 && [
-        h('h2', { class: 'title', style: { fontSize: '18px' } }, 'Épinglés'),
+        h('h2', { class: 'title', style: { fontSize: '18px' } }, tr('Épinglés')),
         h(
           'div',
           { class: 'pins-row' },
@@ -290,7 +291,7 @@ export function searchScreen(groupId) {
               'button',
               { type: 'button', class: 'pin-card', style: { background: ['#FFF0B8', '#D6E8FF', '#FFE0E8', '#CDEFE0'][i % 4] }, onclick: () => open(p) },
               h('b', { class: 'small' }, members.get(p.authorId)?.name ?? ''),
-              h('span', { class: 'clamp' }, p.text || { photo: 'Photo', drawing: 'Dessin', voice: 'Vocal', location: 'Position', gif: 'GIF', sticker: 'Sticker' }[p.type] || 'Message'),
+              h('span', { class: 'clamp' }, p.text || { photo: tr('Photo'), drawing: tr('Dessin'), voice: tr('Vocal'), location: tr('Position'), gif: 'GIF', sticker: 'Sticker' }[p.type] || 'Message'),
             ),
           ),
         ),
@@ -302,7 +303,7 @@ export function searchScreen(groupId) {
     const people = [...members.values()].filter((m) => m.status !== 'pending').slice(0, 8);
     clear(
       chips,
-      [['all', 'Tout'], ['text', 'Texte'], ['voice', 'Vocaux'], ...people.map((m) => [`u${m.id}`, m.id === session.me.id ? 'Toi' : m.name])].map(([k, l]) =>
+      [['all', tr('Tout')], ['text', tr('Texte')], ['voice', tr('Vocaux')], ...people.map((m) => [`u${m.id}`, m.id === session.me.id ? tr('Toi') : m.name])].map(([k, l]) =>
         h('button', { type: 'button', class: 'chip-filter', 'aria-pressed': String(filter === k), onclick: () => ((filter = k), paintChips(), run()) }, l),
       ),
     );
@@ -321,7 +322,7 @@ export function searchScreen(groupId) {
     }
     try {
       const list = await api.search(groupId, params);
-      title.textContent = `${list.length} résultat${list.length > 1 ? 's' : ''}${q ? ` pour « ${q} »` : ''}`;
+      title.textContent = tr`${list.length} résultat${list.length > 1 ? 's' : ''}${q ? tr` pour « ${q} »` : ''}`;
       clear(
         results,
         list.map((m) => {
@@ -333,7 +334,7 @@ export function searchScreen(groupId) {
             h(
               'span',
               { class: 'col grow', style: { gap: '2px', minWidth: 0, textAlign: 'left' } },
-              h('span', { class: 'row', style: { gap: '6px' } }, h('b', {}, m.authorId === session.me.id ? 'Toi' : (a?.name ?? 'Ancien membre')), m.type === 'voice' && h('span', { class: 'chip-mini' }, 'vocal transcrit'), h('span', { class: 'small muted grow', style: { textAlign: 'right' } }, dayLabel(m.createdAt))),
+              h('span', { class: 'row', style: { gap: '6px' } }, h('b', {}, m.authorId === session.me.id ? tr('Toi') : (a?.name ?? tr('Ancien membre'))), m.type === 'voice' && h('span', { class: 'chip-mini' }, tr('vocal transcrit')), h('span', { class: 'small muted grow', style: { textAlign: 'right' } }, dayLabel(m.createdAt))),
               h('span', { class: 'snippet' }, highlight(snippet(m), q)),
             ),
           );
@@ -364,8 +365,8 @@ export function searchScreen(groupId) {
       h(
         'div',
         { class: 'scroll' },
-        h('div', { class: 'row' }, iconButton('back', 'Retour', () => back(`/chat/${groupId}`)), h('div', { class: 'search grow' }, icon('search', 20), input)),
-        h('span', { class: 'small muted' }, 'Dans ', headTitle, ' · textes, sondages et vocaux transcrits'),
+        h('div', { class: 'row' }, iconButton('back', tr('Retour'), () => back(`/chat/${groupId}`)), h('div', { class: 'search grow' }, icon('search', 20), input)),
+        h('span', { class: 'small muted' }, 'Dans ', headTitle, tr(' · textes, sondages et vocaux transcrits')),
         pinsEl,
         chips,
         title,
@@ -390,7 +391,7 @@ export function galleryScreen(groupId) {
   const err = errorBox();
   const sub = h('span', { class: 'small muted' });
   const tabsEl = h('div', { class: 'segmented', role: 'tablist' });
-  const peopleEl = h('div', { class: 'row people', role: 'group', 'aria-label': 'Filtrer par personne' });
+  const peopleEl = h('div', { class: 'row people', role: 'group', 'aria-label': tr('Filtrer par personne') });
   const memoryEl = h('div');
   const gridEl = h('div', { class: 'col', style: { gap: '14px' } });
   const audio = new Audio();
@@ -412,13 +413,13 @@ export function galleryScreen(groupId) {
     }
   }
 
-  const NAMES = { drawing: 'Dessin', photo: 'Photo', gif: 'GIF', voice: 'Vocal' };
+  const NAMES = { drawing: tr('Dessin'), photo: tr('Photo'), gif: 'GIF', voice: tr('Vocal') };
   const ICONS = { drawing: 'pencil', photo: 'photo', gif: 'gif', voice: 'mic' };
   const BG = { drawing: '#FFF8E6', photo: '#D6E8FF', gif: '#FFE0E8', voice: '#CDEFE0' };
 
   function tile(m) {
     const a = members.get(m.authorId);
-    const label = `${NAMES[m.type]} ${of(a?.name ?? 'quelqu’un')}`;
+    const label = `${NAMES[m.type]} ${of(a?.name ?? tr('quelqu’un'))}`;
     const openIt = () => {
       if (m.type === 'drawing') go(`/drawing/${m.id}?g=${groupId}`);
       else if (m.type === 'voice') {
@@ -439,7 +440,7 @@ export function galleryScreen(groupId) {
     sub.textContent = `${total} souvenir${total > 1 ? 's' : ''}`;
     clear(
       tabsEl,
-      [['all', 'Tout'], ['drawing', 'Dessins'], ['photo', 'Photos'], ['gif', 'GIF'], ['voice', 'Vocaux']].map(([k, l]) =>
+      [['all', tr('Tout')], ['drawing', tr('Dessins')], ['photo', tr('Photos')], ['gif', 'GIF'], ['voice', tr('Vocaux')]].map(([k, l]) =>
         h('button', { type: 'button', role: 'tab', 'aria-selected': String(tab === k), 'aria-pressed': String(tab === k), onclick: () => ((tab = k), load()) }, l),
       ),
     );
@@ -450,7 +451,7 @@ export function galleryScreen(groupId) {
         .map((m) =>
           h(
             'button',
-            { type: 'button', class: 'person-filter', 'aria-pressed': String(who === m.id), 'aria-label': `Voir seulement ${m.id === session.me.id ? 'toi' : m.name}`, style: { opacity: who && who !== m.id ? 0.45 : 1 }, onclick: () => ((who = who === m.id ? null : m.id), load()) },
+            { type: 'button', class: 'person-filter', 'aria-pressed': String(who === m.id), 'aria-label': tr`Voir seulement ${m.id === session.me.id ? 'toi' : m.name}`, style: { opacity: who && who !== m.id ? 0.45 : 1 }, onclick: () => ((who = who === m.id ? null : m.id), load()) },
             avatar(m, 44, { initial: true }),
           ),
         ),
@@ -460,12 +461,12 @@ export function galleryScreen(groupId) {
       memory &&
         h(
           'button',
-          { type: 'button', class: 'memory-card', onclick: () => (memory.type === 'drawing' ? go(`/drawing/${memory.id}?g=${groupId}`) : lightbox(memory.media.url, 'Souvenir')) },
+          { type: 'button', class: 'memory-card', onclick: () => (memory.type === 'drawing' ? go(`/drawing/${memory.id}?g=${groupId}`) : lightbox(memory.media.url, tr('Souvenir'))) },
           h('img', { src: memory.media.url, alt: '' }),
-          h('span', { class: 'col', style: { gap: 0, textAlign: 'left' } }, h('b', {}, 'Il y a un an jour pour jour…'), h('span', { class: 'small' }, `${memory.type === 'drawing' ? 'Le dessin' : 'La photo'} ${of(members.get(memory.authorId)?.name ?? 'quelqu’un')}`)),
+          h('span', { class: 'col', style: { gap: 0, textAlign: 'left' } }, h('b', {}, tr('Il y a un an jour pour jour…')), h('span', { class: 'small' }, `${memory.type === 'drawing' ? tr('Le dessin') : tr('La photo')} ${of(members.get(memory.authorId)?.name ?? tr('quelqu’un'))}`)),
         ),
     );
-    if (!items.length) return clear(gridEl, h('p', { class: 'muted empty-note' }, 'Rien par ici pour l’instant.'));
+    if (!items.length) return clear(gridEl, h('p', { class: 'muted empty-note' }, tr('Rien par ici pour l’instant.')));
     const byMonth = new Map();
     for (const m of items) {
       const d = new Date(m.createdAt);
@@ -476,7 +477,7 @@ export function galleryScreen(groupId) {
     clear(
       gridEl,
       [...byMonth].map(([month, list]) => h('section', { class: 'col', style: { gap: '8px' } }, h('h2', { class: 'title', style: { fontSize: '18px' } }, month, h('span', { class: 'small muted' }, ` · ${list.length}`)), h('div', { class: 'g-grid' }, list.map(tile)))),
-      more && button('Voir plus', () => load(true), { small: true }),
+      more && button(tr('Voir plus'), () => load(true), { small: true }),
     );
   }
 
@@ -493,7 +494,7 @@ export function galleryScreen(groupId) {
       h(
         'div',
         { class: 'scroll' },
-        h('div', { class: 'row' }, iconButton('back', 'Retour', () => back(`/chat/${groupId}`)), h('div', { class: 'col grow', style: { gap: 0 } }, h('h1', { class: 'title' }, 'Galerie'), sub)),
+        h('div', { class: 'row' }, iconButton('back', tr('Retour'), () => back(`/chat/${groupId}`)), h('div', { class: 'col grow', style: { gap: 0 } }, h('h1', { class: 'title' }, tr('Galerie')), sub)),
         memoryEl,
         tabsEl,
         peopleEl,
@@ -508,12 +509,12 @@ export function galleryScreen(groupId) {
 // --- Mini-jeux ---------------------------------------------------------------------------------------------
 
 const CATALOGUE = [
-  ['tictactoe', '2 joueurs · tour par tour', 'duo'],
+  ['tictactoe', tr('2 joueurs · tour par tour'), 'duo'],
   ['connect4', '2 joueurs', 'duo'],
-  ['rps', '2 joueurs · express', 'duo'],
-  ['pictionary', 'Groupe · dessin en direct', 'group'],
-  ['quiz', 'Groupe · vieux messages', 'group'],
-  ['hangman', 'Groupe · tout le monde devine', 'group'],
+  ['rps', tr('2 joueurs · express'), 'duo'],
+  ['pictionary', tr('Groupe · dessin en direct'), 'group'],
+  ['quiz', tr('Groupe · vieux messages'), 'group'],
+  ['hangman', tr('Groupe · tout le monde devine'), 'group'],
 ];
 
 export function gamesScreen(groupId) {
@@ -528,7 +529,7 @@ export function gamesScreen(groupId) {
   async function load() {
     try {
       [group, members, games] = await Promise.all([api.group(groupId), api.members(groupId), api.games(groupId)]);
-      sub.textContent = `${group.name} · ${CATALOGUE.length} jeux`;
+      sub.textContent = tr`${group.name} · ${CATALOGUE.length} jeux`;
       paint();
     } catch (e) {
       err.show(e.message);
@@ -549,7 +550,7 @@ export function gamesScreen(groupId) {
     if (group.direct) return start(kind);
     sheet((close) => [
       h('h2', { class: 'title', style: { fontSize: '20px' } }, `${gameInfo(kind)[0]} contre…`),
-      button('La première personne qui joue', () => (close(), start(kind)), { iconName: 'personPlus' }),
+      button(tr('La première personne qui joue'), () => (close(), start(kind)), { iconName: 'personPlus' }),
       others.map((m) => h('button', { type: 'button', class: 'member', onclick: () => (close(), start(kind, m.id)) }, avatar(m, 40, { online: m.online }), h('span', { class: 'title grow', style: { fontSize: '18px' } }, m.name))),
     ]);
   }
@@ -560,13 +561,13 @@ export function gamesScreen(groupId) {
     const s = g.state;
     if (['tictactoe', 'connect4', 'rps'].includes(g.kind)) {
       const other = s.players.find((p) => p !== session.me.id);
-      const vs = other ? `contre ${nameOf(other)}` : 'en attente d’adversaire';
+      const vs = other ? `contre ${nameOf(other)}` : tr('en attente d’adversaire');
       const myTurn = g.kind !== 'rps' && !s.result && s.players[s.turn] === session.me.id;
-      return `${vs} · ${myTurn ? 'à toi de jouer' : `manche ${s.round}`}`;
+      return `${vs} · ${myTurn ? tr('à toi de jouer') : `manche ${s.round}`}`;
     }
-    if (g.kind === 'quiz') return s.done ? `fini · ${s.scores[session.me.id] ?? 0} pts` : `${s.answered}/${s.total} réponses`;
-    if (g.kind === 'pictionary') return s.status === 'lobby' ? `${s.players.length} joueur(s) · pas commencé` : `manche ${s.round}/${s.rounds}`;
-    if (g.kind === 'hangman') return `mot ${s.round} · ${s.wins} trouvé(s)`;
+    if (g.kind === 'quiz') return s.done ? tr`fini · ${s.scores[session.me.id] ?? 0} pts` : tr`${s.answered}/${s.total} réponses`;
+    if (g.kind === 'pictionary') return s.status === 'lobby' ? tr`${s.players.length} joueur(s) · pas commencé` : `manche ${s.round}/${s.rounds}`;
+    if (g.kind === 'hangman') return tr`mot ${s.round} · ${s.wins} trouvé(s)`;
     return '';
   }
 
@@ -575,7 +576,7 @@ export function gamesScreen(groupId) {
     clear(
       body,
       playing.length > 0 && [
-        h('h2', { class: 'title', style: { fontSize: '18px' } }, 'Parties en cours'),
+        h('h2', { class: 'title', style: { fontSize: '18px' } }, tr('Parties en cours')),
         playing.map((g) => {
           const [name, ic, bg] = gameInfo(g.kind);
           return h('button', { type: 'button', class: 'game-row', style: { background: bg }, onclick: () => go(`/game/${g.id}`) }, h('span', { class: 'game-icon' }, icon(ic, 22)), h('span', { class: 'col grow', style: { gap: 0, textAlign: 'left' } }, h('b', {}, name), h('span', { class: 'small' }, summary(g))), icon('forward', 18));
@@ -584,7 +585,7 @@ export function gamesScreen(groupId) {
       h(
         'div',
         { class: 'chips' },
-        [['all', 'Tous'], ['duo', 'À deux'], ['group', 'En groupe']].map(([k, l]) => h('button', { type: 'button', class: 'chip-filter', 'aria-pressed': String(filter === k), onclick: () => ((filter = k), paint()) }, l)),
+        [['all', tr('Tous')], ['duo', tr('À deux')], ['group', tr('En groupe')]].map(([k, l]) => h('button', { type: 'button', class: 'chip-filter', 'aria-pressed': String(filter === k), onclick: () => ((filter = k), paint()) }, l)),
       ),
       h(
         'div',
@@ -600,7 +601,7 @@ export function gamesScreen(groupId) {
   const off = live.on('game.updated', (e) => e.groupId === groupId && load());
   load();
   return {
-    el: screen(h('div', { class: 'scroll' }, h('div', { class: 'row' }, iconButton('back', 'Retour', () => back(`/chat/${groupId}`)), h('div', { class: 'col grow', style: { gap: 0 } }, h('h1', { class: 'title' }, 'Mini-jeux'), sub)), err, body)),
+    el: screen(h('div', { class: 'scroll' }, h('div', { class: 'row' }, iconButton('back', tr('Retour'), () => back(`/chat/${groupId}`)), h('div', { class: 'col grow', style: { gap: 0 } }, h('h1', { class: 'title' }, 'Mini-jeux'), sub)), err, body)),
     destroy: off,
   };
 }
@@ -626,15 +627,31 @@ export function gameScreen(gameId) {
   let boardVersion = -1;
   let tick = null;
   let celebrated = null;
+  let receivedAt = Date.now(); // when the state (and its remainingMs) arrived
+  // Pictionary's answer field lives across repaints: what you're typing survives the others' guesses.
+  const guessInput = h('input', { class: 'field grow', placeholder: tr('Ta réponse'), maxlength: 40, 'aria-label': tr('Ta réponse') });
+  const guess = () => {
+    const v = guessInput.value.trim();
+    if (!v) return;
+    guessInput.value = '';
+    play({ guess: v });
+  };
+  guessInput.addEventListener('keydown', (e) => e.key === 'Enter' && guess());
+  /** Seconds left, from the server's own count (a phone with its clock off still shows the right time). */
+  const secondsLeft = (s) => {
+    const ms = s.remainingMs != null ? s.remainingMs - (Date.now() - receivedAt) : s.deadline - Date.now();
+    return Math.max(0, Math.ceil(ms / 1000));
+  };
   const err = errorBox();
   const head = h('div', { class: 'row' });
   const body = h('div', { class: 'col', style: { gap: '14px' } });
 
-  const nameOf = (id) => (id === session.me.id ? 'Toi' : (members.get(id)?.name ?? '?'));
+  const nameOf = (id) => (id === session.me.id ? tr('Toi') : (members.get(id)?.name ?? '?'));
   const play = async (move) => {
     err.show(null);
     try {
       game = await api.move(gameId, move);
+      receivedAt = Date.now();
       paint();
     } catch (e) {
       err.show(e.message);
@@ -646,6 +663,7 @@ export function gameScreen(gameId) {
       const g = await api.game(gameId);
       if (!members.size) members = new Map((await api.members(g.groupId)).map((m) => [m.id, m]));
       game = g;
+      receivedAt = Date.now();
       paint(g.strokes);
     } catch (e) {
       err.show(e.message);
@@ -653,7 +671,7 @@ export function gameScreen(gameId) {
   }
 
   function shareResult(text) {
-    return button('Partager le résultat', async () => {
+    return button(tr('Partager le résultat'), async () => {
       try {
         await api.sendText(game.groupId, text);
         err.show(null);
@@ -673,7 +691,7 @@ export function gameScreen(gameId) {
           'div',
           { class: `score-card${!s.result && s.turn === i && s.players[1] ? ' on' : ''}`, style: { background: i === 0 ? '#FFE0E8' : '#EDE6FF' } },
           marks[i],
-          h('span', { class: 'col grow', style: { gap: 0 } }, h('b', {}, s.players[i] ? nameOf(s.players[i]) : 'En attente…'), h('span', { class: 'small' }, i === 0 ? 'Cœurs' : 'Étoiles')),
+          h('span', { class: 'col grow', style: { gap: 0 } }, h('b', {}, s.players[i] ? nameOf(s.players[i]) : tr('En attente…')), h('span', { class: 'small' }, i === 0 ? tr('Cœurs') : tr('Étoiles'))),
           h('b', { class: 'score' }, String(s.scores[i])),
         ),
       ),
@@ -683,11 +701,11 @@ export function gameScreen(gameId) {
   function duoStatus(s, winText) {
     const other = s.players.find((p) => p !== session.me.id);
     if (s.result) {
-      if (s.result.winner === null) return 'Égalité, bien joué !';
-      return s.players[s.result.winner] === session.me.id ? winText : `${nameOf(s.players[s.result.winner])} gagne cette manche`;
+      if (s.result.winner === null) return tr('Égalité, bien joué !');
+      return s.players[s.result.winner] === session.me.id ? winText : tr`${nameOf(s.players[s.result.winner])} gagne cette manche`;
     }
-    if (!s.players[1]) return s.players[0] === session.me.id ? 'On attend quelqu’un pour jouer…' : 'Place libre : joue pour la prendre !';
-    return s.players[s.turn] === session.me.id ? 'À toi de jouer' : `À ${nameOf(other ?? s.players[s.turn])} de jouer`;
+    if (!s.players[1]) return s.players[0] === session.me.id ? tr('On attend quelqu’un pour jouer…') : tr('Place libre : joue pour la prendre !');
+    return s.players[s.turn] === session.me.id ? tr('À toi de jouer') : tr`À ${nameOf(other ?? s.players[s.turn])} de jouer`;
   }
 
   function celebrate(s) {
@@ -704,25 +722,25 @@ export function gameScreen(gameId) {
     const cells = ttt
       ? h(
           'div',
-          { class: 'ttt', role: 'grid', 'aria-label': 'Grille du morpion' },
+          { class: 'ttt', role: 'grid', 'aria-label': tr('Grille du morpion') },
           s.board.map((v, i) =>
-            h('button', { type: 'button', class: `cell${s.result?.line?.includes(i) ? ' win' : ''}`, 'aria-label': `Case ${Math.floor(i / 3) + 1}-${(i % 3) + 1} : ${v === null ? 'vide' : v === 0 ? 'cœur' : 'étoile'}`, disabled: v !== null || !!s.result, onclick: () => play({ cell: i }) }, mark(v, 44)),
+            h('button', { type: 'button', class: `cell${s.result?.line?.includes(i) ? ' win' : ''}`, 'aria-label': `Case ${Math.floor(i / 3) + 1}-${(i % 3) + 1} : ${v === null ? 'vide' : v === 0 ? tr('cœur') : tr('étoile')}`, disabled: v !== null || !!s.result, onclick: () => play({ cell: i }) }, mark(v, 44)),
           ),
         )
       : h(
           'div',
           { class: 'c4' },
-          h('div', { class: 'c4-cols' }, Array.from({ length: 7 }, (_, c) => h('button', { type: 'button', class: 'c4-drop', 'aria-label': `Jouer colonne ${c + 1}`, disabled: !!s.result || s.board[c] !== null, onclick: () => play({ col: c }) }, icon('back', 18)))),
-          h('div', { class: 'c4-grid', role: 'grid', 'aria-label': 'Grille de Puissance 4' }, s.board.map((v, i) => h('span', { class: `c4-cell${v === 0 ? ' p0' : v === 1 ? ' p1' : ''}${s.result?.line?.includes(i) ? ' win' : ''}${s.last === i ? ' last' : ''}` }))),
+          h('div', { class: 'c4-cols' }, Array.from({ length: 7 }, (_, c) => h('button', { type: 'button', class: 'c4-drop', 'aria-label': tr`Jouer colonne ${c + 1}`, disabled: !!s.result || s.board[c] !== null, onclick: () => play({ col: c }) }, icon('back', 18)))),
+          h('div', { class: 'c4-grid', role: 'grid', 'aria-label': tr('Grille de Puissance 4') }, s.board.map((v, i) => h('span', { class: `c4-cell${v === 0 ? ' p0' : v === 1 ? ' p1' : ''}${s.result?.line?.includes(i) ? ' win' : ''}${s.last === i ? ' last' : ''}` }))),
         );
     celebrate(s);
     const won = s.result && s.result.winner !== null && s.players[s.result.winner] === session.me.id;
     const other = s.players.find((p) => p !== session.me.id);
     return [
       scoreCards(s, [mark(0, 22), mark(1, 22)]),
-      h('p', { class: 'game-status', role: 'status' }, duoStatus(s, 'Tu gagnes ! Bravo !')),
+      h('p', { class: 'game-status', role: 'status' }, duoStatus(s, tr('Tu gagnes ! Bravo !'))),
       cells,
-      s.result && h('div', { class: 'row wrap' }, primaryButton('Manche suivante', () => play({ action: 'next' }), { iconName: 'refresh' }), won && other && shareResult(`J’ai gagné une manche de ${gameInfo(game.kind)[0]} contre ${nameOf(other)} (${s.scores[s.players.indexOf(session.me.id)]}-${s.scores[s.players.indexOf(other)]}) !`)),
+      s.result && h('div', { class: 'row wrap' }, primaryButton(tr('Manche suivante'), () => play({ action: 'next' }), { iconName: 'refresh' }), won && other && shareResult(tr`J’ai gagné une manche de ${gameInfo(game.kind)[0]} contre ${nameOf(other)} (${s.scores[s.players.indexOf(session.me.id)]}-${s.scores[s.players.indexOf(other)]}) !`)),
     ];
   }
 
@@ -733,13 +751,13 @@ export function gameScreen(gameId) {
     let lastText = null;
     if (last) {
       const [a, b] = last.picks;
-      const res = last.winner === null ? 'égalité' : `${nameOf(s.players[last.winner])} gagne`;
-      lastText = `Manche ${last.round} : ${nameOf(s.players[0])} ${EMO[a]} — ${EMO[b]} ${nameOf(s.players[1])} · ${res}`;
+      const res = last.winner === null ? tr('égalité') : `${nameOf(s.players[last.winner])} gagne`;
+      lastText = tr`Manche ${last.round} : ${nameOf(s.players[0])} ${EMO[a]} — ${EMO[b]} ${nameOf(s.players[1])} · ${res}`;
     }
     return [
       scoreCards({ ...s, result: true }, [h('span', { class: 'mark' }, '✊'), h('span', { class: 'mark' }, '✌️')]),
       lastText && h('p', { class: 'game-status' }, lastText),
-      h('p', { class: 'small muted', style: { textAlign: 'center', margin: 0 } }, you >= 0 && s.picks[you] ? 'Tu as joué, on attend l’autre…' : `Manche ${s.round} : choisis !`),
+      h('p', { class: 'small muted', style: { textAlign: 'center', margin: 0 } }, you >= 0 && s.picks[you] ? tr('Tu as joué, on attend l’autre…') : tr`Manche ${s.round} : choisis !`),
       h(
         'div',
         { class: 'rps' },
@@ -765,7 +783,7 @@ export function gameScreen(gameId) {
     });
     const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
     return [
-      h('p', { class: 'game-status', role: 'status' }, s.result === 'won' ? 'Bravo, mot trouvé !' : s.result === 'lost' ? `Perdu… c’était ${s.word}` : `${s.maxWrong - s.wrong} erreur(s) restante(s)`),
+      h('p', { class: 'game-status', role: 'status' }, s.result === 'won' ? tr('Bravo, mot trouvé !') : s.result === 'lost' ? tr`Perdu… c’était ${s.word}` : `${s.maxWrong - s.wrong} erreur(s) restante(s)`),
       h('div', { class: 'row', style: { justifyContent: 'center' } }, svg),
       h('div', { class: 'word', 'aria-label': `Mot : ${s.mask.map((c) => c ?? 'blanc').join(' ')}` }, s.mask.map((c) => h('span', { class: 'letter' }, c ?? ''))),
       !s.result &&
@@ -774,11 +792,11 @@ export function gameScreen(gameId) {
           { class: 'keyboard' },
           letters.map((l) => {
             const used = s.guessed.includes(l);
-            return h('button', { type: 'button', class: `key${used ? (s.mask.includes(l) ? ' ok' : ' no') : ''}`, disabled: used, title: used && s.by[l] ? `Proposée par ${nameOf(s.by[l])}` : '', onclick: () => play({ letter: l }) }, l);
+            return h('button', { type: 'button', class: `key${used ? (s.mask.includes(l) ? ' ok' : ' no') : ''}`, disabled: used, title: used && s.by[l] ? tr`Proposée par ${nameOf(s.by[l])}` : '', onclick: () => play({ letter: l }) }, l);
           }),
         ),
-      s.result && primaryButton('Mot suivant', () => play({ action: 'next' }), { iconName: 'refresh' }),
-      h('span', { class: 'small muted', style: { textAlign: 'center' } }, `${s.wins} mot(s) trouvé(s) · ${s.losses} raté(s) · tout le groupe joue ensemble`),
+      s.result && primaryButton(tr('Mot suivant'), () => play({ action: 'next' }), { iconName: 'refresh' }),
+      h('span', { class: 'small muted', style: { textAlign: 'center' } }, tr`${s.wins} mot(s) trouvé(s) · ${s.losses} raté(s) · tout le groupe joue ensemble`),
     ];
   }
 
@@ -793,16 +811,16 @@ export function gameScreen(gameId) {
       !s.done &&
         cur &&
         !answeredCur && [
-          h('blockquote', { class: 'quote' }, `« ${cur.quote} »`, h('span', { class: 'small muted' }, `Message du ${new Date(cur.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`)),
+          h('blockquote', { class: 'quote' }, `« ${cur.quote} »`, h('span', { class: 'small muted' }, tr`Message du ${new Date(cur.date).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })}`)),
           h(
             'div',
             { class: 'quiz-choices' },
-            cur.choices.map((c) => h('button', { type: 'button', class: 'quiz-choice', onclick: () => play({ answer: c.id }) }, avatar(c, 40, { initial: true }), c.id === session.me.id ? 'Moi' : c.name)),
+            cur.choices.map((c) => h('button', { type: 'button', class: 'quiz-choice', onclick: () => play({ answer: c.id }) }, avatar(c, 40, { initial: true }), c.id === session.me.id ? tr('Moi') : c.name)),
           ),
         ],
-      lastAnswered && h('p', { class: `game-status ${right ? 'ok' : 'no'}` }, right ? 'Bien vu, +10 points !' : `Raté, c’était ${lastAnswered.choices.find((c) => c.id === lastAnswered.answer)?.name ?? '?'} !`),
-      s.done && h('p', { class: 'game-status' }, `Fini ! Tu as ${s.scores[session.me.id] ?? 0} points.`),
-      scores.length > 0 && h('div', { class: 'card' }, h('h2', { class: 'title', style: { fontSize: '18px' } }, 'Scores'), scores.map(([uid, pts]) => h('div', { class: 'row' }, avatar(members.get(Number(uid)) ?? { name: '?', color: 'lilas' }, 32, { initial: true }), h('span', { class: 'grow' }, nameOf(Number(uid))), h('b', {}, `${pts} pts`)))),
+      lastAnswered && h('p', { class: `game-status ${right ? 'ok' : 'no'}` }, right ? tr('Bien vu, +10 points !') : tr`Raté, c’était ${lastAnswered.choices.find((c) => c.id === lastAnswered.answer)?.name ?? '?'} !`),
+      s.done && h('p', { class: 'game-status' }, tr`Fini ! Tu as ${s.scores[session.me.id] ?? 0} points.`),
+      scores.length > 0 && h('div', { class: 'card' }, h('h2', { class: 'title', style: { fontSize: '18px' } }, tr('Scores')), scores.map(([uid, pts]) => h('div', { class: 'row' }, avatar(members.get(Number(uid)) ?? { name: '?', color: 'lilas' }, 32, { initial: true }), h('span', { class: 'grow' }, nameOf(Number(uid))), h('b', {}, `${pts} pts`)))),
     ];
   }
 
@@ -816,10 +834,10 @@ export function gameScreen(gameId) {
     );
     if (s.status === 'lobby') {
       return [
-        h('p', { class: 'game-status' }, 'Chacun son tour dessine, les autres devinent.'),
+        h('p', { class: 'game-status' }, tr('Chacun son tour dessine, les autres devinent.')),
         scores,
-        !joined && primaryButton('Rejoindre la partie', () => play({ action: 'join' }), { iconName: 'personPlus' }),
-        joined && primaryButton(s.players.length < 2 ? 'On attend un 2e joueur…' : 'Lancer la partie', () => play({ action: 'start' }), { iconName: 'play', disabled: s.players.length < 2 }),
+        !joined && primaryButton(tr('Rejoindre la partie'), () => play({ action: 'join' }), { iconName: 'personPlus' }),
+        joined && primaryButton(s.players.length < 2 ? tr('On attend un 2e joueur…') : tr('Lancer la partie'), () => play({ action: 'start' }), { iconName: 'play', disabled: s.players.length < 2 }),
       ];
     }
     if (s.status === 'over') {
@@ -828,7 +846,7 @@ export function gameScreen(gameId) {
         celebrated = `${game.id}:over`;
         confetti();
       }
-      return [h('p', { class: 'game-status' }, `Partie finie ! ${best ? `${nameOf(Number(best[0]))} gagne avec ${best[1]} points` : ''}`), scores];
+      return [h('p', { class: 'game-status' }, tr`Partie finie ! ${best ? tr`${nameOf(Number(best[0]))} gagne avec ${best[1]} points` : ''}`), scores];
     }
     // Drawing or between rounds: one board, kept across renders while the round lasts.
     if (!board || boardVersion !== s.strokesVersion) {
@@ -839,41 +857,33 @@ export function gameScreen(gameId) {
       board = createBoard({ editable: drawer && s.status === 'drawing', onOp: (op, phase) => stream.onOp(op, phase) });
       if (strokes) board.reset(strokes);
     }
-    const secs = s.deadline ? Math.max(0, Math.ceil((s.deadline - Date.now()) / 1000)) : 0;
-    const guessInput = h('input', { class: 'field grow', placeholder: 'Ta réponse', maxlength: 40, 'aria-label': 'Ta réponse' });
-    const guess = () => {
-      const v = guessInput.value.trim();
-      if (!v) return;
-      guessInput.value = '';
-      play({ guess: v });
-    };
-    guessInput.addEventListener('keydown', (e) => e.key === 'Enter' && guess());
+    const secs = s.status === 'drawing' ? secondsLeft(s) : 0;
     const word = s.word ?? null;
     return [
       h(
         'div',
         { class: 'row' },
-        h('span', { class: 'small muted grow' }, `Manche ${s.round} sur ${s.rounds} · ${drawer ? 'tu dessines' : `${nameOf(s.drawer)} dessine`}`),
+        h('span', { class: 'small muted grow' }, tr`Manche ${s.round} sur ${s.rounds} · ${drawer ? tr('tu dessines') : `${nameOf(s.drawer)} dessine`}`),
         s.status === 'drawing' && h('span', { class: 'timer', 'aria-label': `${secs} secondes` }, String(secs)),
       ),
       scores,
       s.status === 'between'
-        ? h('p', { class: 'game-status' }, `C’était « ${word} » ! ${s.found.length ? `Trouvé par ${s.found.map(nameOf).join(', ')}` : 'Personne n’a trouvé'}`)
+        ? h('p', { class: 'game-status' }, tr`C’était « ${word} » ! ${s.found.length ? tr`Trouvé par ${s.found.map(nameOf).join(', ')}` : tr('Personne n’a trouvé')}`)
         : drawer
-          ? h('p', { class: 'game-status' }, 'À dessiner : ', h('b', {}, word))
-          : h('div', { class: 'word', 'aria-label': 'Indice' }, (s.hint ?? []).map((c) => h('span', { class: `letter${c === ' ' || c === '-' || c === '’' ? ' gap' : ''}` }, c && c !== ' ' ? c : ''))),
+          ? h('p', { class: 'game-status' }, tr('À dessiner : '), h('b', {}, word))
+          : h('div', { class: 'word', 'aria-label': tr('Indice') }, (s.hint ?? []).map((c) => h('span', { class: `letter${c === ' ' || c === '-' || c === '’' ? ' gap' : ''}` }, c && c !== ' ' ? c : ''))),
       board.el,
       drawer && s.status === 'drawing' && board.toolbar({ tools: false }),
-      drawer && s.status === 'drawing' && button('Passer ce mot', () => play({ action: 'skip' }), { small: true }),
+      drawer && s.status === 'drawing' && button(tr('Passer ce mot'), () => play({ action: 'skip' }), { small: true }),
       h(
         'div',
         { class: 'guesses' },
         s.guesses.slice(-8).map((g) =>
-          h('div', { class: `guess ${g.result}` }, h('b', {}, nameOf(g.userId)), h('span', { class: 'grow' }, g.text ?? 'a trouvé !'), h('span', { class: 'tag' }, g.result === 'found' ? '+ points' : g.result === 'close' ? 'Presque !' : 'Non')),
+          h('div', { class: `guess ${g.result}` }, h('b', {}, nameOf(g.userId)), h('span', { class: 'grow' }, g.text ?? tr('a trouvé !')), h('span', { class: 'tag' }, g.result === 'found' ? '+ points' : g.result === 'close' ? tr('Presque !') : tr('Non'))),
         ),
       ),
-      !drawer && s.status === 'drawing' && !s.found.includes(session.me.id) && h('div', { class: 'row' }, guessInput, primaryButton('Deviner', guess)),
-      !drawer && s.found.includes(session.me.id) && s.status === 'drawing' && h('p', { class: 'game-status ok' }, 'Trouvé ! On attend les autres…'),
+      !drawer && s.status === 'drawing' && !s.found.includes(session.me.id) && h('div', { class: 'row' }, guessInput, primaryButton(tr('Deviner'), guess)),
+      !drawer && s.found.includes(session.me.id) && s.status === 'drawing' && h('p', { class: 'game-status ok' }, tr('Trouvé ! On attend les autres…')),
     ];
   }
 
@@ -882,12 +892,12 @@ export function gameScreen(gameId) {
     const [name, ic, bg] = gameInfo(game.kind);
     clear(
       head,
-      iconButton('back', 'Retour', () => back(`/chat/${game.groupId}`)),
+      iconButton('back', tr('Retour'), () => back(`/chat/${game.groupId}`)),
       h('span', { class: 'game-icon', style: { background: bg } }, icon(ic, 22)),
-      h('div', { class: 'col grow', style: { gap: 0 } }, h('h1', { class: 'title' }, name), h('span', { class: 'small muted' }, game.status === 'done' ? 'Partie terminée' : game.kind === 'tictactoe' || game.kind === 'connect4' || game.kind === 'rps' ? `Manche ${game.state.round}` : '')),
+      h('div', { class: 'col grow', style: { gap: 0 } }, h('h1', { class: 'title' }, name), h('span', { class: 'small muted' }, game.status === 'done' ? tr('Partie terminée') : game.kind === 'tictactoe' || game.kind === 'connect4' || game.kind === 'rps' ? `Manche ${game.state.round}` : '')),
       game.status === 'playing' &&
-        iconButton('close', 'Arrêter la partie', async () => {
-          if (!(await confirmDialog('Arrêter la partie ?', 'Elle sera terminée pour tout le monde.', 'Arrêter'))) return;
+        iconButton('close', tr('Arrêter la partie'), async () => {
+          if (!(await confirmDialog(tr('Arrêter la partie ?'), tr('Elle sera terminée pour tout le monde.'), tr('Arrêter')))) return;
           await api.quitGame(gameId).catch((e) => err.show(e.message));
           back(`/chat/${game.groupId}`);
         }),
@@ -901,9 +911,9 @@ export function gameScreen(gameId) {
       quiz: () => paintQuiz(s),
       pictionary: () => paintPictionary(s, strokes),
     }[game.kind]();
-    const focused = document.activeElement?.getAttribute('aria-label') === 'Ta réponse';
+    const focused = document.activeElement === guessInput;
     clear(body, parts, err);
-    if (focused) body.querySelector('input[aria-label="Ta réponse"]')?.focus();
+    if (focused) guessInput.focus();
   }
 
   const offs = [
@@ -911,6 +921,7 @@ export function gameScreen(gameId) {
       if (e.game.id !== gameId) return;
       const newRound = game?.kind === 'pictionary' && e.game.state.strokesVersion !== game.state.strokesVersion;
       game = e.game;
+      receivedAt = Date.now();
       paint(newRound ? [] : undefined);
     }),
     live.on('live', (e) => {
@@ -923,7 +934,7 @@ export function gameScreen(gameId) {
   tick = setInterval(() => {
     if (game?.kind === 'pictionary' && game.state.status === 'drawing') {
       const t = body.querySelector('.timer');
-      if (t) t.textContent = String(Math.max(0, Math.ceil((game.state.deadline - Date.now()) / 1000)));
+      if (t) t.textContent = String(secondsLeft(game.state));
     }
   }, 500);
   load();
@@ -941,11 +952,11 @@ export function gameScreen(gameId) {
 // --- Le récap du mois -------------------------------------------------------------------------------------------
 
 const BADGES = {
-  picasso: ['Picasso du mois', 'pencil', '#FFF0B8', (b) => `${b.user.name} · ${b.value} dessin${b.value > 1 ? 's' : ''}`],
-  voice: ['Pipelette vocale', 'mic', '#CDEFE0', (b) => `${b.user.name} · vocal le plus long ${duration(b.value)}`],
-  gif: ['GIF chouchou', 'gif', '#FFE0E8', (b) => `« ${b.title} » envoyé ${b.value} fois`],
-  early: ['Lève-tôt', 'sun', '#FFE3C7', (b) => `${b.user.name} · 1er message à ${Math.floor(b.value / 60)}h${String(b.value % 60).padStart(2, '0')}`],
-  chatty: ['Pipelette du clavier', 'text', '#D6E8FF', (b) => `${b.user.name} · ${b.value} messages`],
+  picasso: [tr('Picasso du mois'), 'pencil', '#FFF0B8', (b) => tr`${b.user.name} · ${b.value} dessin${b.value > 1 ? 's' : ''}`],
+  voice: [tr('Pipelette vocale'), 'mic', '#CDEFE0', (b) => tr`${b.user.name} · vocal le plus long ${duration(b.value)}`],
+  gif: [tr('GIF chouchou'), 'gif', '#FFE0E8', (b) => tr`« ${b.title} » envoyé ${b.value} fois`],
+  early: [tr('Lève-tôt'), 'sun', '#FFE3C7', (b) => tr`${b.user.name} · 1er message à ${Math.floor(b.value / 60)}h${String(b.value % 60).padStart(2, '0')}`],
+  chatty: [tr('Pipelette du clavier'), 'text', '#D6E8FF', (b) => tr`${b.user.name} · ${b.value} messages`],
 };
 
 export function recapScreen(groupId, query) {
@@ -981,13 +992,13 @@ export function recapScreen(groupId, query) {
       h(
         'div',
         { class: 'recap-hero' },
-        h('div', { class: 'row' }, iconButton('back', 'Mois précédent', () => ((month = shift(month, -1)), load())), h('span', { class: 'recap-month grow' }, data.label), iconButton('forward', 'Mois suivant', () => ((month = shift(month, 1)), load()), { disabled: month >= thisMonth() })),
-        h('b', { class: 'title' }, st.messages ? 'Quel mois de papotage !' : 'Un mois tout calme'),
+        h('div', { class: 'row' }, iconButton('back', tr('Mois précédent'), () => ((month = shift(month, -1)), load())), h('span', { class: 'recap-month grow' }, data.label), iconButton('forward', tr('Mois suivant'), () => ((month = shift(month, 1)), load()), { disabled: month >= thisMonth() })),
+        h('b', { class: 'title' }, st.messages ? tr('Quel mois de papotage !') : tr('Un mois tout calme')),
       ),
       h(
         'div',
         { class: 'recap-stats' },
-        [['messages', st.messages, '#FFE0E8'], ['dessins', st.drawings, '#FFF0B8'], ['vocaux', st.voices, '#CDEFE0']].map(([l, n, bg]) => h('div', { class: 'recap-stat', style: { background: bg } }, h('b', {}, (n ?? 0).toLocaleString('fr-FR')), h('span', {}, l))),
+        [[tr('messages'), st.messages, '#FFE0E8'], [tr('dessins'), st.drawings, '#FFF0B8'], [tr('vocaux'), st.voices, '#CDEFE0']].map(([l, n, bg]) => h('div', { class: 'recap-stat', style: { background: bg } }, h('b', {}, (n ?? 0).toLocaleString(locale)), h('span', {}, l))),
       ),
       data.badges.map((b) => {
         const [title, ic, bg, text] = BADGES[b.kind] ?? ['', 'star', '#EDE6FF', () => ''];
@@ -999,9 +1010,9 @@ export function recapScreen(groupId, query) {
           icon(ic, 20),
         );
       }),
-      !data.badges.length && h('p', { class: 'muted empty-note' }, 'Pas encore de médailles ce mois-ci.'),
+      !data.badges.length && h('p', { class: 'muted empty-note' }, tr('Pas encore de médailles ce mois-ci.')),
       st.messages > 0 &&
-        primaryButton('Partager dans le groupe', async () => {
+        primaryButton(tr('Partager dans le groupe'), async () => {
           try {
             await api.shareRecap(groupId, month);
             back(`/chat/${groupId}`);
@@ -1014,7 +1025,7 @@ export function recapScreen(groupId, query) {
   }
 
   load();
-  return { el: screen(h('div', { class: 'scroll' }, topBar('Le récap', () => back(`/chat/${groupId}`)), body)) };
+  return { el: screen(h('div', { class: 'scroll' }, topBar(tr('Le récap'), () => back(`/chat/${groupId}`)), body)) };
 }
 
 // --- Décorer la photo -------------------------------------------------------------------------------------------
@@ -1022,10 +1033,10 @@ export function recapScreen(groupId, query) {
 const FILTERS = [
   ['normal', 'Normal', 'none'],
   ['pastel', 'Pastel', 'saturate(0.75) brightness(1.06)'],
-  ['retro', 'Rétro', 'sepia(0.45)'],
+  ['retro', tr('Rétro'), 'sepia(0.45)'],
   ['nb', 'N&B', 'grayscale(1)'],
 ];
-const CROPS = [['orig', 'Original'], ['square', 'Carré'], ['portrait', '4:5'], ['wide', '16:9']];
+const CROPS = [['orig', 'Original'], ['square', tr('Carré')], ['portrait', '4:5'], ['wide', '16:9']];
 
 export function photoEditScreen(groupId, query) {
   const story = query.get('story') === '1';
@@ -1045,11 +1056,11 @@ export function photoEditScreen(groupId, query) {
   const items = []; // { kind: 'text'|'sticker', x, y, s, text, color, key }
   const strokes = []; // [{ color, points: [[x, y]] }] in 0..1
   const err = errorBox();
-  const canvas = h('canvas', { class: 'photo-canvas', role: 'img', 'aria-label': 'Photo à décorer' });
-  const caption = h('input', { class: 'field', placeholder: story ? 'Un petit mot sur ta story' : 'Ajouter une légende', maxlength: 140, 'aria-label': 'Légende' });
+  const canvas = h('canvas', { class: 'photo-canvas', role: 'img', 'aria-label': tr('Photo à décorer') });
+  const caption = h('input', { class: 'field', placeholder: story ? tr('Un petit mot sur ta story') : tr('Ajouter une légende'), maxlength: 140, 'aria-label': tr('Légende') });
   const toolsEl = h('div', { class: 'photo-tools' });
-  const filtersEl = h('div', { class: 'segmented small', role: 'group', 'aria-label': 'Filtre' });
-  const send = primaryButton(story ? 'Publier la story' : 'Envoyer', null, { iconName: 'send' });
+  const filtersEl = h('div', { class: 'segmented small', role: 'group', 'aria-label': tr('Filtre') });
+  const send = primaryButton(story ? tr('Publier la story') : tr('Envoyer'), null, { iconName: 'send' });
   const ephBtn = h('button', { type: 'button', class: 'eph-btn' });
 
   function cropRect() {
@@ -1154,16 +1165,16 @@ export function photoEditScreen(groupId, query) {
 
   function addText() {
     sheet((close) => {
-      const input = h('input', { class: 'field', placeholder: 'Enfin la mer !', maxlength: 60, 'aria-label': 'Texte' });
+      const input = h('input', { class: 'field', placeholder: tr('Enfin la mer !'), maxlength: 60, 'aria-label': tr('Texte') });
       let color = '#FFFFFF';
       const colors = h('div', { class: 'inks' });
       const paintC = () => clear(colors, ['#FFFFFF', '#2E2442', '#FF7A93', '#FFD66B', '#4CC38A', '#4A9BEF'].map((c) => h('button', { type: 'button', class: 'ink', style: { backgroundColor: c }, 'aria-pressed': String(c === color), 'aria-label': c, onclick: () => ((color = c), paintC()) })));
       paintC();
       return [
-        h('h2', { class: 'title', style: { fontSize: '20px' } }, 'Ajouter du texte'),
+        h('h2', { class: 'title', style: { fontSize: '20px' } }, tr('Ajouter du texte')),
         input,
         colors,
-        primaryButton('Ajouter', () => {
+        primaryButton(tr('Ajouter'), () => {
           if (!input.value.trim()) return;
           const it = { kind: 'text', text: input.value.trim(), color, x: 0.5, y: 0.5, s: 1 };
           items.push(it);
@@ -1178,7 +1189,7 @@ export function photoEditScreen(groupId, query) {
 
   function addSticker() {
     sheet((close) => [
-      h('h2', { class: 'title', style: { fontSize: '20px' } }, 'Ajouter un sticker'),
+      h('h2', { class: 'title', style: { fontSize: '20px' } }, tr('Ajouter un sticker')),
       h(
         'div',
         { class: 'gif-grid' },
@@ -1200,29 +1211,29 @@ export function photoEditScreen(groupId, query) {
     clear(
       toolsEl,
       [
-        ['text2', 'Aa', 'Ajouter du texte', addText],
-        ['sticker', 'Sticker', 'Ajouter un sticker', addSticker],
-        ['pencil', 'Dessin', 'Dessiner dessus', () => ((mode = mode === 'draw' ? null : 'draw'), (selected = null), paintTools(), draw())],
-        ['crop', CROPS.find((c) => c[0] === crop)[1], 'Recadrer', () => ((crop = CROPS[(CROPS.findIndex((c) => c[0] === crop) + 1) % CROPS.length][0]), draw(), paintTools())],
+        ['text2', 'Aa', tr('Ajouter du texte'), addText],
+        ['sticker', 'Sticker', tr('Ajouter un sticker'), addSticker],
+        ['pencil', tr('Dessin'), tr('Dessiner dessus'), () => ((mode = mode === 'draw' ? null : 'draw'), (selected = null), paintTools(), draw())],
+        ['crop', CROPS.find((c) => c[0] === crop)[1], tr('Recadrer'), () => ((crop = CROPS[(CROPS.findIndex((c) => c[0] === crop) + 1) % CROPS.length][0]), draw(), paintTools())],
       ].map(([ic, short, label, fn]) => h('button', { type: 'button', class: 'photo-tool', 'aria-label': label, 'aria-pressed': String(ic === 'pencil' && mode === 'draw'), onclick: fn }, icon(ic, 22), h('span', {}, short))),
       mode === 'draw' &&
         h(
           'div',
           { class: 'inks' },
           ['#FFFFFF', '#2E2442', '#FF7A93', '#FFD66B', '#4CC38A', '#4A9BEF'].map((c) => h('button', { type: 'button', class: 'ink', style: { backgroundColor: c }, 'aria-pressed': String(c === ink), 'aria-label': c, onclick: () => ((ink = c), paintTools()) })),
-          iconButton('undo', 'Annuler le dernier trait', () => (strokes.pop(), draw())),
+          iconButton('undo', tr('Annuler le dernier trait'), () => (strokes.pop(), draw())),
         ),
       selected &&
         h(
           'div',
           { class: 'row' },
-          iconButton('close', 'Plus petit', () => ((selected.s = Math.max(0.4, selected.s - 0.2)), draw())),
-          iconButton('plus', 'Plus grand', () => ((selected.s = Math.min(4, selected.s + 0.2)), draw())),
-          iconButton('trash', 'Retirer', () => (items.splice(items.indexOf(selected), 1), (selected = null), paintTools(), draw())),
+          iconButton('close', tr('Plus petit'), () => ((selected.s = Math.max(0.4, selected.s - 0.2)), draw())),
+          iconButton('plus', tr('Plus grand'), () => ((selected.s = Math.min(4, selected.s + 0.2)), draw())),
+          iconButton('trash', tr('Retirer'), () => (items.splice(items.indexOf(selected), 1), (selected = null), paintTools(), draw())),
         ),
     );
     clear(filtersEl, FILTERS.map(([k, l]) => h('button', { type: 'button', 'aria-pressed': String(k === filter), onclick: () => ((filter = k), paintTools(), draw()) }, l)));
-    clear(ephBtn, icon('timer', 18), ephemeral ? 'Disparaît en 24 h' : 'Garder');
+    clear(ephBtn, icon('timer', 18), ephemeral ? tr('Disparaît en 24 h') : tr('Garder'));
     ephBtn.classList.toggle('on', ephemeral);
     ephBtn.setAttribute('aria-pressed', String(ephemeral));
   }
@@ -1239,7 +1250,7 @@ export function photoEditScreen(groupId, query) {
       else await api.sendMedia(groupId, 'photo', blob, 'photo.jpg', { width: out.width, height: out.height, ...(caption.value.trim() ? { caption: caption.value.trim() } : {}), ...(ephemeral ? { ephemeral: '1' } : {}) });
       back(`/chat/${groupId}`);
     } catch (e) {
-      err.show(e instanceof ApiError ? e.message : `Envoi impossible : ${e.message}`);
+      err.show(e instanceof ApiError ? e.message : tr`Envoi impossible : ${e.message}`);
       send.disabled = false;
     }
   });
@@ -1250,7 +1261,7 @@ export function photoEditScreen(groupId, query) {
       img = bmp;
       draw();
     })
-    .catch(() => err.show('Cette image n’a pas pu être lue'));
+    .catch(() => err.show(tr('Cette image n’a pas pu être lue')));
   paintTools();
 
   return {
@@ -1258,7 +1269,7 @@ export function photoEditScreen(groupId, query) {
       h(
         'div',
         { class: 'scroll', style: { gap: '12px' } },
-        h('div', { class: 'row' }, iconButton('close', 'Annuler', () => back(`/chat/${groupId}`)), h('div', { class: 'col grow', style: { gap: 0 } }, h('h1', { class: 'title' }, story ? 'Ma story' : 'Décorer la photo'), h('span', { class: 'small muted' }, story ? 'Visible 24 h par le groupe' : 'Texte, stickers, dessin, filtres'))),
+        h('div', { class: 'row' }, iconButton('close', tr('Annuler'), () => back(`/chat/${groupId}`)), h('div', { class: 'col grow', style: { gap: 0 } }, h('h1', { class: 'title' }, story ? tr('Ma story') : tr('Décorer la photo')), h('span', { class: 'small muted' }, story ? tr('Visible 24 h par le groupe') : 'Texte, stickers, dessin, filtres'))),
         h('div', { class: 'photo-stage' }, canvas),
         toolsEl,
         filtersEl,

@@ -1,5 +1,7 @@
 package fr.papote.app.ui.draw
 
+import fr.papote.app.tr
+
 import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
@@ -95,7 +97,7 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 
 enum class Tool(val label: String, val wire: String) {
-    Brush("Pinceau", "pen"), Marker("Feutre", "marker"), Eraser("Gomme", "eraser"), Bucket("Pot de peinture", "fill"), Stamp("Tampons", "stamp")
+    Brush(tr("Pinceau"), "pen"), Marker(tr("Feutre"), "marker"), Eraser(tr("Gomme"), "eraser"), Bucket(tr("Pot de peinture"), "fill"), Stamp(tr("Tampons"), "stamp")
 }
 
 /** Everything is stored in 0..1 coordinates so the same ops render on screen and at export size. */
@@ -106,8 +108,8 @@ sealed interface Op {
 }
 
 val Inks = listOf(
-    0xFF2E2442 to "Encre", 0xFFFF7A93 to "Rose bonbon", 0xFFFF9F43 to "Mandarine", 0xFFFFD66B to "Citron",
-    0xFF4CC38A to "Menthe", 0xFF4A9BEF to "Ciel", 0xFF8B6CF0 to "Lilas", 0xFFFFFFFF to "Blanc",
+    0xFF2E2442 to tr("Encre"), 0xFFFF7A93 to tr("Rose bonbon"), 0xFFFF9F43 to tr("Mandarine"), 0xFFFFD66B to tr("Citron"),
+    0xFF4CC38A to tr("Menthe"), 0xFF4A9BEF to tr("Ciel"), 0xFF8B6CF0 to tr("Lilas"), 0xFFFFFFFF to tr("Blanc"),
 )
 private val Sizes = listOf(0.008f, 0.016f, 0.03f, 0.05f)
 private const val PAPER = 0xFFFFFDF6.toInt()
@@ -329,7 +331,7 @@ fun DrawBoard(
     var live by remember { mutableStateOf<Pair<String, Op.Stroke>?>(null) }
     Box(
         Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(24.dp)).border(3.dp, c.line, RoundedCornerShape(24.dp))
-            .semantics { contentDescription = "Zone de dessin" }
+            .semantics { contentDescription = tr("Zone de dessin") }
             .then(
                 if (!editable) Modifier else Modifier.pointerInput(tool, ink, thickness) {
                     awaitEachGesture {
@@ -421,7 +423,7 @@ fun ToolPanel(tool: Tool, onTool: (Tool) -> Unit, ink: Int, onInk: (Int) -> Unit
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Text("Épaisseur", style = MaterialTheme.typography.labelLarge, color = c.ink, modifier = Modifier.weight(1f))
+            Text(tr("Épaisseur"), style = MaterialTheme.typography.labelLarge, color = c.ink, modifier = Modifier.weight(1f))
             Sizes.forEachIndexed { i, _ ->
                 val on = i == thickness
                 Box(
@@ -464,7 +466,7 @@ fun DrawScreen(groupId: Long, onClose: () -> Unit, baseMessageId: Long? = null, 
     LaunchedEffect(groupId) {
         groupName = runCatching { app.api.group(groupId).name }.getOrNull()
         if (baseUrl != null) base = loadBitmap(baseUrl) ?: run {
-            error = "Impossible de charger l’image de fond"
+            error = tr("Impossible de charger l’image de fond")
             null
         }
     }
@@ -490,13 +492,13 @@ fun DrawScreen(groupId: Long, onClose: () -> Unit, baseMessageId: Long? = null, 
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SquareIconButton(PIcons.Close, "Fermer le dessin", onClose)
+            SquareIconButton(PIcons.Close, tr("Fermer le dessin"), onClose)
             Column(Modifier.weight(1f)) {
-                Text(if (baseUrl != null) "Dessiner dessus" else "Un petit dessin", style = MaterialTheme.typography.headlineSmall, color = c.ink)
+                Text(if (baseUrl != null) tr("Dessiner dessus") else tr("Un petit dessin"), style = MaterialTheme.typography.headlineSmall, color = c.ink)
                 Text(groupName?.let { "pour $it" } ?: "", style = MaterialTheme.typography.bodySmall, color = c.muted)
             }
-            SquareIconButton(PIcons.Undo, "Annuler le dernier trait", { model.undoMine() }, enabled = model.canUndo)
-            SquareIconButton(PIcons.Redo, "Rétablir", { model.redo() }, enabled = model.canRedo)
+            SquareIconButton(PIcons.Undo, tr("Annuler le dernier trait"), { model.undoMine() }, enabled = model.canUndo)
+            SquareIconButton(PIcons.Redo, tr("Rétablir"), { model.redo() }, enabled = model.canRedo)
         }
         DrawBoard(model, base, tool, ink, thickness, onLive = { _, _ ->
             val now = System.currentTimeMillis()
@@ -507,7 +509,7 @@ fun DrawScreen(groupId: Long, onClose: () -> Unit, baseMessageId: Long? = null, 
         })
         ToolPanel(tool, { tool = it }, ink, { ink = it }, thickness, { thickness = it })
         ErrorText(error)
-        PrimaryButton("Envoyer le dessin", ::send, Modifier.fillMaxWidth(), enabled = model.entries.isNotEmpty(), loading = sending, icon = PIcons.Send)
+        PrimaryButton(tr("Envoyer le dessin"), ::send, Modifier.fillMaxWidth(), enabled = model.entries.isNotEmpty(), loading = sending, icon = PIcons.Send)
     }
 }
 
@@ -552,7 +554,7 @@ fun LiveDrawScreen(groupId: Long, onClose: () -> Unit) {
                     if (e.userId !in artists) artists = artists + e.userId
                 }
                 is Event.LiveDraw -> if (e.groupId == groupId && e.session == null && !sending) {
-                    error = "La toile a été envoyée dans le groupe"
+                    error = tr("La toile a été envoyée dans le groupe")
                     kotlinx.coroutines.delay(1200)
                     onClose()
                 }
@@ -585,12 +587,12 @@ fun LiveDrawScreen(groupId: Long, onClose: () -> Unit) {
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SquareIconButton(PIcons.Back, "Retour au groupe", onClose)
+            SquareIconButton(PIcons.Back, tr("Retour au groupe"), onClose)
             Column(Modifier.weight(1f)) {
-                Text("Toile commune", style = MaterialTheme.typography.headlineSmall, color = c.ink)
-                Text("En direct · ${artists.size} artiste${if (artists.size > 1) "s" else ""}", style = MaterialTheme.typography.bodySmall, color = c.muted)
+                Text(tr("Toile commune"), style = MaterialTheme.typography.headlineSmall, color = c.ink)
+                Text(tr("En direct · {} artiste{}", artists.size, if (artists.size > 1) "s" else ""), style = MaterialTheme.typography.bodySmall, color = c.muted)
             }
-            SquareIconButton(PIcons.Undo, "Annuler mon dernier trait", { model.undoMine()?.let(sender::undo) }, enabled = model.canUndo)
+            SquareIconButton(PIcons.Undo, tr("Annuler mon dernier trait"), { model.undoMine()?.let(sender::undo) }, enabled = model.canUndo)
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             artists.forEach { id -> members[id]?.let { Avatar(it.name, it.color, it.photo, size = 32.dp, initialOnly = true) } }
@@ -599,13 +601,13 @@ fun LiveDrawScreen(groupId: Long, onClose: () -> Unit) {
         ToolPanel(tool, { tool = it }, ink, { ink = it }, thickness, { thickness = it })
         ErrorText(error)
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
-            SecondaryButton("Arrêter", {
+            SecondaryButton(tr("Arrêter"), {
                 scope.launch {
                     runCatching { app.api.endLiveDraw(groupId) }
                     onClose()
                 }
             }, Modifier.weight(1f))
-            PrimaryButton("Envoyer", ::send, Modifier.weight(1f), loading = sending, icon = PIcons.Send)
+            PrimaryButton(tr("Envoyer"), ::send, Modifier.weight(1f), loading = sending, icon = PIcons.Send)
         }
     }
 }
@@ -632,7 +634,7 @@ fun DrawingScreen(groupId: Long, messageId: Long, onBack: () -> Unit, onDrawOver
     LaunchedEffect(messageId) {
         try {
             val m = app.api.messagesAround(groupId, messageId).firstOrNull { it.id == messageId }
-            if (m == null || m.deleted) throw ApiException(404, "gone", "Ce dessin a été supprimé")
+            if (m == null || m.deleted) throw ApiException(404, "gone", tr("Ce dessin a été supprimé"))
             message = m
             author = app.api.members(groupId).firstOrNull { it.id == m.authorId }
             m.metaLong("base")?.let { b -> app.api.messagesAround(groupId, b).firstOrNull { it.id == b }?.media?.url?.let { base = loadBitmap(it) } }
@@ -656,20 +658,20 @@ fun DrawingScreen(groupId: Long, messageId: Long, onBack: () -> Unit, onDrawOver
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            SquareIconButton(PIcons.Back, "Retour", onBack)
+            SquareIconButton(PIcons.Back, tr("Retour"), onBack)
             author?.let { Avatar(it.name, it.color, it.photo, size = 40.dp, initialOnly = true) }
             Column(Modifier.weight(1f)) {
-                Text(if (message?.metaBool("live") == true) "Toile commune" else "Dessin", style = MaterialTheme.typography.headlineSmall, color = c.ink)
+                Text(if (message?.metaBool("live") == true) tr("Toile commune") else tr("Dessin"), style = MaterialTheme.typography.headlineSmall, color = c.ink)
                 message?.let { m ->
                     Text(
-                        "${author?.name ?: "Ancien membre"} · ${dayLabel(m.createdAt).lowercase()} ${timeOf(m.createdAt)}" + (m.metaLong("strokes")?.let { " · $it traits" } ?: ""),
+                        "${author?.name ?: tr("Ancien membre")} · ${dayLabel(m.createdAt).lowercase()} ${timeOf(m.createdAt)}" + (m.metaLong("strokes")?.let { tr(" · {} traits", it) } ?: ""),
                         style = MaterialTheme.typography.bodySmall,
                         color = c.muted,
                     )
                 }
             }
         }
-        Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(24.dp)).semantics { contentDescription = "Dessin" }) {
+        Box(Modifier.fillMaxWidth().aspectRatio(1f).clip(RoundedCornerShape(24.dp)).semantics { contentDescription = tr("Dessin") }) {
             Canvas(Modifier.fillMaxSize()) {
                 drawIntoCanvas { cv ->
                     val o = ops
@@ -697,12 +699,12 @@ fun DrawingScreen(groupId: Long, messageId: Long, onBack: () -> Unit, onDrawOver
                 Box(Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(6.dp)).background(c.soft)) {
                     Box(Modifier.fillMaxWidth(progress).height(10.dp).clip(RoundedCornerShape(6.dp)).background(c.primary))
                 }
-                SquareIconButton(PIcons.Play, "Rejouer le timelapse", { run++ })
-                Segmented(listOf(1 to "×1", 4 to "×4"), speed, { speed = it }, Modifier.size(120.dp, 44.dp))
+                SquareIconButton(PIcons.Play, tr("Rejouer le timelapse"), { run++ })
+                Segmented(listOf(1 to tr("×1"), 4 to tr("×4")), speed, { speed = it }, Modifier.size(120.dp, 44.dp))
             }
         }
         message?.let { m ->
-            SecondaryButton(if (stickerDone) "Sticker créé !" else "En faire un sticker", {
+            SecondaryButton(if (stickerDone) tr("Sticker créé !") else tr("En faire un sticker"), {
                 if (!stickerDone) scope.launch {
                     try {
                         app.api.makeSticker(groupId, m.id)
@@ -712,8 +714,8 @@ fun DrawingScreen(groupId: Long, messageId: Long, onBack: () -> Unit, onDrawOver
                     }
                 }
             }, Modifier.fillMaxWidth(), icon = PIcons.Stamp)
-            SecondaryButton("Dessiner dessus", { m.media?.url?.let { onDrawOver(m.id, it) } }, Modifier.fillMaxWidth(), icon = PIcons.Pencil)
-            SecondaryButton("Télécharger", {
+            SecondaryButton(tr("Dessiner dessus"), { m.media?.url?.let { onDrawOver(m.id, it) } }, Modifier.fillMaxWidth(), icon = PIcons.Pencil)
+            SecondaryButton(tr("Télécharger"), {
                 scope.launch {
                     error = saveToGallery(context, m.media?.url ?: return@launch, "dessin-${m.id}.png", "image/png")
                 }
@@ -725,7 +727,7 @@ fun DrawingScreen(groupId: Long, messageId: Long, onBack: () -> Unit, onDrawOver
 
 /** Saves a media file in the phone's Pictures/Papote; returns an error text, or a confirmation. */
 suspend fun saveToGallery(context: Context, path: String, name: String, mime: String): String? {
-    if (Build.VERSION.SDK_INT < 29) return "Il faut Android 10 ou plus pour enregistrer ici"
+    if (Build.VERSION.SDK_INT < 29) return tr("Il faut Android 10 ou plus pour enregistrer ici")
     return try {
         val bytes = PapoteApp.instance.api.bytes(path)
         withContext(Dispatchers.IO) {
@@ -734,11 +736,11 @@ suspend fun saveToGallery(context: Context, path: String, name: String, mime: St
                 put(MediaStore.MediaColumns.MIME_TYPE, mime)
                 put(MediaStore.MediaColumns.RELATIVE_PATH, "Pictures/Papote")
             }
-            val uri = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values) ?: error("stockage indisponible")
+            val uri = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values) ?: error(tr("stockage indisponible"))
             context.contentResolver.openOutputStream(uri)!!.use { it.write(bytes) }
         }
-        "Enregistré dans Images › Papote"
+        tr("Enregistré dans Images › Papote")
     } catch (e: Exception) {
-        "Enregistrement impossible : ${e.message}"
+        tr("Enregistrement impossible : {}", e.message)
     }
 }

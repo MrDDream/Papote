@@ -40,6 +40,17 @@
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="papote" android:host="join" />
             </intent-filter>
+            <!-- "Partager" → Papote from other apps: a text, a link or a picture -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
+            <!-- Latest conversations offered right in the share sheet (Direct Share) -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
         </activity>
         <service
             android:name=".service.LiveService"

@@ -1,5 +1,7 @@
 package fr.papote.app.ui.theme
 
+import fr.papote.app.tr
+
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Typography
@@ -25,12 +27,12 @@ import fr.papote.app.R
 data class Tint(val key: String, val label: String, val bg: Color, val tint: Color, val text: Color)
 
 val Tints = listOf(
-    Tint("rose", "Rose", Color(0xFFFFE0E8), Color(0xFFFFC2D1), Color(0xFFB0305A)),
-    Tint("peche", "Pêche", Color(0xFFFFEBD6), Color(0xFFFFD3A8), Color(0xFF9A4F0C)),
-    Tint("menthe", "Menthe", Color(0xFFDDF4E9), Color(0xFFB5E6CF), Color(0xFF2C7A57)),
-    Tint("ciel", "Ciel", Color(0xFFE2EEFF), Color(0xFFC2DAFF), Color(0xFF2E5FA8)),
-    Tint("citron", "Citron", Color(0xFFFFF6D6), Color(0xFFFFE89A), Color(0xFF7A5F00)),
-    Tint("lilas", "Lilas", Color(0xFFEDE6FF), Color(0xFFD7C9FF), Color(0xFF5B3CC4)),
+    Tint("rose", tr("Rose"), Color(0xFFFFE0E8), Color(0xFFFFC2D1), Color(0xFFB0305A)),
+    Tint("peche", tr("Pêche"), Color(0xFFFFEBD6), Color(0xFFFFD3A8), Color(0xFF9A4F0C)),
+    Tint("menthe", tr("Menthe"), Color(0xFFDDF4E9), Color(0xFFB5E6CF), Color(0xFF2C7A57)),
+    Tint("ciel", tr("Ciel"), Color(0xFFE2EEFF), Color(0xFFC2DAFF), Color(0xFF2E5FA8)),
+    Tint("citron", tr("Citron"), Color(0xFFFFF6D6), Color(0xFFFFE89A), Color(0xFF7A5F00)),
+    Tint("lilas", tr("Lilas"), Color(0xFFEDE6FF), Color(0xFFD7C9FF), Color(0xFF5B3CC4)),
 )
 
 fun tint(key: String?): Tint = Tints.firstOrNull { it.key == key } ?: Tints[0]
@@ -89,27 +91,27 @@ enum class ThemeStyle(val label: String, val light: PapoteColors, val night: Pap
         palette(true, 0xFF1C1628, 0xFF2A2238, 0xFFF3EEFF, 0xFFBDB3D1, 0xFF43385A, 0xFF241D31, 0xFF3A2F55, 0xFF8B6CF0, 0xFF5B3CC4),
     ),
     Menthe(
-        "Menthe",
+        tr("Menthe"),
         palette(false, 0xFFF1FAF5, 0xFFFFFFFF, 0xFF1F3A2E, 0xFF4E6B5D, 0xFFCDEBDD, 0xFFF8FDFA, 0xFFDDF4E9, 0xFF23845A, 0xFF186543),
         palette(true, 0xFF14211B, 0xFF1E2E26, 0xFFEAF7F0, 0xFFA9C7B8, 0xFF33493E, 0xFF18261F, 0xFF24493A, 0xFF4CC38A, 0xFF2F9E6E, 0xFF0E2219),
     ),
     Ocean(
-        "Océan",
+        tr("Océan"),
         palette(false, 0xFFF1F6FF, 0xFFFFFFFF, 0xFF1E2B45, 0xFF4D5E7E, 0xFFD2E0F7, 0xFFF8FBFF, 0xFFE2EEFF, 0xFF2E6FD6, 0xFF1F52A8),
         palette(true, 0xFF121A2B, 0xFF1C273D, 0xFFEAF1FF, 0xFFA9B9D6, 0xFF33415E, 0xFF161F33, 0xFF25385C, 0xFF5B93F0, 0xFF2E6FD6, 0xFF0B1530),
     ),
     Corail(
-        "Corail",
+        tr("Corail"),
         palette(false, 0xFFFFF4F6, 0xFFFFFFFF, 0xFF3D1F2A, 0xFF7A5161, 0xFFF6D5DE, 0xFFFFFAFB, 0xFFFFE0E8, 0xFFC23660, 0xFF92284A),
         palette(true, 0xFF24151B, 0xFF331F27, 0xFFFFEFF3, 0xFFD3AEBB, 0xFF4E3540, 0xFF2A1920, 0xFF4A2433, 0xFFF0668E, 0xFFC2406A, 0xFF2A0A15),
     ),
     Soleil(
-        "Soleil",
+        tr("Soleil"),
         palette(false, 0xFFFFF8EE, 0xFFFFFFFF, 0xFF3A2A12, 0xFF725C3B, 0xFFF5E2C3, 0xFFFFFCF6, 0xFFFFEBD6, 0xFFA65A05, 0xFF7E4403),
         palette(true, 0xFF221A10, 0xFF30251A, 0xFFFFF4E4, 0xFFD3BD9C, 0xFF4B3B27, 0xFF281F14, 0xFF4A3518, 0xFFF29A2E, 0xFFC47616, 0xFF2A1800),
     ),
     Encre(
-        "Encre",
+        tr("Encre"),
         palette(false, 0xFFF4F4F6, 0xFFFFFFFF, 0xFF1F2029, 0xFF55576A, 0xFFDCDDE5, 0xFFFAFAFC, 0xFFE8E9EF, 0xFF3A3D52, 0xFF1F2130),
         palette(true, 0xFF121216, 0xFF1D1E24, 0xFFF1F1F5, 0xFFA9AAB8, 0xFF34353F, 0xFF17181D, 0xFF2A2B33, 0xFFB8BBD4, 0xFF6A6D88, 0xFF121216),
     ),

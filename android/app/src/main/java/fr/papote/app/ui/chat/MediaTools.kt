@@ -1,5 +1,7 @@
 package fr.papote.app.ui.chat
 
+import fr.papote.app.tr
+
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -44,7 +46,7 @@ suspend fun prepareImage(context: Context, uri: Uri): PreparedImage = withContex
         while (max(bounds.outWidth, bounds.outHeight) / (sample * 2) >= MAX_SIDE) sample *= 2
         val decoded = context.contentResolver.openInputStream(uri)!!.use {
             BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sample })
-        } ?: error("Image illisible")
+        } ?: error(tr("Image illisible"))
         val scale = MAX_SIDE.toFloat() / max(decoded.width, decoded.height)
         if (scale < 1f) Bitmap.createScaledBitmap(decoded, (decoded.width * scale).roundToInt(), (decoded.height * scale).roundToInt(), true) else decoded
     }
@@ -230,4 +232,73 @@ class VoicePlayer(private val context: Context, private val scope: CoroutineScop
         player = null
         _state.value = State()
     }
+}
+
+/** A video or a document picked to be sent as it is (no re-encoding). */
+class PickedFile(val bytes: ByteArray, val mime: String, val name: String, val fields: Map<String, String>)
+
+class TooBigException(val size: Long) : Exception()
+
+/** Reads a picked video or document, refusing it before upload when it's over [maxMb]. */
+suspend fun readPicked(context: Context, uri: Uri, maxMb: Int, video: Boolean): PickedFile = withContext(Dispatchers.IO) {
+    val resolver = context.contentResolver
+    var name = if (video) "video.mp4" else "fichier"
+    var size = -1L
+    resolver.query(uri, arrayOf(android.provider.OpenableColumns.DISPLAY_NAME, android.provider.OpenableColumns.SIZE), null, null, null)?.use { c ->
+        if (c.moveToFirst()) {
+            c.getString(0)?.let { name = it }
+            if (!c.isNull(1)) size = c.getLong(1)
+        }
+    }
+    val max = maxMb * 1024L * 1024L
+    if (size > max) throw TooBigException(size)
+    val bytes = resolver.openInputStream(uri)?.use { input ->
+        val out = java.io.ByteArrayOutputStream()
+        val buf = ByteArray(64 * 1024)
+        var total = 0L
+        while (true) {
+            val n = input.read(buf)
+            if (n < 0) break
+            total += n
+            if (total > max) throw TooBigException(total)
+            out.write(buf, 0, n)
+        }
+        out.toByteArray()
+    } ?: throw java.io.IOException(tr("Fichier illisible"))
+    val mime = resolver.getType(uri) ?: if (video) "video/mp4" else "application/octet-stream"
+    val fields = mutableMapOf<String, String>()
+    if (video) {
+        // Size and length, so the bubble has the right shape before the video loads.
+        runCatching {
+            android.media.MediaMetadataRetriever().apply {
+                setDataSource(context, uri)
+                val w = extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)?.toIntOrNull()
+                val h = extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)?.toIntOrNull()
+                val rot = extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull() ?: 0
+                val d = extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
+                if (w != null && h != null) {
+                    fields["width"] = "${if (rot % 180 == 0) w else h}"
+                    fields["height"] = "${if (rot % 180 == 0) h else w}"
+                }
+                if (d != null && d > 0) fields["durationMs"] = "$d"
+                release()
+            }
+        }
+    } else {
+        fields["name"] = name
+    }
+    PickedFile(bytes, mime, name, fields)
+}
+
+/** "3,2 Mo" */
+fun fileSize(bytes: Long?): String {
+    if (bytes == null) return ""
+    val units = listOf(tr("o"), tr("Ko"), tr("Mo"), tr("Go"))
+    var v = bytes.toDouble()
+    var i = 0
+    while (v >= 1024 && i < units.size - 1) {
+        v /= 1024
+        i++
+    }
+    return if (i == 0) "${v.toLong()} ${units[i]}" else String.format(fr.papote.app.I18n.locale, "%.1f %s", v, units[i])
 }

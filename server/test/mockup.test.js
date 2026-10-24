@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -6,6 +6,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import WebSocket from 'ws';
 import { createServer } from '../src/app.js';
+import { fold } from '../src/games.js';
 
 const PNG = Buffer.from(
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
@@ -246,7 +247,7 @@ describe('stories, stickers, GIFs', () => {
     const m = (await agent.post(`/api/groups/${g.id}/gif`).set(auth(ines.token)).send({ id: 'abc123XYZ' })).body;
     expect(m).toMatchObject({ type: 'gif', meta: { gifId: 'abc123XYZ', title: 'Bravo' } });
     expect((await agent.get(m.media.url).set(auth(lou.token))).headers['content-type']).toBe('image/gif');
-    expect((await agent.get('/api/server')).body.features).toEqual({ gifs: true, transcription: true });
+    expect((await agent.get('/api/server')).body.features).toEqual({ gifs: true, transcription: true, maxUploadMb: 20 });
   });
 });
 
@@ -309,6 +310,27 @@ describe('games', () => {
     const right = (await agent.post(`/api/games/${game.id}/move`).set(auth(ines.token)).send({ guess: word.toUpperCase().normalize('NFD').replace(/\p{M}/gu, '') })).body;
     expect(right.state.status).toBe('between');
     expect(right.state.scores).toEqual({ [lou.user.id]: 2, [ines.user.id]: 5 });
+  });
+
+  it('guesses words with ligatures and shows the halfway hint and the server’s countdown', async () => {
+    expect(fold('Cœur')).toBe('coeur');
+    expect(fold('œuf')).toBe(fold('oeuf'));
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      const { lou, ines, g } = await people();
+      const game = (await agent.post(`/api/groups/${g.id}/games`).set(auth(lou.token)).send({ kind: 'pictionary' })).body;
+      await agent.post(`/api/games/${game.id}/move`).set(auth(ines.token)).send({ action: 'join' });
+      const started = (await agent.post(`/api/games/${game.id}/move`).set(auth(lou.token)).send({ action: 'start' })).body.state;
+      expect(started.remainingMs).toBe(80_000);
+      const shown = (st) => st.hint.filter(Boolean).length;
+      const before = (await agent.get(`/api/games/${game.id}`).set(auth(ines.token))).body.state;
+      vi.setSystemTime(Date.now() + 41_000);
+      const after = (await agent.get(`/api/games/${game.id}`).set(auth(ines.token))).body.state;
+      expect(after.remainingMs).toBe(39_000);
+      if ([...started.word].filter((c) => /\p{L}/u.test(c)).length > 4) expect(shown(after)).toBe(shown(before) + 1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

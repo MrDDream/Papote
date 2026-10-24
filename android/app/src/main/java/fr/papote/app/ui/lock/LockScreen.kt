@@ -1,5 +1,7 @@
 package fr.papote.app.ui.lock
 
+import fr.papote.app.tr
+
 import androidx.biometric.BiometricManager
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_STRONG
 import androidx.biometric.BiometricManager.Authenticators.BIOMETRIC_WEAK
@@ -81,7 +83,7 @@ fun LockScreen(mode: Session.LockMode, onUnlocked: () -> Unit) {
     var error by remember { mutableStateOf(false) }
     var tries by remember { mutableStateOf(0) }
 
-    fun askBiometric() = Biometric.prompt(activity, "Déverrouiller Papote", onUnlocked)
+    fun askBiometric() = Biometric.prompt(activity, tr("Déverrouiller Papote"), onUnlocked)
     LaunchedEffect(mode) { if (mode == Session.LockMode.Biometric) askBiometric() }
 
     fun press(d: String) {
@@ -98,10 +100,10 @@ fun LockScreen(mode: Session.LockMode, onUnlocked: () -> Unit) {
     ) {
         Mascot(width = 88.dp)
         Spacer(Modifier.height(12.dp))
-        Text("Papote est verrouillé", style = MaterialTheme.typography.headlineSmall, color = c.ink)
+        Text(tr("Papote est verrouillé"), style = MaterialTheme.typography.headlineSmall, color = c.ink)
         Spacer(Modifier.height(24.dp))
         if (mode == Session.LockMode.Biometric) {
-            SecondaryButton("Déverrouiller", ::askBiometric, icon = PIcons.Fingerprint)
+            SecondaryButton(tr("Déverrouiller"), ::askBiometric, icon = PIcons.Fingerprint)
             return@Column
         }
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp), modifier = Modifier.semantics { contentDescription = "${pin.length} chiffre(s) saisi(s)" }) {
@@ -110,7 +112,7 @@ fun LockScreen(mode: Session.LockMode, onUnlocked: () -> Unit) {
             }
         }
         Text(
-            if (error) "Code incorrect" else " ",
+            if (error) tr("Code incorrect") else " ",
             style = MaterialTheme.typography.bodySmall,
             color = c.danger,
             modifier = Modifier.padding(top = 10.dp),
@@ -126,7 +128,7 @@ fun LockScreen(mode: Session.LockMode, onUnlocked: () -> Unit) {
                                 .clickable(enabled = k.isNotEmpty(), role = Role.Button) {
                                     if (k == "⌫") pin = pin.dropLast(1) else press(k)
                                 }
-                                .semantics { if (k == "⌫") contentDescription = "Effacer" },
+                                .semantics { if (k == "⌫") contentDescription = tr("Effacer") },
                             contentAlignment = Alignment.Center,
                         ) { Text(k, fontFamily = Baloo, fontSize = 28.sp, color = c.ink) }
                     }
@@ -134,7 +136,7 @@ fun LockScreen(mode: Session.LockMode, onUnlocked: () -> Unit) {
             }
         }
         Spacer(Modifier.height(16.dp))
-        SecondaryButton("Valider", {
+        SecondaryButton(tr("Valider"), {
             if (app.session.checkPin(pin)) {
                 onUnlocked()
             } else {

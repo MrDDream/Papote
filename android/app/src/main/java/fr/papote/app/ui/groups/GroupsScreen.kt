@@ -1,5 +1,7 @@
 package fr.papote.app.ui.groups
 
+import fr.papote.app.tr
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -77,6 +79,8 @@ class GroupsViewModel : ViewModel() {
         val waiting: List<fr.papote.app.data.PendingGroup> = emptyList(),
         val loading: Boolean = true,
         val error: String? = null,
+        /** A newer Papote APK on GitHub (asked through the server), unless put off. */
+        val update: fr.papote.app.data.LatestRelease? = null,
     )
 
     val state = MutableStateFlow(State())
@@ -85,6 +89,10 @@ class GroupsViewModel : ViewModel() {
 
     init {
         refresh()
+        viewModelScope.launch {
+            val r = fr.papote.app.data.AppUpdates.check(app.api)
+            if (r != null && r.version != app.session.dismissedUpdate) state.update { it.copy(update = r) }
+        }
         viewModelScope.launch {
             app.realtime.events.collect { e ->
                 when (e) {
@@ -106,6 +114,11 @@ class GroupsViewModel : ViewModel() {
         }
     }
 
+    fun dismissUpdate() {
+        app.session.dismissedUpdate = state.value.update?.version
+        state.update { it.copy(update = null) }
+    }
+
     fun refresh() {
         viewModelScope.launch {
             try {
@@ -113,6 +126,8 @@ class GroupsViewModel : ViewModel() {
                 val groups = app.api.groups()
                 val waiting = runCatching { app.api.pendingGroups() }.getOrDefault(emptyList())
                 state.update { it.copy(me = me, groups = groups, waiting = waiting, loading = false, error = null) }
+                // The latest conversations appear right in Android's "Partager" sheet.
+                launch { runCatching { fr.papote.app.service.ShareShortcuts.publish(app, groups) } }
             } catch (e: ApiException) {
                 state.update { it.copy(loading = false, error = e.message) }
             }
@@ -152,7 +167,8 @@ fun GroupsScreen(onOpen: (Long) -> Unit, onJoinCode: () -> Unit, onNewGroup: () 
             }
             Column(Modifier.weight(1f)) {
                 Text(
-                    if (me != null) "Coucou ${me.name} !" else "Coucou !",
+                    // Just the name: "Coucou …" cut it off on narrow phones.
+                    me?.name ?: "Papote",
                     style = MaterialTheme.typography.headlineMedium,
                     color = c.ink,
                     maxLines = 1,
@@ -161,7 +177,7 @@ fun GroupsScreen(onOpen: (Long) -> Unit, onJoinCode: () -> Unit, onNewGroup: () 
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Box(Modifier.size(8.dp).clip(CircleShape).background(if (connected) c.ok else c.line))
                     Text(
-                        if (connected) "Connecté·e à $server" else "Connexion à $server…",
+                        if (connected) tr("Connecté·e à {}", server) else tr("Connexion à {}…", server),
                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Normal),
                         color = c.muted,
                         maxLines = 1,
@@ -169,11 +185,12 @@ fun GroupsScreen(onOpen: (Long) -> Unit, onJoinCode: () -> Unit, onNewGroup: () 
                     )
                 }
             }
-            SquareIconButton(PIcons.ChatPlus, "Nouvelle discussion avec quelqu’un", onContacts)
-            SquareIconButton(PIcons.Settings, "Paramètres", onProfile)
+            SquareIconButton(PIcons.ChatPlus, tr("Nouvelle discussion avec quelqu’un"), onContacts)
+            SquareIconButton(PIcons.Settings, tr("Paramètres"), onProfile)
         }
 
-        PapoteField(query, { query = it }, placeholder = "Chercher…", leading = PIcons.Search, background = c.card, radius = 18.dp, label = "Chercher un groupe ou une discussion")
+        state.update?.let { r -> UpdateBanner(r, onLater = vm::dismissUpdate) }
+        PapoteField(query, { query = it }, placeholder = tr("Chercher…"), leading = PIcons.Search, background = c.card, radius = 18.dp, label = tr("Chercher un groupe ou une discussion"))
         Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             for (f in GroupFilter.entries) {
                 val on = f == filter
@@ -198,7 +215,7 @@ fun GroupsScreen(onOpen: (Long) -> Unit, onJoinCode: () -> Unit, onNewGroup: () 
                 state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = c.primary) }
                 state.groups.isEmpty() -> EmptyGroups()
                 visible.isEmpty() -> Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.TopCenter) {
-                    Text("Rien ici avec ce filtre.", style = MaterialTheme.typography.bodyLarge, color = c.muted)
+                    Text(tr("Rien ici avec ce filtre."), style = MaterialTheme.typography.bodyLarge, color = c.muted)
                 }
                 else -> LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     items(state.waiting, key = { "w${it.id}" }) { w ->
@@ -211,7 +228,7 @@ fun GroupsScreen(onOpen: (Long) -> Unit, onJoinCode: () -> Unit, onNewGroup: () 
                             fr.papote.app.ui.components.GroupBadge(w.color, w.icon, size = 40.dp)
                             Column(Modifier.weight(1f)) {
                                 Text(w.name, style = MaterialTheme.typography.titleMedium, color = Papote.colors.ink)
-                                Text("En attente : un·e admin du groupe doit valider ton arrivée", style = MaterialTheme.typography.bodySmall, color = Papote.colors.muted)
+                                Text(tr("En attente : un·e admin du groupe doit valider ton arrivée"), style = MaterialTheme.typography.bodySmall, color = Papote.colors.muted)
                             }
                         }
                     }
@@ -221,13 +238,43 @@ fun GroupsScreen(onOpen: (Long) -> Unit, onJoinCode: () -> Unit, onNewGroup: () 
         }
 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.Bottom) {
-            PrimaryButton("Nouveau groupe", onNewGroup, Modifier.weight(1.15f), textSize = 17.sp)
-            SecondaryButton("Rejoindre", onJoinCode, Modifier.weight(0.85f).padding(bottom = 5.dp), icon = PIcons.Keypad, height = 56.dp)
+            PrimaryButton(tr("Nouveau groupe"), onNewGroup, Modifier.weight(1.15f), textSize = 17.sp)
+            SecondaryButton(tr("Rejoindre"), onJoinCode, Modifier.weight(0.85f).padding(bottom = 5.dp), icon = PIcons.Keypad, height = 56.dp)
         }
     }
 }
 
-private enum class GroupFilter(val label: String) { All("Tous"), Groups("Groupes"), Direct("Discussions"), Unread("Non lus") }
+@Composable
+private fun UpdateBanner(r: fr.papote.app.data.LatestRelease, onLater: () -> Unit) {
+    val c = Papote.colors
+    val context = androidx.compose.ui.platform.LocalContext.current
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(20.dp)).background(c.soft).padding(start = 14.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(PIcons.Sparkles, null, tint = c.primary)
+        Column(Modifier.weight(1f)) {
+            Text(tr("Papote {} est disponible", r.version), style = MaterialTheme.typography.labelLarge, color = c.ink)
+            Text(tr("Tu as la {}", fr.papote.app.data.AppUpdates.current), style = MaterialTheme.typography.bodySmall, color = c.muted)
+        }
+        Text(
+            tr("Plus tard"),
+            style = MaterialTheme.typography.labelMedium,
+            color = c.muted,
+            modifier = Modifier.clip(RoundedCornerShape(12.dp)).clickable(role = Role.Button, onClick = onLater).padding(horizontal = 8.dp, vertical = 8.dp),
+        )
+        Text(
+            tr("Installer"),
+            style = MaterialTheme.typography.labelLarge,
+            color = c.onPrimary,
+            modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(c.primary)
+                .clickable(role = Role.Button) { fr.papote.app.data.AppUpdates.download(context, r) }.padding(horizontal = 12.dp, vertical = 8.dp),
+        )
+    }
+}
+
+private enum class GroupFilter(val label: String) { All(tr("Tous")), Groups(tr("Groupes")), Direct(tr("Discussions")), Unread(tr("Non lus")) }
 
 @Composable
 private fun EmptyGroups() {
@@ -235,9 +282,9 @@ private fun EmptyGroups() {
     Column(Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         Mascot(width = 96.dp)
         Spacer(Modifier.height(12.dp))
-        Text("Pas encore de groupe", style = MaterialTheme.typography.titleLarge, color = c.ink)
+        Text(tr("Pas encore de groupe"), style = MaterialTheme.typography.titleLarge, color = c.ink)
         Text(
-            "Crée le tien et partage son code, ou entre celui qu’on t’a donné.",
+            tr("Crée le tien et partage son code, ou entre celui qu’on t’a donné."),
             style = MaterialTheme.typography.bodyLarge,
             color = c.muted,
             textAlign = TextAlign.Center,
@@ -250,11 +297,13 @@ private fun GroupCard(g: GroupSummary, meId: Long?, onClick: () -> Unit) {
     val c = Papote.colors
     val t = tint(g.color)
     val last = g.lastMessage
-    val author = if (last?.authorId != null && last.authorId == meId) "Toi" else g.lastAuthorName
+    val author = if (last?.authorId != null && last.authorId == meId) tr("Toi") else g.lastAuthorName
     val kindIcon = when (last?.type) {
         "drawing" -> PIcons.Pencil
         "voice" -> PIcons.Mic
         "photo" -> PIcons.Photo
+        "video" -> PIcons.Video
+        "file" -> PIcons.File
         else -> PIcons.Text
     }
     Row(
@@ -263,7 +312,7 @@ private fun GroupCard(g: GroupSummary, meId: Long?, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        GroupAvatar(g)
+        GroupAvatar(g, zoomable = true)
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(g.name, style = MaterialTheme.typography.titleMedium, color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
@@ -272,8 +321,8 @@ private fun GroupCard(g: GroupSummary, meId: Long?, onClick: () -> Unit) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Icon(kindIcon, null, tint = c.muted, modifier = Modifier.size(16.dp))
                 Text(
-                    last?.let { if (g.direct && author != "Toi" && it.type == "text") it.text else preview(it, author) }
-                        ?: if (g.direct) "Dis bonjour !" else "${g.memberCount} membre${if (g.memberCount > 1) "s" else ""}",
+                    last?.let { if (g.direct && author != tr("Toi") && it.type == "text") it.text else preview(it, author) }
+                        ?: if (g.direct) tr("Dis bonjour !") else "${g.memberCount} membre${if (g.memberCount > 1) "s" else ""}",
                     style = MaterialTheme.typography.bodyMedium,
                     color = c.muted,
                     maxLines = 1,

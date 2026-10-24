@@ -1,5 +1,7 @@
 package fr.papote.app.ui.invite
 
+import fr.papote.app.tr
+
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
@@ -70,7 +72,7 @@ import fr.papote.app.ui.theme.Papote
 import fr.papote.app.ui.theme.tint
 import kotlinx.coroutines.launch
 
-private val EXPIRIES = listOf("1h" to "1 h", "24h" to "24 h", "7d" to "7 jours", "never" to "Jamais")
+private val EXPIRIES = listOf("1h" to "1 h", "24h" to "24 h", "7d" to "7 jours", "never" to tr("Jamais"))
 
 /** Creates a group (groupId == null) or invites people into an existing one. */
 @Composable
@@ -124,7 +126,7 @@ fun InviteScreen(groupId: Long?, onBack: () -> Unit, onDone: (Long) -> Unit) {
             } catch (e: ApiException) {
                 error = e.message
             } catch (e: Exception) {
-                error = "Cette image n’a pas pu être lue"
+                error = tr("Cette image n’a pas pu être lue")
             } finally {
                 busy = false
             }
@@ -134,10 +136,10 @@ fun InviteScreen(groupId: Long?, onBack: () -> Unit, onDone: (Long) -> Unit) {
     fun share(inv: Invite) {
         val server = app.session.server.orEmpty()
         val raw = inv.code.replace("-", "")
-        val text = "Rejoins « ${group?.name ?: name} » sur Papote !\nServeur : $server\nCode : ${inv.code}\n\n" +
-            "Sur ordinateur ou iPhone : $server/web/#/join?code=$raw\n" +
+        val text = tr("Rejoins « {} » sur Papote !\nServeur : {}\nCode : {}\n\n", group?.name ?: name, server, inv.code) +
+            tr("Sur ordinateur ou iPhone : {}/web/#/join?code={}\n", server, raw) +
             "Sur Android : papote://join?server=${Uri.encode(server)}&code=$raw"
-        context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text), "Partager le code"))
+        context.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text), tr("Partager le code")))
     }
 
     val creating = groupId == null
@@ -147,7 +149,7 @@ fun InviteScreen(groupId: Long?, onBack: () -> Unit, onDone: (Long) -> Unit) {
         Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
-        TopBar(if (creating) "Nouveau groupe" else "Inviter", onBack, subtitle = if (!creating) group?.name else null)
+        TopBar(if (creating) tr("Nouveau groupe") else tr("Inviter"), onBack, subtitle = if (!creating) group?.name else null)
 
         if (creating) {
             Row(
@@ -157,17 +159,17 @@ fun InviteScreen(groupId: Long?, onBack: () -> Unit, onDone: (Long) -> Unit) {
             ) {
                 GroupBadge(color, icon, size = 56.dp, photo = group?.photo ?: image?.toString())
                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FieldLabel("Nom du groupe")
+                    FieldLabel(tr("Nom du groupe"))
                     if (created) {
                         Text(group!!.name, style = MaterialTheme.typography.titleMedium, color = c.ink)
                     } else {
-                        PapoteField(name, { name = it.take(40) }, placeholder = "Soirée jeux", background = c.card, label = "Nom du groupe")
+                        PapoteField(name, { name = it.take(40) }, placeholder = tr("Soirée jeux"), background = c.card, label = tr("Nom du groupe"))
                     }
                 }
             }
             if (!created) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FieldLabel("Couleur")
+                    FieldLabel(tr("Couleur"))
                     TintPicker(color, { color = it })
                 }
                 GroupLookPicker(
@@ -186,8 +188,8 @@ fun InviteScreen(groupId: Long?, onBack: () -> Unit, onDone: (Long) -> Unit) {
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Code d’invitation", style = MaterialTheme.typography.titleMedium, color = c.ink, modifier = Modifier.weight(1f))
-                Text("Généré par ton serveur", style = MaterialTheme.typography.labelMedium, color = c.muted)
+                Text(tr("Code d’invitation"), style = MaterialTheme.typography.titleMedium, color = c.ink, modifier = Modifier.weight(1f))
+                Text(tr("Généré par ton serveur"), style = MaterialTheme.typography.labelMedium, color = c.muted)
             }
             val inv = invite
             if (inv != null) {
@@ -199,29 +201,29 @@ fun InviteScreen(groupId: Long?, onBack: () -> Unit, onDone: (Long) -> Unit) {
                     Text(expiryText(inv), style = MaterialTheme.typography.bodySmall, color = c.muted)
                     // Scanned with any phone camera: opens the invitation (web), or Papote when scanned from Papote.
                     fr.papote.app.ui.extras.QrCode(fr.papote.app.ui.extras.inviteLink(app.session.server.orEmpty(), inv.code), 168.dp, Modifier.padding(top = 10.dp).clip(RoundedCornerShape(14.dp)))
-                    Text("Fais scanner ce QR code pour rejoindre", style = MaterialTheme.typography.bodySmall, color = c.muted)
+                    Text(tr("Fais scanner ce QR code pour rejoindre"), style = MaterialTheme.typography.bodySmall, color = c.muted)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    SecondaryButton(if (copied) "Copié !" else "Copier", {
+                    SecondaryButton(if (copied) tr("Copié !") else tr("Copier"), {
                         clipboard.setText(AnnotatedString(inv.code))
                         copied = true
                     }, Modifier.weight(1f), icon = if (copied) PIcons.Check else PIcons.Copy)
-                    SecondaryButton("Partager", { share(inv) }, Modifier.weight(1f), icon = PIcons.Share)
+                    SecondaryButton(tr("Partager"), { share(inv) }, Modifier.weight(1f), icon = PIcons.Share)
                 }
             }
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                FieldLabel("Le code expire")
+                FieldLabel(tr("Le code expire"))
                 Segmented(EXPIRIES, expiry, { expiry = it })
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text("Usage unique", style = MaterialTheme.typography.labelLarge, color = c.ink)
-                    Text("Le code ne marche qu’une fois", style = MaterialTheme.typography.bodySmall, color = c.muted)
+                    Text(tr("Usage unique"), style = MaterialTheme.typography.labelLarge, color = c.ink)
+                    Text(tr("Le code ne marche qu’une fois"), style = MaterialTheme.typography.bodySmall, color = c.muted)
                 }
-                PapoteSwitch(single, { single = it }, "Usage unique")
+                PapoteSwitch(single, { single = it }, tr("Usage unique"))
             }
             if (created) {
-                SecondaryButton(if (inv == null) "Générer un code" else "Générer un autre code", ::generate, Modifier.fillMaxWidth(), icon = PIcons.Plus, enabled = !busy)
+                SecondaryButton(if (inv == null) tr("Générer un code") else tr("Générer un autre code"), ::generate, Modifier.fillMaxWidth(), icon = PIcons.Plus, enabled = !busy)
             }
         }
 
@@ -230,14 +232,14 @@ fun InviteScreen(groupId: Long?, onBack: () -> Unit, onDone: (Long) -> Unit) {
                 Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(c.card).padding(18.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                Text("Codes encore valables", style = MaterialTheme.typography.titleMedium, color = c.ink)
+                Text(tr("Codes encore valables"), style = MaterialTheme.typography.titleMedium, color = c.ink)
                 for (a in active.filter { it.code != invite?.code }) {
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         Column(Modifier.weight(1f)) {
                             Text(a.code, fontFamily = Baloo, fontWeight = FontWeight.Bold, fontSize = 18.sp, letterSpacing = 1.sp, color = if (c.dark) c.ink else c.primaryDark)
                             Text(expiryText(a), style = MaterialTheme.typography.bodySmall, color = c.muted)
                         }
-                        SecondaryButton("Révoquer", {
+                        SecondaryButton(tr("Révoquer"), {
                             scope.launch {
                                 try {
                                     app.api.revokeInvite(a.code)
@@ -255,24 +257,24 @@ fun InviteScreen(groupId: Long?, onBack: () -> Unit, onDone: (Long) -> Unit) {
         ErrorText(error)
         Spacer(Modifier.weight(1f))
         when {
-            !created -> PrimaryButton("Créer le groupe", ::generate, Modifier.fillMaxWidth(), enabled = name.isNotBlank(), loading = busy)
-            creating -> PrimaryButton("Aller au groupe", { onDone(group!!.id) }, Modifier.fillMaxWidth(), icon = PIcons.Forward)
-            invite == null -> PrimaryButton("Générer un code", ::generate, Modifier.fillMaxWidth(), loading = busy)
-            else -> PrimaryButton("C’est bon", { onDone(group!!.id) }, Modifier.fillMaxWidth())
+            !created -> PrimaryButton(tr("Créer le groupe"), ::generate, Modifier.fillMaxWidth(), enabled = name.isNotBlank(), loading = busy)
+            creating -> PrimaryButton(tr("Aller au groupe"), { onDone(group!!.id) }, Modifier.fillMaxWidth(), icon = PIcons.Forward)
+            invite == null -> PrimaryButton(tr("Générer un code"), ::generate, Modifier.fillMaxWidth(), loading = busy)
+            else -> PrimaryButton(tr("C’est bon"), { onDone(group!!.id) }, Modifier.fillMaxWidth())
         }
         Spacer(Modifier.height(4.dp))
     }
 }
 
 private fun expiryText(inv: Invite): String {
-    val uses = inv.maxUses?.let { "${inv.uses}/$it utilisation" } ?: if (inv.uses > 0) "${inv.uses} utilisation${if (inv.uses > 1) "s" else ""}" else "illimité"
+    val uses = inv.maxUses?.let { "${inv.uses}/$it utilisation" } ?: if (inv.uses > 0) "${inv.uses} utilisation${if (inv.uses > 1) "s" else ""}" else tr("illimité")
     val exp = inv.expiresAt?.let {
         val mins = (it - System.currentTimeMillis()) / 60_000
         when {
-            mins < 60 -> "expire dans $mins min"
-            mins < 48 * 60 -> "expire dans ${mins / 60} h"
-            else -> "expire le ${shortWhen(it).lowercase()}".let { s -> if (mins > 7 * 24 * 60) s else "expire dans ${mins / (24 * 60)} jours" }
+            mins < 60 -> tr("expire dans {} min", mins)
+            mins < 48 * 60 -> tr("expire dans {} h", mins / 60)
+            else -> tr("expire le {}", shortWhen(it).lowercase()).let { s -> if (mins > 7 * 24 * 60) s else tr("expire dans {} jours", mins / (24 * 60)) }
         }
-    } ?: "sans date limite"
+    } ?: tr("sans date limite")
     return "$exp · $uses"
 }

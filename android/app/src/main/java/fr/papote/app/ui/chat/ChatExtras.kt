@@ -1,5 +1,7 @@
 package fr.papote.app.ui.chat
 
+import fr.papote.app.tr
+
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -100,26 +102,24 @@ import kotlin.math.roundToInt
 private val InkColor = Color(0xFF2E2442)
 
 /** "d’Inès", "de Lou". */
-fun of(name: String) = if (name.firstOrNull()?.lowercaseChar()?.let { it in "aeiouyhéèêàâîïôû" } == true) "d’$name" else "de $name"
+fun of(name: String) = if (name.firstOrNull()?.lowercaseChar()?.let { it in "aeiouyhéèêàâîïôû" } == true) tr("d’{}", name) else "de $name"
 
 // --- stories --------------------------------------------------------------------------------------
 
 @Composable
-fun StoriesBar(stories: List<StoryGroup>, members: Map<Long, Member>, meId: Long?, onAdd: () -> Unit, onOpen: (Int) -> Unit) {
-    val c = Papote.colors
-    val mine = stories.indexOfFirst { it.user.id == meId }
-    val me = meId?.let { members[it] }
+/** The group's stories (24 h); only shown when someone has one. Adding one is in the "+" menu. */
+fun StoriesBar(stories: List<StoryGroup>, members: Map<Long, Member>, meId: Long?, onOpen: (Int) -> Unit) {
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        StoryItem("Toi", ring = false, add = true, label = if (mine >= 0) "Voir ma story" else "Ajouter une story (24 h)", onClick = { if (mine >= 0) onOpen(mine) else onAdd() }) {
-            Avatar(me?.name ?: "?", me?.color ?: "rose", me?.photo, size = 46.dp, initialOnly = true)
-        }
-        if (mine >= 0) StoryItem("Ajouter", ring = false, add = false, label = "Ajouter une autre story", onClick = onAdd) {
-            Box(Modifier.size(46.dp).clip(CircleShape).background(c.card), contentAlignment = Alignment.Center) { Icon(PIcons.Plus, null, tint = c.primary) }
-        }
         stories.forEachIndexed { i, g ->
-            if (g.user.id == meId) return@forEachIndexed
+            val mine = g.user.id == meId
             val m = members[g.user.id]
-            StoryItem(g.user.name, ring = g.unseen, add = false, label = "${g.user.name} : " + if (g.unseen) "nouvelle story" else "story déjà vue", onClick = { onOpen(i) }) {
+            StoryItem(
+                if (mine) tr("Toi") else g.user.name,
+                ring = !mine && g.unseen,
+                add = false,
+                label = if (mine) tr("Voir ma story") else "${g.user.name} : " + if (g.unseen) tr("nouvelle story") else tr("story déjà vue"),
+                onClick = { onOpen(i) },
+            ) {
                 Avatar(g.user.name, m?.color ?: g.user.color, m?.photo ?: g.user.photo, size = 46.dp, initialOnly = true)
             }
         }
@@ -180,8 +180,8 @@ fun StoryViewer(stories: List<StoryGroup>, start: Int, meId: Long?, onClose: () 
         Box(Modifier.fillMaxSize().background(Color(0xFF120D1C))) {
             AsyncImage(app.mediaUrl(s.url), s.caption.ifBlank { "Story ${of(g.user.name)}" }, contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
             Row(Modifier.fillMaxSize()) {
-                Box(Modifier.weight(1f).fillMaxHeight().clickable(role = Role.Button, onClick = ::prev).semantics { contentDescription = "Story précédente" })
-                Box(Modifier.weight(1f).fillMaxHeight().clickable(role = Role.Button, onClick = ::next).semantics { contentDescription = "Story suivante" })
+                Box(Modifier.weight(1f).fillMaxHeight().clickable(role = Role.Button, onClick = ::prev).semantics { contentDescription = tr("Story précédente") })
+                Box(Modifier.weight(1f).fillMaxHeight().clickable(role = Role.Button, onClick = ::next).semantics { contentDescription = tr("Story suivante") })
             }
             Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -192,10 +192,10 @@ fun StoryViewer(stories: List<StoryGroup>, start: Int, meId: Long?, onClose: () 
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     Avatar(g.user.name, g.user.color, g.user.photo, size = 36.dp, initialOnly = true)
                     Column(Modifier.weight(1f)) {
-                        Text(if (mine) "Toi" else g.user.name, color = Color.White, fontWeight = FontWeight.Bold)
-                        Text("${timeOf(s.createdAt)} · encore ${((s.expiresAt - System.currentTimeMillis()) / 3_600_000).coerceAtLeast(1)} h", color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
+                        Text(if (mine) tr("Toi") else g.user.name, color = Color.White, fontWeight = FontWeight.Bold)
+                        Text(tr("{} · encore {} h", timeOf(s.createdAt), ((s.expiresAt - System.currentTimeMillis()) / 3_600_000).coerceAtLeast(1)), color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
                     }
-                    if (mine) SquareIconButton(PIcons.Trash, "Supprimer cette story", {
+                    if (mine) SquareIconButton(PIcons.Trash, tr("Supprimer cette story"), {
                         scope.launch {
                             runCatching { app.api.deleteStory(s.id) }
                             val left = g.stories - s
@@ -205,13 +205,13 @@ fun StoryViewer(stories: List<StoryGroup>, start: Int, meId: Long?, onClose: () 
                             }
                         }
                     }, background = Color.White.copy(alpha = 0.15f), tint = Color.White)
-                    SquareIconButton(PIcons.Close, "Fermer", onClose, background = Color.White.copy(alpha = 0.15f), tint = Color.White)
+                    SquareIconButton(PIcons.Close, tr("Fermer"), onClose, background = Color.White.copy(alpha = 0.15f), tint = Color.White)
                 }
             }
             Column(Modifier.align(Alignment.BottomCenter).padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 if (s.caption.isNotBlank()) Text(s.caption, color = Color.White, fontFamily = Baloo, fontWeight = FontWeight.Bold, fontSize = 20.sp, textAlign = TextAlign.Center)
                 if (mine) Text(
-                    s.viewers?.takeIf { it.isNotEmpty() }?.let { v -> "Vue par " + v.joinToString(", ") { it.name } } ?: "Pas encore vue",
+                    s.viewers?.takeIf { it.isNotEmpty() }?.let { v -> tr("Vue par ") + v.joinToString(", ") { it.name } } ?: tr("Pas encore vue"),
                     color = Color.White.copy(alpha = 0.85f),
                     style = MaterialTheme.typography.bodySmall,
                 )
@@ -248,38 +248,38 @@ fun ChatBanners(
 ) {
     val c = Papote.colors
     pins.firstOrNull()?.let { p ->
-        val text = if (p.type == "text" || p.type == "poll") p.text else mapOf("photo" to "Photo", "drawing" to "Dessin", "voice" to "Vocal", "location" to "Position", "gif" to "GIF")[p.type] ?: "Message"
-        Banner(c.card, c.ink, onPins, "Message épinglé : $text. Voir les épinglés") {
+        val text = if (p.type == "text" || p.type == "poll") p.text else mapOf("photo" to tr("Photo"), "drawing" to tr("Dessin"), "voice" to tr("Vocal"), "location" to tr("Position"), "gif" to "GIF")[p.type] ?: "Message"
+        Banner(c.card, c.ink, onPins, tr("Message épinglé : {}. Voir les épinglés", text)) {
             Icon(PIcons.Pin, null, tint = c.primary, modifier = Modifier.size(16.dp))
-            Text("Épinglé :", fontWeight = FontWeight.ExtraBold, color = c.primary, style = MaterialTheme.typography.labelLarge)
+            Text(tr("Épinglé :"), fontWeight = FontWeight.ExtraBold, color = c.primary, style = MaterialTheme.typography.labelLarge)
             Text(text, color = c.ink, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
             if (pins.size > 1) Text("+${pins.size - 1}", color = c.muted, style = MaterialTheme.typography.labelMedium)
         }
     }
     val bdays = group?.birthdaysToday.orEmpty().mapNotNull { id -> if (id == meId) "toi" else members[id]?.name }
     if (bdays.isNotEmpty()) {
-        Banner(Color(0xFFFFF0B8), InkColor, onConfetti, "Joyeux anniversaire ${bdays.joinToString(" et ")}, lancer les confettis") {
+        Banner(Color(0xFFFFF0B8), InkColor, onConfetti, tr("Joyeux anniversaire {}, lancer les confettis", bdays.joinToString(" et "))) {
             Icon(PIcons.Cake, null, modifier = Modifier.size(28.dp))
             Column(Modifier.weight(1f)) {
-                Text("Joyeux anniversaire ${bdays.joinToString(" et ")} !", style = MaterialTheme.typography.titleMedium, color = InkColor)
-                Text("Tape pour lancer les confettis", style = MaterialTheme.typography.bodySmall, color = InkColor)
+                Text(tr("Joyeux anniversaire {} !", bdays.joinToString(" et ")), style = MaterialTheme.typography.titleMedium, color = InkColor)
+                Text(tr("Tape pour lancer les confettis"), style = MaterialTheme.typography.bodySmall, color = InkColor)
             }
         }
     }
     live?.let { s ->
-        val who = members[s.startedBy]?.name ?: "Quelqu’un"
-        Banner(Color(0xFFFFF0B8), InkColor, onLive, "$who a lancé une toile commune, rejoindre") {
+        val who = members[s.startedBy]?.name ?: tr("Quelqu’un")
+        Banner(Color(0xFFFFF0B8), InkColor, onLive, tr("{} a lancé une toile commune, rejoindre", who)) {
             Icon(PIcons.Palette, null, modifier = Modifier.size(20.dp))
-            Text("$who a lancé une toile commune", Modifier.weight(1f), fontWeight = FontWeight.Bold, color = InkColor)
-            Text("Rejoindre", style = MaterialTheme.typography.titleMedium, color = Color(0xFF4A2FA8))
+            Text(tr("{} a lancé une toile commune", who), Modifier.weight(1f), fontWeight = FontWeight.Bold, color = InkColor)
+            Text(tr("Rejoindre"), style = MaterialTheme.typography.titleMedium, color = Color(0xFF4A2FA8))
         }
     }
     if (isAdmin && pending.isNotEmpty()) {
-        val text = if (pending.size == 1) "${pending[0].name} veut rejoindre le groupe" else "${pending.size} personnes veulent rejoindre le groupe"
+        val text = if (pending.size == 1) tr("{} veut rejoindre le groupe", pending[0].name) else tr("{} personnes veulent rejoindre le groupe", pending.size)
         Banner(c.soft, c.ink, onPending, "$text, voir") {
             Icon(PIcons.PersonPlus, null, modifier = Modifier.size(20.dp))
             Text(text, Modifier.weight(1f), fontWeight = FontWeight.Bold)
-            Text("Voir", style = MaterialTheme.typography.titleMedium, color = c.primary)
+            Text(tr("Voir"), style = MaterialTheme.typography.titleMedium, color = c.primary)
         }
     }
 }
@@ -293,12 +293,12 @@ fun PollBubble(m: Message, members: Map<Long, Member>, meId: Long?, onVote: (Int
     val total = votes.values.flatten().toSet().size
     val mine = votes.filterValues { meId in it }.keys.mapNotNull { it.toIntOrNull() }
     val closed = m.metaBool("closed")
-    val author = members[m.authorId]?.name ?: "quelqu’un"
+    val author = members[m.authorId]?.name ?: tr("quelqu’un")
     val canClose = !closed && (m.authorId == meId || members[meId]?.isAdmin == true)
     Column(Modifier.width(260.dp).padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Icon(PIcons.Poll, null, tint = c.primary, modifier = Modifier.size(18.dp))
-            Text("Sondage ${if (m.authorId == meId) "de toi" else of(author)} · $total vote${if (total > 1) "s" else ""}${if (closed) " · terminé" else ""}", style = MaterialTheme.typography.labelMedium, color = c.muted)
+            Text(tr("Sondage {} · {} vote{}{}", if (m.authorId == meId) tr("de toi") else of(author), total, if (total > 1) "s" else "", if (closed) tr(" · terminé") else ""), style = MaterialTheme.typography.labelMedium, color = c.muted)
         }
         Text(m.text, fontFamily = Baloo, fontWeight = FontWeight.Bold, fontSize = 17.sp, color = c.ink)
         m.options.forEachIndexed { i, label ->
@@ -309,7 +309,7 @@ fun PollBubble(m: Message, members: Map<Long, Member>, meId: Long?, onVote: (Int
                 Modifier.fillMaxWidth().heightIn(min = 44.dp).clip(RoundedCornerShape(14.dp)).background(c.field)
                     .border(2.dp, if (on) c.primary else c.line, RoundedCornerShape(14.dp))
                     .clickable(enabled = !closed, role = Role.Button) { onVote(i) }
-                    .semantics { contentDescription = "$label : ${pct.roundToInt()} %" + if (on) ", ton vote" else "" },
+                    .semantics { contentDescription = "$label : ${pct.roundToInt()} %" + if (on) tr(", ton vote") else "" },
             ) {
                 Box(Modifier.fillMaxWidth(pct / 100f).height(44.dp).background(if (i % 2 == 0) Color(0xFFE6DDFB) else Color(0xFFFFE0E8)))
                 Row(Modifier.fillMaxWidth().height(44.dp).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -318,8 +318,8 @@ fun PollBubble(m: Message, members: Map<Long, Member>, meId: Long?, onVote: (Int
                 }
             }
         }
-        if (m.metaBool("multiple")) Text("Plusieurs réponses possibles", style = MaterialTheme.typography.bodySmall, color = c.muted)
-        if (canClose) Text("Terminer le sondage", style = MaterialTheme.typography.labelLarge, color = c.primary, modifier = Modifier.clickable(role = Role.Button, onClick = onClose).padding(4.dp))
+        if (m.metaBool("multiple")) Text(tr("Plusieurs réponses possibles"), style = MaterialTheme.typography.bodySmall, color = c.muted)
+        if (canClose) Text(tr("Terminer le sondage"), style = MaterialTheme.typography.labelLarge, color = c.primary, modifier = Modifier.clickable(role = Role.Button, onClick = onClose).padding(4.dp))
     }
 }
 
@@ -343,24 +343,24 @@ fun LocationBubble(m: Message, mine: Boolean, onStop: () -> Unit) {
                 Icon(PIcons.Location, null, tint = Color.White, modifier = Modifier.size(28.dp))
             }
         }
-        Text(m.text.ifBlank { "Ma position" }, style = MaterialTheme.typography.titleMedium, color = c.ink)
+        Text(m.text.ifBlank { tr("Ma position") }, style = MaterialTheme.typography.titleMedium, color = c.ink)
         val mins = ((System.currentTimeMillis() - updated) / 60_000).toInt()
         Text(
             when {
-                liveNow -> "En direct jusqu’à ${timeOf(until!!)} · mise à jour " + if (mins < 1) "à l’instant" else "il y a $mins min"
-                until != null -> "Partage terminé"
-                else -> "Envoyée à ${timeOf(m.createdAt)}"
+                liveNow -> tr("En direct jusqu’à {} · mise à jour ", timeOf(until!!)) + if (mins < 1) tr("à l’instant") else "il y a $mins min"
+                until != null -> tr("Partage terminé")
+                else -> tr("Envoyée à {}", timeOf(m.createdAt))
             },
             style = MaterialTheme.typography.bodySmall,
             color = c.muted,
         )
         Text(
-            String.format(Locale.FRANCE, "%.4f, %.4f", lat, lon) + if (acc > 0) " · à " + (if (acc < 1000) "$acc m" else String.format(Locale.FRANCE, "%.1f km", acc / 1000.0)) + " près" else "",
+            String.format(Locale.FRANCE, "%.4f, %.4f", lat, lon) + if (acc > 0) tr(" · à {} près", if (acc < 1000) "$acc m" else String.format(fr.papote.app.I18n.locale, "%.1f km", acc / 1000.0)) else "",
             style = MaterialTheme.typography.bodySmall,
             color = c.muted,
         )
-        SecondaryButton("Ouvrir dans mon appli de cartes", { openInMaps(context, lat, lon, m.text) }, Modifier.fillMaxWidth(), icon = PIcons.Location, height = 44.dp)
-        if (mine && liveNow) Text("Arrêter le partage", style = MaterialTheme.typography.labelLarge, color = c.primary, modifier = Modifier.clickable(role = Role.Button, onClick = onStop).padding(4.dp))
+        SecondaryButton(tr("Ouvrir dans mon appli de cartes"), { openInMaps(context, lat, lon, m.text) }, Modifier.fillMaxWidth(), icon = PIcons.Location, height = 44.dp)
+        if (mine && liveNow) Text(tr("Arrêter le partage"), style = MaterialTheme.typography.labelLarge, color = c.primary, modifier = Modifier.clickable(role = Role.Button, onClick = onStop).padding(4.dp))
     }
 }
 
@@ -372,13 +372,13 @@ fun GifBubble(m: Message, onOpen: () -> Unit) {
     Column(Modifier.padding(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         AsyncImage(
             PapoteApp.instance.mediaUrl(m.media?.url),
-            m.metaString("title")?.let { "GIF « $it »" } ?: "GIF",
+            m.metaString("title")?.let { tr("GIF « {} »", it) } ?: "GIF",
             contentScale = ContentScale.Crop,
             modifier = Modifier.width(220.dp).aspectRatio((w.toFloat() / h).coerceIn(0.6f, 1.8f)).clip(RoundedCornerShape(14.dp)).background(c.soft).clickable(onClick = onOpen),
         )
         Row(Modifier.padding(horizontal = 4.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Icon(PIcons.Gif, null, tint = c.muted, modifier = Modifier.size(14.dp))
-            Text("GIF · " + timeOf(m.createdAt), style = MaterialTheme.typography.labelMedium, color = c.muted)
+            Text(tr("GIF · ") + timeOf(m.createdAt), style = MaterialTheme.typography.labelMedium, color = c.muted)
         }
     }
 }
@@ -393,25 +393,26 @@ fun StickerBubble(m: Message) {
 data class GameInfo(val name: String, val icon: androidx.compose.ui.graphics.vector.ImageVector, val bg: Color)
 
 fun gameInfo(kind: String?) = when (kind) {
-    "tictactoe" -> GameInfo("Morpion", PIcons.Grid, Color(0xFFEDE6FF))
+    "tictactoe" -> GameInfo(tr("Morpion"), PIcons.Grid, Color(0xFFEDE6FF))
     "connect4" -> GameInfo("Puissance 4", PIcons.Grid, Color(0xFFFFE0E8))
-    "rps" -> GameInfo("Chifoumi", PIcons.Thumb, Color(0xFFFFE3C7))
-    "hangman" -> GameInfo("Pendu", PIcons.TextTool, Color(0xFFDDF4E9))
-    "quiz" -> GameInfo("Qui a dit ça ?", PIcons.ChatPlus, Color(0xFFD6E8FF))
+    "rps" -> GameInfo(tr("Chifoumi"), PIcons.Thumb, Color(0xFFFFE3C7))
+    "hangman" -> GameInfo(tr("Pendu"), PIcons.TextTool, Color(0xFFDDF4E9))
+    "quiz" -> GameInfo(tr("Qui a dit ça ?"), PIcons.ChatPlus, Color(0xFFD6E8FF))
     "pictionary" -> GameInfo("Pictionary", PIcons.Pencil, Color(0xFFFFF0B8))
-    else -> GameInfo("Jeu", PIcons.Game, Color(0xFFEDE6FF))
+    else -> GameInfo(tr("Jeu"), PIcons.Game, Color(0xFFEDE6FF))
 }
 
 @Composable
 fun GameBubble(m: Message, members: Map<Long, Member>, meId: Long?, onOpen: (Long) -> Unit) {
     val info = gameInfo(m.metaString("kind"))
-    val who = if (m.authorId == meId) "Tu as" else "${members[m.authorId]?.name ?: "Quelqu’un"} a"
     val opp = m.metaLong("opponentId")
     val vs = when {
         opp == null -> ""
-        opp == meId -> " contre toi"
-        else -> " contre ${members[opp]?.name ?: "?"}"
+        opp == meId -> tr(" contre toi")
+        else -> tr(" contre {}", members[opp]?.name ?: "?")
     }
+    // Whole sentences, so that they translate.
+    val line = if (m.authorId == meId) tr("Tu as lancé une partie{}", vs) else tr("{} a lancé une partie{}", members[m.authorId]?.name ?: tr("Quelqu’un"), vs)
     Row(
         Modifier.width(260.dp).background(info.bg).clickable(role = Role.Button) { m.metaLong("gameId")?.let(onOpen) }.padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -420,9 +421,9 @@ fun GameBubble(m: Message, members: Map<Long, Member>, meId: Long?, onOpen: (Lon
         Box(Modifier.size(44.dp).clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = 0.7f)), contentAlignment = Alignment.Center) { Icon(info.icon, null, tint = InkColor) }
         Column(Modifier.weight(1f)) {
             Text(info.name, style = MaterialTheme.typography.titleMedium, color = InkColor)
-            Text("$who lancé une partie$vs", style = MaterialTheme.typography.bodySmall, color = InkColor)
+            Text(line, style = MaterialTheme.typography.bodySmall, color = InkColor)
         }
-        Text("Jouer", style = MaterialTheme.typography.titleMedium, color = Color(0xFF4A2FA8), modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(Color.White).padding(horizontal = 12.dp, vertical = 8.dp))
+        Text(tr("Jouer"), style = MaterialTheme.typography.titleMedium, color = Color(0xFF4A2FA8), modifier = Modifier.clip(RoundedCornerShape(12.dp)).background(Color.White).padding(horizontal = 12.dp, vertical = 8.dp))
     }
 }
 
@@ -437,8 +438,8 @@ fun RecapBubble(m: Message, onOpen: (String) -> Unit) {
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(label.uppercase(), style = MaterialTheme.typography.labelMedium, color = Color(0xFF4A2FA8), fontWeight = FontWeight.ExtraBold)
-        Text("Le récap du mois", fontFamily = Baloo, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = InkColor)
-        Text("${n("messages")} messages · ${n("drawings")} dessins · ${n("voices")} vocaux", style = MaterialTheme.typography.bodySmall, color = InkColor)
+        Text(tr("Le récap du mois"), fontFamily = Baloo, fontWeight = FontWeight.Bold, fontSize = 18.sp, color = InkColor)
+        Text(tr("{} messages · {} dessins · {} vocaux", n("messages"), n("drawings"), n("voices")), style = MaterialTheme.typography.bodySmall, color = InkColor)
     }
 }
 
@@ -454,23 +455,23 @@ fun PollSheet(onDismiss: () -> Unit, onSend: (String, List<String>, Boolean) -> 
     var error by remember { mutableStateOf<String?>(null) }
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = c.card) {
         Column(Modifier.padding(start = 20.dp, end = 20.dp, bottom = 28.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Nouveau sondage", style = MaterialTheme.typography.titleLarge, color = c.ink)
-            PapoteField(question, { question = it.take(200) }, Modifier.fillMaxWidth(), placeholder = "Ciné samedi ou dimanche ?", label = "Question")
+            Text(tr("Nouveau sondage"), style = MaterialTheme.typography.titleLarge, color = c.ink)
+            PapoteField(question, { question = it.take(200) }, Modifier.fillMaxWidth(), placeholder = tr("Ciné samedi ou dimanche ?"), label = tr("Question"))
             options.forEachIndexed { i, v ->
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    PapoteField(v, { options[i] = it.take(80) }, Modifier.weight(1f), placeholder = "Réponse ${i + 1}", label = "Réponse ${i + 1}")
-                    if (options.size > 2) SquareIconButton(PIcons.Close, "Retirer la réponse ${i + 1}", { options.removeAt(i) })
+                    PapoteField(v, { options[i] = it.take(80) }, Modifier.weight(1f), placeholder = tr("Réponse {}", i + 1), label = tr("Réponse {}", i + 1))
+                    if (options.size > 2) SquareIconButton(PIcons.Close, tr("Retirer la réponse {}", i + 1), { options.removeAt(i) })
                 }
             }
-            if (options.size < 6) SecondaryButton("Ajouter une réponse", { options += "" }, Modifier.fillMaxWidth(), icon = PIcons.Plus, height = 44.dp)
+            if (options.size < 6) SecondaryButton(tr("Ajouter une réponse"), { options += "" }, Modifier.fillMaxWidth(), icon = PIcons.Plus, height = 44.dp)
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Plusieurs réponses possibles", Modifier.weight(1f), color = c.ink)
-                PapoteSwitch(multiple, { multiple = it }, "Plusieurs réponses possibles")
+                Text(tr("Plusieurs réponses possibles"), Modifier.weight(1f), color = c.ink)
+                PapoteSwitch(multiple, { multiple = it }, tr("Plusieurs réponses possibles"))
             }
             ErrorText(error)
-            PrimaryButton("Envoyer le sondage", {
+            PrimaryButton(tr("Envoyer le sondage"), {
                 val opts = options.map { it.trim() }.filter { it.isNotEmpty() }
-                if (question.isBlank() || opts.size < 2) error = "Une question et au moins deux réponses"
+                if (question.isBlank() || opts.size < 2) error = tr("Une question et au moins deux réponses")
                 else {
                     onSend(question.trim(), opts, multiple)
                     onDismiss()
@@ -486,7 +487,7 @@ fun LocationSheet(onDismiss: () -> Unit, onSend: (Double, Double, Int, Int, Stri
     val c = Papote.colors
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    var label by remember { mutableStateOf("Je suis là !") }
+    var label by remember { mutableStateOf(tr("Je suis là !")) }
     var minutes by remember { mutableIntStateOf(0) }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -496,7 +497,7 @@ fun LocationSheet(onDismiss: () -> Unit, onSend: (Double, Double, Int, Int, Stri
         scope.launch {
             val loc = currentLocation(context)
             busy = false
-            if (loc == null) error = "Position introuvable : active la localisation du téléphone"
+            if (loc == null) error = tr("Position introuvable : active la localisation du téléphone")
             else {
                 onSend(loc.latitude, loc.longitude, loc.accuracy.roundToInt(), minutes, label.trim())
                 onDismiss()
@@ -504,22 +505,22 @@ fun LocationSheet(onDismiss: () -> Unit, onSend: (Double, Double, Int, Int, Stri
         }
     }
     val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { granted ->
-        if (granted.values.any { it }) locate() else error = "Position refusée : autorise-la dans les réglages d’Android"
+        if (granted.values.any { it }) locate() else error = tr("Position refusée : autorise-la dans les réglages d’Android")
     }
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = c.card) {
         Column(Modifier.padding(start = 20.dp, end = 20.dp, bottom = 28.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Partager ma position", style = MaterialTheme.typography.titleLarge, color = c.ink)
+            Text(tr("Partager ma position"), style = MaterialTheme.typography.titleLarge, color = c.ink)
             Text(
-                "Seules les coordonnées sont envoyées, sur ton serveur. Pas de carte : chacun l’ouvre dans sa propre appli de cartes s’il le souhaite.",
+                tr("Seules les coordonnées sont envoyées, sur ton serveur. Pas de carte : chacun l’ouvre dans sa propre appli de cartes s’il le souhaite."),
                 style = MaterialTheme.typography.bodySmall,
                 color = c.muted,
             )
-            PapoteField(label, { label = it.take(80) }, Modifier.fillMaxWidth(), label = "Petit mot")
-            Text("Partager", style = MaterialTheme.typography.labelLarge, color = c.ink)
-            Segmented(listOf(0 to "Une fois", 15 to "15 min", 60 to "1 h", 480 to "8 h"), minutes, { minutes = it }, Modifier.fillMaxWidth())
-            Text("En direct, la position se met à jour tant que Papote tourne sur ce téléphone.", style = MaterialTheme.typography.bodySmall, color = c.muted)
+            PapoteField(label, { label = it.take(80) }, Modifier.fillMaxWidth(), label = tr("Petit mot"))
+            Text(tr("Partager"), style = MaterialTheme.typography.labelLarge, color = c.ink)
+            Segmented(listOf(0 to tr("Une fois"), 15 to "15 min", 60 to "1 h", 480 to "8 h"), minutes, { minutes = it }, Modifier.fillMaxWidth())
+            Text(tr("En direct, la position se met à jour tant que Papote tourne sur ce téléphone."), style = MaterialTheme.typography.bodySmall, color = c.muted)
             ErrorText(error)
-            PrimaryButton("Envoyer ma position", {
+            PrimaryButton(tr("Envoyer ma position"), {
                 val ok = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
                     ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
                 if (ok) locate() else ask.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
@@ -547,10 +548,10 @@ fun GifSheet(groupId: Long, gifsEnabled: Boolean, onDismiss: () -> Unit, onGif: 
     LaunchedEffect(tab, query) {
         if (tab != "gif" || !gifsEnabled) return@LaunchedEffect
         delay(350)
-        note = "Chargement…"
+        note = tr("Chargement…")
         try {
             gifs = if (query.isBlank()) app.api.gifsTrending() else app.api.gifsSearch(query.trim())
-            note = if (gifs.isEmpty()) "Aucun GIF trouvé" else null
+            note = if (gifs.isEmpty()) tr("Aucun GIF trouvé") else null
         } catch (e: ApiException) {
             note = e.message
         }
@@ -567,8 +568,8 @@ fun GifSheet(groupId: Long, gifsEnabled: Boolean, onDismiss: () -> Unit, onGif: 
 
     ModalBottomSheet(onDismissRequest = onDismiss, containerColor = c.card) {
         Column(Modifier.padding(start = 16.dp, end = 16.dp, bottom = 24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Segmented(listOf("favs" to "Favoris", "gif" to "GIF", "stickers" to "Stickers", "group" to "Du groupe"), tab, { tab = it }, Modifier.fillMaxWidth())
-            if (tab == "gif" && gifsEnabled) PapoteField(query, { query = it }, Modifier.fillMaxWidth(), placeholder = "Rechercher", leading = PIcons.Search, label = "Rechercher un GIF")
+            Segmented(listOf("favs" to tr("Favoris"), "gif" to "GIF", "stickers" to "Stickers", "group" to tr("Du groupe")), tab, { tab = it }, Modifier.fillMaxWidth())
+            if (tab == "gif" && gifsEnabled) PapoteField(query, { query = it }, Modifier.fillMaxWidth(), placeholder = tr("Rechercher"), leading = PIcons.Search, label = tr("Rechercher un GIF"))
             @Composable
             fun Tile(label: String, kind: String, ref: String, data: kotlinx.serialization.json.JsonObject? = null, onPick: () -> Unit, content: @Composable () -> Unit) {
                 Box(Modifier.aspectRatio(1f).clip(RoundedCornerShape(14.dp)).background(c.soft).clickable(role = Role.Button, onClick = onPick).semantics { contentDescription = label }) {
@@ -577,31 +578,31 @@ fun GifSheet(groupId: Long, gifsEnabled: Boolean, onDismiss: () -> Unit, onGif: 
                     Box(
                         Modifier.align(Alignment.TopEnd).padding(4.dp).size(28.dp).clip(CircleShape).background(Color.White.copy(alpha = 0.85f))
                             .clickable(role = Role.Button) { toggleFav(kind, ref, data) }
-                            .semantics { contentDescription = if (on) "Retirer des favoris" else "Ajouter aux favoris" },
+                            .semantics { contentDescription = if (on) tr("Retirer des favoris") else tr("Ajouter aux favoris") },
                         contentAlignment = Alignment.Center,
                     ) { Icon(PIcons.Star, null, tint = if (on) Color(0xFFE0A800) else Color(0xFF8A7AA8), modifier = Modifier.size(16.dp)) }
                 }
             }
             @Composable
-            fun GifTile(id: String, title: String, preview: String, w: Int, h: Int) = Tile("Envoyer le GIF $title", "gif", id, jsonOf("title" to title, "width" to w, "height" to h), {
+            fun GifTile(id: String, title: String, preview: String, w: Int, h: Int) = Tile(tr("Envoyer le GIF {}", title), "gif", id, jsonOf("title" to title, "width" to w, "height" to h), {
                 onGif(id)
                 onDismiss()
             }) { AsyncImage(app.mediaUrl(preview), title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize()) }
             @Composable
-            fun BuiltinTile(key: String) = Tile("Envoyer le sticker", "builtin", key, null, {
+            fun BuiltinTile(key: String) = Tile(tr("Envoyer le sticker"), "builtin", key, null, {
                 onSticker(null, key)
                 onDismiss()
             }) { Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { BuiltinStickerView(key, 64.dp) } }
             @Composable
-            fun GroupTile(s: Sticker) = Tile("Envoyer ce sticker", "sticker", "${s.id}", null, {
+            fun GroupTile(s: Sticker) = Tile(tr("Envoyer ce sticker"), "sticker", "${s.id}", null, {
                 onSticker(s.id, null)
                 onDismiss()
-            }) { AsyncImage(app.mediaUrl(s.url), "Sticker du groupe", contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize().padding(6.dp)) }
+            }) { AsyncImage(app.mediaUrl(s.url), tr("Sticker du groupe"), contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize().padding(6.dp)) }
 
             Box(Modifier.fillMaxWidth().heightIn(min = 120.dp, max = 420.dp)) {
                 when {
-                    tab == "gif" && !gifsEnabled -> Text("Les GIF ne sont pas activés sur ce serveur (clé GIPHY à ajouter par l’admin).", color = c.muted)
-                    tab == "favs" && favs.isEmpty() -> Text("Touche l’étoile d’un GIF ou d’un sticker pour le retrouver ici.", color = c.muted)
+                    tab == "gif" && !gifsEnabled -> Text(tr("Les GIF ne sont pas activés sur ce serveur (clé GIPHY à ajouter par l’admin)."), color = c.muted)
+                    tab == "favs" && favs.isEmpty() -> Text(tr("Touche l’étoile d’un GIF ou d’un sticker pour le retrouver ici."), color = c.muted)
                     tab == "gif" && note != null -> Text(note!!, color = c.muted)
                     else -> LazyVerticalGrid(GridCells.Adaptive(96.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         when (tab) {
@@ -619,8 +620,8 @@ fun GifSheet(groupId: Long, gifsEnabled: Boolean, onDismiss: () -> Unit, onGif: 
                     }
                 }
             }
-            if (tab == "group") Text("Pour créer un sticker : appuie longuement sur un dessin ou une photo du groupe, puis « En faire un sticker ».", style = MaterialTheme.typography.bodySmall, color = c.muted)
-            if (gifsEnabled) Text("Powered by GIPHY · via ton serveur", style = MaterialTheme.typography.bodySmall, color = c.muted, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+            if (tab == "group") Text(tr("Pour créer un sticker : appuie longuement sur un dessin ou une photo du groupe, puis « En faire un sticker »."), style = MaterialTheme.typography.bodySmall, color = c.muted)
+            if (gifsEnabled) Text(tr("Powered by GIPHY · via ton serveur"), style = MaterialTheme.typography.bodySmall, color = c.muted, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
         }
     }
 }
@@ -639,7 +640,7 @@ fun MoodBadge(mood: String?, modifier: Modifier = Modifier) {
 fun VoiceFilterChips(selected: String, onPick: (String) -> Unit) {
     val c = Papote.colors
     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        listOf("" to "Normale", "souris" to "Souris", "robot" to "Robot", "echo" to "Écho", "geant" to "Géant").forEach { (k, label) ->
+        listOf("" to tr("Normale"), "souris" to tr("Souris"), "robot" to "Robot", "echo" to tr("Écho"), "geant" to tr("Géant")).forEach { (k, label) ->
             val on = k == selected
             Text(
                 label,

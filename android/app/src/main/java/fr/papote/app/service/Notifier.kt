@@ -1,5 +1,7 @@
 package fr.papote.app.service
 
+import fr.papote.app.tr
+
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -29,12 +31,12 @@ object Notifier {
         val nm = context.getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(
             NotificationChannel(CHANNEL_MESSAGES, "Messages", NotificationManager.IMPORTANCE_HIGH).apply {
-                description = "Nouveaux messages de tes groupes"
+                description = tr("Nouveaux messages de tes groupes")
             },
         )
         nm.createNotificationChannel(
-            NotificationChannel(CHANNEL_CONNECTION, "Connexion en arrière-plan", NotificationManager.IMPORTANCE_MIN).apply {
-                description = "Indique que Papote reste connecté pour recevoir les messages"
+            NotificationChannel(CHANNEL_CONNECTION, tr("Connexion en arrière-plan"), NotificationManager.IMPORTANCE_MIN).apply {
+                description = tr("Indique que Papote reste connecté pour recevoir les messages")
                 setShowBadge(false)
             },
         )
@@ -76,7 +78,7 @@ object Notifier {
             .setContentTitle(groupName ?: "Papote")
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
-            .setSubText(if (count > 1) "$count nouveaux messages" else null)
+            .setSubText(if (count > 1) tr("{} nouveaux messages", count) else null)
             .setCategory(NotificationCompat.CATEGORY_MESSAGE)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)

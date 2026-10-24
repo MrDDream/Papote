@@ -1,10 +1,11 @@
 import { api, live, ApiError } from './api.js';
 import { clear, h, mascot } from './ui.js';
-import { joinScreen, groupsScreen, inviteScreen, membersScreen, profileScreen, contactsScreen } from './screens.js';
+import { joinScreen, groupsScreen, inviteScreen, membersScreen, profileScreen, contactsScreen, shareScreen } from './screens.js';
 import { chatScreen } from './chat.js';
 import { drawScreen, liveDrawScreen, drawingScreen } from './draw.js';
 import { groupSettingsScreen, searchScreen, galleryScreen, gamesScreen, gameScreen, recapScreen, photoEditScreen } from './screens2.js';
 import { syncPush } from './push.js';
+import { tr } from './i18n.js';
 
 const root = document.getElementById('app');
 
@@ -162,6 +163,7 @@ function render() {
     members: () => membersScreen(r.id),
     profile: () => profileScreen(),
     contacts: () => contactsScreen(),
+    share: () => shareScreen(),
   };
   current = (screens[r.name] ?? screens.groups)();
   if (twoPane) {
@@ -169,7 +171,7 @@ function render() {
       sidebar = groupsScreen();
       pane = h('main', { class: 'pane' });
       root.classList.add('wide');
-      clear(root, h('aside', { class: 'side', 'aria-label': 'Mes groupes' }, sidebar.el), pane);
+      clear(root, h('aside', { class: 'side', 'aria-label': tr('Mes groupes') }, sidebar.el), pane);
     }
     sidebar.setActive(['chat', 'draw', 'invite', 'members', 'live', 'settings', 'search', 'gallery', 'games', 'recap', 'photo'].includes(r.name) ? r.id : null);
     clear(pane, current.el);
@@ -186,8 +188,8 @@ function placeholderScreen() {
       'div',
       { class: 'screen placeholder' },
       mascot(120),
-      h('h2', { class: 'title' }, 'Choisis un groupe'),
-      h('p', { class: 'muted' }, 'Ou crée-en un nouveau pour commencer à papoter.'),
+      h('h2', { class: 'title' }, tr('Choisis un groupe')),
+      h('p', { class: 'muted' }, tr('Ou crée-en un nouveau pour commencer à papoter.')),
     ),
   };
 }
@@ -243,7 +245,7 @@ async function boot() {
     loggedIn(await api.me());
   } catch (e) {
     if (!(e instanceof ApiError) || e.status !== 401) {
-      clear(root, h('div', { class: 'boot' }, 'Serveur injoignable'));
+      clear(root, h('div', { class: 'boot' }, tr('Serveur injoignable')));
       setTimeout(boot, 5000);
       return;
     }

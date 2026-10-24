@@ -19,6 +19,7 @@ import {
   timeOf,
   resizeImage,
 } from './ui.js';
+import { tr } from './i18n.js';
 
 // Pieces of the chat screen that came with the full mockup: Bubu, stories, pinned messages, banners,
 // and the bubbles for polls, positions, GIFs, stickers, games and the monthly recap.
@@ -41,7 +42,7 @@ export function bubuButton(state, members, group) {
   let line = BUBU_LINES[state];
   if (state === 'party') {
     const names = (group?.birthdaysToday ?? []).map((id) => members.get(id)?.name).filter(Boolean);
-    if (names.length) line = `Joyeux anniv ${names.join(' et ')} !`;
+    if (names.length) line = tr`Joyeux anniv ${names.join(' et ')} !`;
   }
   const tip = h('span', { class: 'bubu-tip', role: 'status' });
   const btn = h(
@@ -49,7 +50,7 @@ export function bubuButton(state, members, group) {
     {
       type: 'button',
       class: 'bubu-btn',
-      'aria-label': `Bubu, la mascotte : ${line}`,
+      'aria-label': tr`Bubu, la mascotte : ${line}`,
       onclick: (e) => {
         e.stopPropagation();
         tip.textContent = line;
@@ -66,49 +67,25 @@ export function bubuButton(state, members, group) {
 
 // --- stories ----------------------------------------------------------------------------------------
 
+/** The group's stories (24 h). Nothing at all when nobody has one: adding one is in the "+" menu. */
 export function storiesBar(groupId, entries, members) {
-  const input = h('input', { type: 'file', accept: 'image/*', hidden: true });
-  const status = h('span', { class: 'small muted' });
-  input.addEventListener('change', async () => {
-    const file = input.files?.[0];
-    input.value = '';
-    if (!file) return;
-    pendingPhoto.file = file;
-    go(`/photo/${groupId}?story=1`);
-  });
-  const mine = entries.find((e) => e.user.id === session.me.id);
-  const me = members.get(session.me.id) ?? session.me;
+  if (!entries.length) return null;
   const ring = (on) => `story-ring${on ? ' new' : ''}`;
-  const items = [
-    h(
+  const items = entries.map((e, i) => {
+    const mine = e.user.id === session.me.id;
+    return h(
       'button',
       {
         type: 'button',
         class: 'story',
-        'aria-label': mine ? 'Voir ma story' : 'Ajouter une story (24 h)',
-        onclick: () => (mine ? storyViewer(groupId, entries, entries.indexOf(mine)) : input.click()),
+        'aria-label': mine ? tr('Voir ma story') : `${e.user.name} : ${e.unseen ? tr('nouvelle story') : tr('story déjà vue')}`,
+        onclick: () => storyViewer(groupId, entries, i),
       },
-      h('span', { class: ring(false) }, avatar(me, 50, { initial: true }), h('span', { class: 'story-add' }, icon('plus', 14, 3))),
-      h('span', { class: 'story-name' }, 'Toi'),
-    ),
-    ...entries
-      .filter((e) => e.user.id !== session.me.id)
-      .map((e, i) =>
-        h(
-          'button',
-          {
-            type: 'button',
-            class: 'story',
-            'aria-label': `${e.user.name} : ${e.unseen ? 'nouvelle story' : 'story déjà vue'}`,
-            onclick: () => storyViewer(groupId, entries, entries.indexOf(e)),
-          },
-          h('span', { class: ring(e.unseen) }, avatar(members.get(e.user.id) ?? e.user, 50, { initial: true })),
-          h('span', { class: 'story-name' }, e.user.name),
-        ),
-      ),
-  ];
-  if (mine) items.splice(1, 0, h('button', { type: 'button', class: 'story', 'aria-label': 'Ajouter une autre story', onclick: () => input.click() }, h('span', { class: 'story-ring add' }, icon('plus', 22)), h('span', { class: 'story-name' }, 'Ajouter')));
-  return h('div', { class: 'stories', role: 'list', 'aria-label': 'Stories du groupe (24 h)' }, items, input, status);
+      h('span', { class: ring(!mine && e.unseen) }, avatar(members.get(e.user.id) ?? e.user, 50, { initial: true })),
+      h('span', { class: 'story-name' }, mine ? tr('Toi') : e.user.name),
+    );
+  });
+  return h('div', { class: 'stories', role: 'list', 'aria-label': tr('Stories du groupe (24 h)') }, items);
 }
 
 function storyViewer(groupId, entries, start) {
@@ -153,22 +130,22 @@ function storyViewer(groupId, entries, start) {
         'div',
         { class: 'story-top' },
         avatar(e.user, 36, { initial: true }),
-        h('div', { class: 'col grow', style: { gap: 0 } }, h('b', {}, mineStory ? 'Toi' : e.user.name), h('span', { class: 'small' }, `${timeOf(s.createdAt)} · encore ${Math.max(1, Math.round((s.expiresAt - Date.now()) / 3_600_000))} h`)),
+        h('div', { class: 'col grow', style: { gap: 0 } }, h('b', {}, mineStory ? tr('Toi') : e.user.name), h('span', { class: 'small' }, tr`${timeOf(s.createdAt)} · encore ${Math.max(1, Math.round((s.expiresAt - Date.now()) / 3_600_000))} h`)),
         mineStory &&
-          iconButton('trash', 'Supprimer cette story', async () => {
+          iconButton('trash', tr('Supprimer cette story'), async () => {
             await api.deleteStory(s.id).catch(() => {});
             e.stories.splice(si, 1);
             if (!e.stories.length) return close();
             si = Math.min(si, e.stories.length - 1);
             paint();
           }),
-        iconButton('close', 'Fermer', close),
+        iconButton('close', tr('Fermer'), close),
       ),
-      h('img', { src: s.url, alt: s.caption || `Story de ${e.user.name}` }),
+      h('img', { src: s.url, alt: s.caption || tr`Story de ${e.user.name}` }),
       s.caption && h('p', { class: 'story-caption' }, s.caption),
-      mineStory && h('p', { class: 'story-views' }, icon('eye', 16), s.viewers?.length ? `Vue par ${s.viewers.map((v) => v.name).join(', ')}` : 'Pas encore vue'),
-      h('button', { type: 'button', class: 'story-prev', 'aria-label': 'Story précédente', onclick: prev }),
-      h('button', { type: 'button', class: 'story-next', 'aria-label': 'Story suivante', onclick: next }),
+      mineStory && h('p', { class: 'story-views' }, icon('eye', 16), s.viewers?.length ? tr`Vue par ${s.viewers.map((v) => v.name).join(', ')}` : tr('Pas encore vue')),
+      h('button', { type: 'button', class: 'story-prev', 'aria-label': tr('Story précédente'), onclick: prev }),
+      h('button', { type: 'button', class: 'story-next', 'aria-label': tr('Story suivante'), onclick: next }),
     );
     timer = setTimeout(next, 6000);
   }
@@ -179,6 +156,8 @@ function storyViewer(groupId, entries, start) {
 
 // A picked picture travels to the photo editor through here (files can't go in the URL).
 export const pendingPhoto = { file: null };
+/** Text shared to Papote from another app, waiting in the chosen conversation's message field. */
+export const pendingShare = { text: null };
 
 // --- banners above the messages ----------------------------------------------------------------------
 
@@ -186,12 +165,12 @@ export function pinBanner(groupId, pins, members) {
   if (!pins.length) return null;
   const p = pins[0];
   const who = members.get(p.authorId)?.name ?? '';
-  const text = p.type === 'text' || p.type === 'poll' ? p.text : { photo: 'Photo', drawing: 'Dessin', voice: 'Vocal', location: 'Position', gif: 'GIF' }[p.type] ?? 'Message';
+  const text = p.type === 'text' || p.type === 'poll' ? p.text : { photo: tr('Photo'), drawing: tr('Dessin'), voice: tr('Vocal'), location: tr('Position'), gif: 'GIF' }[p.type] ?? 'Message';
   return h(
     'button',
-    { type: 'button', class: 'pin-banner', onclick: () => go(`/search/${groupId}`), 'aria-label': `Message épinglé${who ? ` de ${who}` : ''} : ${text}. Voir les épinglés` },
+    { type: 'button', class: 'pin-banner', onclick: () => go(`/search/${groupId}`), 'aria-label': tr`Message épinglé${who ? ` de ${who}` : ''} : ${text}. Voir les épinglés` },
     icon('pin', 16),
-    h('b', {}, 'Épinglé :'),
+    h('b', {}, tr('Épinglé :')),
     h('span', { class: 'ellipsis' }, text),
     pins.length > 1 && h('span', { class: 'count' }, `+${pins.length - 1}`),
   );
@@ -205,19 +184,19 @@ export function birthdayBanner(group, members) {
     { type: 'button', class: 'bday-banner', onclick: () => confetti() },
     h('span', { class: 'bday-confetti', 'aria-hidden': 'true' }),
     icon('cake', 28),
-    h('span', { class: 'col', style: { gap: 0 } }, h('b', {}, `Joyeux anniversaire ${names.join(' et ')} !`), h('span', { class: 'small' }, 'Tape pour lancer les confettis')),
+    h('span', { class: 'col', style: { gap: 0 } }, h('b', {}, tr`Joyeux anniversaire ${names.join(' et ')} !`), h('span', { class: 'small' }, tr('Tape pour lancer les confettis'))),
   );
 }
 
 export function liveDrawBanner(groupId, s, members) {
   if (!s) return null;
-  const who = members.get(s.startedBy)?.name ?? 'Quelqu’un';
+  const who = members.get(s.startedBy)?.name ?? tr('Quelqu’un');
   return h(
     'button',
     { type: 'button', class: 'live-banner', onclick: () => go(`/live/${groupId}`) },
     icon('palette', 20),
-    h('span', { class: 'grow' }, `${who} a lancé une toile commune`),
-    h('b', {}, 'Rejoindre'),
+    h('span', { class: 'grow' }, tr`${who} a lancé une toile commune`),
+    h('b', {}, tr('Rejoindre')),
   );
 }
 
@@ -227,8 +206,8 @@ export function pendingBanner(groupId, pending) {
     'button',
     { type: 'button', class: 'live-banner pending', onclick: () => go(`/members/${groupId}`) },
     icon('personPlus', 20),
-    h('span', { class: 'grow' }, pending.length === 1 ? `${pending[0].name} veut rejoindre le groupe` : `${pending.length} personnes veulent rejoindre le groupe`),
-    h('b', {}, 'Voir'),
+    h('span', { class: 'grow' }, pending.length === 1 ? tr`${pending[0].name} veut rejoindre le groupe` : tr`${pending.length} personnes veulent rejoindre le groupe`),
+    h('b', {}, tr('Voir')),
   );
 }
 
@@ -243,7 +222,7 @@ export function pollBubble(m, members, onError) {
   const voters = new Set(Object.values(votes).flat());
   const total = voters.size;
   const mine = Object.entries(votes).filter(([, ids]) => ids.includes(session.me.id)).map(([o]) => Number(o));
-  const author = members.get(m.authorId)?.name ?? 'quelqu’un';
+  const author = members.get(m.authorId)?.name ?? tr('quelqu’un');
   const closed = !!m.meta?.closed;
   const canClose = !closed && (m.authorId === session.me.id || ['owner', 'admin'].includes(members.get(session.me.id)?.role));
   async function vote(i) {
@@ -257,7 +236,7 @@ export function pollBubble(m, members, onError) {
   return h(
     'div',
     { class: 'bubble poll' },
-    h('div', { class: 'poll-head' }, icon('poll', 18), h('span', {}, `Sondage ${m.authorId === session.me.id ? 'de toi' : of(author)} · ${total} vote${total > 1 ? 's' : ''}${closed ? ' · terminé' : ''}`)),
+    h('div', { class: 'poll-head' }, icon('poll', 18), h('span', {}, tr`Sondage ${m.authorId === session.me.id ? tr('de toi') : of(author)} · ${total} vote${total > 1 ? 's' : ''}${closed ? tr(' · terminé') : ''}`)),
     h('b', { class: 'poll-q' }, m.text),
     options.map((label, i) => {
       const n = (votes[i] ?? []).length;
@@ -278,8 +257,8 @@ export function pollBubble(m, members, onError) {
         h('span', { class: 'poll-pct' }, `${pct} %`),
       );
     }),
-    m.meta?.multiple && h('span', { class: 'small muted' }, 'Plusieurs réponses possibles'),
-    canClose && h('button', { type: 'button', class: 'link-btn small', onclick: () => api.closePoll(m.id).catch((e) => onError(e.message)) }, 'Terminer le sondage'),
+    m.meta?.multiple && h('span', { class: 'small muted' }, tr('Plusieurs réponses possibles')),
+    canClose && h('button', { type: 'button', class: 'link-btn small', onclick: () => api.closePoll(m.id).catch((e) => onError(e.message)) }, tr('Terminer le sondage')),
   );
 }
 
@@ -293,7 +272,7 @@ export function mapsLink(lat, lon) {
 
 function ago(ts) {
   const mins = Math.round((Date.now() - ts) / 60_000);
-  return mins < 1 ? 'à l’instant' : mins < 60 ? `il y a ${mins} min` : `il y a ${Math.round(mins / 60)} h`;
+  return mins < 1 ? tr('à l’instant') : mins < 60 ? `il y a ${mins} min` : `il y a ${Math.round(mins / 60)} h`;
 }
 
 export function locationBubble(m) {
@@ -307,25 +286,25 @@ export function locationBubble(m) {
     h(
       'div',
       { class: 'col', style: { gap: '2px' } },
-      h('b', {}, m.text || 'Ma position'),
+      h('b', {}, m.text || tr('Ma position')),
       h(
         'span',
         { class: 'small muted' },
-        liveNow ? `En direct jusqu’à ${timeOf(until)} · mise à jour ${ago(updatedAt ?? m.createdAt)}` : until ? 'Partage terminé' : `Envoyée à ${timeOf(m.createdAt)}`,
+        liveNow ? tr`En direct jusqu’à ${timeOf(until)} · mise à jour ${ago(updatedAt ?? m.createdAt)}` : until ? tr('Partage terminé') : tr`Envoyée à ${timeOf(m.createdAt)}`,
       ),
-      h('span', { class: 'small muted' }, `${lat?.toFixed(4)}, ${lon?.toFixed(4)}${accuracy ? ` · à ${accuracy < 1000 ? `${accuracy} m` : `${(accuracy / 1000).toFixed(1)} km`} près` : ''}`),
+      h('span', { class: 'small muted' }, `${lat?.toFixed(4)}, ${lon?.toFixed(4)}${accuracy ? tr` · à ${accuracy < 1000 ? `${accuracy} m` : `${(accuracy / 1000).toFixed(1)} km`} près` : ''}`),
     ),
-    h('a', { class: 'btn small', href: mapsLink(lat, lon), target: '_blank', rel: 'noopener noreferrer' }, icon('location', 18), 'Ouvrir dans mon appli de cartes'),
-    mine && liveNow && h('button', { type: 'button', class: 'link-btn small', onclick: () => stopSharing(m.id) }, 'Arrêter le partage'),
+    h('a', { class: 'btn small', href: mapsLink(lat, lon), target: '_blank', rel: 'noopener noreferrer' }, icon('location', 18), tr('Ouvrir dans mon appli de cartes')),
+    mine && liveNow && h('button', { type: 'button', class: 'link-btn small', onclick: () => stopSharing(m.id) }, tr('Arrêter le partage')),
   );
 }
 
 export function gifBubble(m, onOpen) {
   const w = m.meta?.width ?? 200;
   const hh = m.meta?.height ?? 150;
-  const img = h('img', { src: m.media?.url, alt: m.meta?.title ? `GIF « ${m.meta.title} »` : 'GIF', loading: 'lazy', style: { aspectRatio: `${w} / ${hh}` } });
+  const img = h('img', { src: m.media?.url, alt: m.meta?.title ? tr`GIF « ${m.meta.title} »` : 'GIF', loading: 'lazy', style: { aspectRatio: `${w} / ${hh}` } });
   img.addEventListener('click', onOpen);
-  return h('div', { class: 'bubble media gif' }, img, h('span', { class: 'meta' }, icon('gif', 14), `GIF · ${timeOf(m.createdAt)}`));
+  return h('div', { class: 'bubble media gif' }, img, h('span', { class: 'meta' }, icon('gif', 14), tr`GIF · ${timeOf(m.createdAt)}`));
 }
 
 export function stickerBubble(m) {
@@ -334,25 +313,26 @@ export function stickerBubble(m) {
 }
 
 const GAME_INFO = {
-  tictactoe: ['Morpion', 'grid', '#EDE6FF'],
+  tictactoe: [tr('Morpion'), 'grid', '#EDE6FF'],
   connect4: ['Puissance 4', 'grid', '#FFE0E8'],
-  rps: ['Chifoumi', 'thumb', '#FFE3C7'],
-  hangman: ['Pendu', 'text2', '#DDF4E9'],
-  quiz: ['Qui a dit ça ?', 'chatPlus', '#D6E8FF'],
+  rps: [tr('Chifoumi'), 'thumb', '#FFE3C7'],
+  hangman: [tr('Pendu'), 'text2', '#DDF4E9'],
+  quiz: [tr('Qui a dit ça ?'), 'chatPlus', '#D6E8FF'],
   pictionary: ['Pictionary', 'pencil', '#FFF0B8'],
 };
-export const gameInfo = (kind) => GAME_INFO[kind] ?? ['Jeu', 'game', '#EDE6FF'];
+export const gameInfo = (kind) => GAME_INFO[kind] ?? [tr('Jeu'), 'game', '#EDE6FF'];
 
 export function gameBubble(m, members) {
   const [name, ic, bg] = gameInfo(m.meta?.kind);
-  const who = m.authorId === session.me.id ? 'Tu as' : `${members.get(m.authorId)?.name ?? 'Quelqu’un'} a`;
-  const vs = m.meta?.opponentId ? (m.meta.opponentId === session.me.id ? ' contre toi' : ` contre ${members.get(m.meta.opponentId)?.name ?? '?'}`) : '';
+  const vs = m.meta?.opponentId ? (m.meta.opponentId === session.me.id ? tr(' contre toi') : tr` contre ${members.get(m.meta.opponentId)?.name ?? '?'}`) : '';
+  // Whole sentences, so that they translate.
+  const line = m.authorId === session.me.id ? tr`Tu as lancé une partie${vs}` : tr`${members.get(m.authorId)?.name ?? tr('Quelqu’un')} a lancé une partie${vs}`;
   return h(
     'button',
     { type: 'button', class: 'bubble game-card', style: { background: bg }, onclick: () => go(`/game/${m.meta.gameId}`) },
     h('span', { class: 'game-icon' }, icon(ic, 24)),
-    h('span', { class: 'col', style: { gap: 0, textAlign: 'left' } }, h('b', {}, name), h('span', { class: 'small' }, `${who} lancé une partie${vs}`)),
-    h('span', { class: 'btn small primary' }, 'Jouer'),
+    h('span', { class: 'col', style: { gap: 0, textAlign: 'left' } }, h('b', {}, name), h('span', { class: 'small' }, line)),
+    h('span', { class: 'btn small primary' }, tr('Jouer')),
   );
 }
 
@@ -362,7 +342,7 @@ export function recapBubble(m) {
     'button',
     { type: 'button', class: 'bubble recap-card', onclick: () => go(`/recap/${m.groupId}?month=${r.month}`) },
     h('span', { class: 'recap-month' }, r.label ?? ''),
-    h('b', {}, 'Le récap du mois'),
+    h('b', {}, tr('Le récap du mois')),
     h(
       'span',
       { class: 'recap-mini' },
@@ -374,11 +354,11 @@ export function recapBubble(m) {
 // --- voice: speed, filters and the transcript --------------------------------------------------------
 
 export const VOICE_FILTERS = [
-  ['', 'Normale', 'mic'],
-  ['souris', 'Souris', 'smile'],
+  ['', tr('Normale'), 'mic'],
+  ['souris', tr('Souris'), 'smile'],
   ['robot', 'Robot', 'game'],
-  ['echo', 'Écho', 'music'],
-  ['geant', 'Géant', 'house'],
+  ['echo', tr('Écho'), 'music'],
+  ['geant', tr('Géant'), 'house'],
 ];
 
 /** Plays voice messages through Web Audio so the sender's filter (Souris, Robot…) is applied. */
@@ -467,19 +447,19 @@ function keepSharing(message) {
 }
 
 export function locationSheet(groupId, onError) {
-  if (!navigator.geolocation) return onError('Ton navigateur ne donne pas la position');
+  if (!navigator.geolocation) return onError(tr('Ton navigateur ne donne pas la position'));
   sheet((close) => {
     let minutes = 0;
-    const label = h('input', { class: 'field', value: 'Je suis là !', maxlength: 80, 'aria-label': 'Petit mot' });
+    const label = h('input', { class: 'field', value: tr('Je suis là !'), maxlength: 80, 'aria-label': tr('Petit mot') });
     const err = errorBox();
-    const choices = h('div', { class: 'segmented', role: 'group', 'aria-label': 'Durée du partage' });
+    const choices = h('div', { class: 'segmented', role: 'group', 'aria-label': tr('Durée du partage') });
     const paint = () =>
       clear(
         choices,
-        [[0, 'Une fois'], [15, '15 min'], [60, '1 h'], [480, '8 h']].map(([v, l]) => h('button', { type: 'button', 'aria-pressed': String(v === minutes), onclick: () => ((minutes = v), paint()) }, l)),
+        [[0, tr('Une fois')], [15, '15 min'], [60, '1 h'], [480, '8 h']].map(([v, l]) => h('button', { type: 'button', 'aria-pressed': String(v === minutes), onclick: () => ((minutes = v), paint()) }, l)),
       );
     paint();
-    const send = primaryButton('Envoyer ma position', async () => {
+    const send = primaryButton(tr('Envoyer ma position'), async () => {
       send.disabled = true;
       err.show(null);
       navigator.geolocation.getCurrentPosition(
@@ -494,19 +474,19 @@ export function locationSheet(groupId, onError) {
           }
         },
         () => {
-          err.show('Position refusée ou introuvable : autorise-la dans les réglages du navigateur');
+          err.show(tr('Position refusée ou introuvable : autorise-la dans les réglages du navigateur'));
           send.disabled = false;
         },
         { enableHighAccuracy: true, timeout: 15_000 },
       );
     }, { iconName: 'location' });
     return [
-      h('h2', { class: 'title', style: { fontSize: '20px' } }, 'Partager ma position'),
-      h('p', { class: 'small muted', style: { margin: 0 } }, 'Seules les coordonnées sont envoyées, sur ton serveur. Pas de carte : chacun ouvre sa propre appli de cartes s’il le souhaite.'),
+      h('h2', { class: 'title', style: { fontSize: '20px' } }, tr('Partager ma position')),
+      h('p', { class: 'small muted', style: { margin: 0 } }, tr('Seules les coordonnées sont envoyées, sur ton serveur. Pas de carte : chacun ouvre sa propre appli de cartes s’il le souhaite.')),
       label,
-      h('span', { class: 'label' }, 'Partager'),
+      h('span', { class: 'label' }, tr('Partager')),
       choices,
-      h('span', { class: 'small muted' }, 'En direct, la position se met à jour tant que Papote reste ouvert sur cet appareil.'),
+      h('span', { class: 'small muted' }, tr('En direct, la position se met à jour tant que Papote reste ouvert sur cet appareil.')),
       err,
       send,
     ];
@@ -517,7 +497,7 @@ export function locationSheet(groupId, onError) {
 
 export function pollSheet(groupId) {
   sheet((close) => {
-    const question = h('input', { class: 'field', placeholder: 'Ciné samedi ou dimanche ?', maxlength: 200, 'aria-label': 'Question' });
+    const question = h('input', { class: 'field', placeholder: tr('Ciné samedi ou dimanche ?'), maxlength: 200, 'aria-label': tr('Question') });
     const list = h('div', { class: 'col', style: { gap: '8px' } });
     const options = ['', ''];
     let multiple = false;
@@ -529,16 +509,16 @@ export function pollSheet(groupId) {
           h(
             'div',
             { class: 'row' },
-            h('input', { class: 'field grow', value: v, placeholder: `Réponse ${i + 1}`, maxlength: 80, 'aria-label': `Réponse ${i + 1}`, oninput: (e) => (options[i] = e.target.value) }),
-            options.length > 2 && iconButton('close', `Retirer la réponse ${i + 1}`, () => (options.splice(i, 1), paint())),
+            h('input', { class: 'field grow', value: v, placeholder: tr`Réponse ${i + 1}`, maxlength: 80, 'aria-label': tr`Réponse ${i + 1}`, oninput: (e) => (options[i] = e.target.value) }),
+            options.length > 2 && iconButton('close', tr`Retirer la réponse ${i + 1}`, () => (options.splice(i, 1), paint())),
           ),
         ),
         options.length < 6 && button('Ajouter une réponse', () => (options.push(''), paint(), list.querySelectorAll('input')[options.length - 1]?.focus()), { iconName: 'plus', small: true }),
       );
     paint();
-    const send = primaryButton('Envoyer le sondage', async () => {
+    const send = primaryButton(tr('Envoyer le sondage'), async () => {
       const opts = options.map((o) => o.trim()).filter(Boolean);
-      if (!question.value.trim() || opts.length < 2) return err.show('Une question et au moins deux réponses');
+      if (!question.value.trim() || opts.length < 2) return err.show(tr('Une question et au moins deux réponses'));
       send.disabled = true;
       try {
         await api.sendPoll(groupId, question.value.trim(), opts, multiple);
@@ -549,10 +529,10 @@ export function pollSheet(groupId) {
       }
     }, { iconName: 'send' });
     return [
-      h('h2', { class: 'title', style: { fontSize: '20px' } }, 'Nouveau sondage'),
+      h('h2', { class: 'title', style: { fontSize: '20px' } }, tr('Nouveau sondage')),
       question,
       list,
-      h('div', { class: 'row' }, h('span', { class: 'grow' }, 'Plusieurs réponses possibles'), toggle(false, (v) => (multiple = v), 'Plusieurs réponses possibles')),
+      h('div', { class: 'row' }, h('span', { class: 'grow' }, tr('Plusieurs réponses possibles')), toggle(false, (v) => (multiple = v), tr('Plusieurs réponses possibles'))),
       err,
       send,
     ];
@@ -569,8 +549,8 @@ export function gifSheet(groupId, { features, onError }) {
     let query = '';
     let searchTimer = null;
     const grid = h('div', { class: 'gif-grid' });
-    const tabs = h('div', { class: 'segmented', role: 'tablist', 'aria-label': 'GIF et stickers' });
-    const search = h('input', { class: 'field', type: 'search', placeholder: 'Rechercher', 'aria-label': 'Rechercher un GIF' });
+    const tabs = h('div', { class: 'segmented', role: 'tablist', 'aria-label': tr('GIF et stickers') });
+    const search = h('input', { class: 'field', type: 'search', placeholder: tr('Rechercher'), 'aria-label': tr('Rechercher un GIF') });
     const err = errorBox();
     const isFav = (kind, ref) => favs.some((f) => f.kind === kind && f.ref === String(ref));
 
@@ -597,7 +577,7 @@ export function gifSheet(groupId, { features, onError }) {
     const star = (kind, ref, data) =>
       h(
         'button',
-        { type: 'button', class: `fav${isFav(kind, ref) ? ' on' : ''}`, 'aria-pressed': String(isFav(kind, ref)), 'aria-label': isFav(kind, ref) ? 'Retirer des favoris' : 'Ajouter aux favoris', onclick: (e) => (e.stopPropagation(), toggleFav(kind, ref, data)) },
+        { type: 'button', class: `fav${isFav(kind, ref) ? ' on' : ''}`, 'aria-pressed': String(isFav(kind, ref)), 'aria-label': isFav(kind, ref) ? tr('Retirer des favoris') : tr('Ajouter aux favoris'), onclick: (e) => (e.stopPropagation(), toggleFav(kind, ref, data)) },
         icon('star', 16),
       );
 
@@ -605,28 +585,28 @@ export function gifSheet(groupId, { features, onError }) {
       h(
         'div',
         { class: 'gif-tile' },
-        h('button', { type: 'button', class: 'gif-pick', 'aria-label': `Envoyer le GIF ${g.title || ''}`, onclick: () => send(() => api.sendGif(groupId, g.id)) }, h('img', { src: g.preview, alt: g.title || 'GIF', loading: 'lazy' })),
+        h('button', { type: 'button', class: 'gif-pick', 'aria-label': tr`Envoyer le GIF ${g.title || ''}`, onclick: () => send(() => api.sendGif(groupId, g.id)) }, h('img', { src: g.preview, alt: g.title || 'GIF', loading: 'lazy' })),
         star('gif', g.id, { title: g.title, width: g.width, height: g.height }),
       );
     const builtinTile = (st) =>
       h(
         'div',
         { class: 'gif-tile sticker' },
-        h('button', { type: 'button', class: 'gif-pick', 'aria-label': `Envoyer le sticker ${st.label}`, onclick: () => send(() => api.sendSticker(groupId, { builtin: st.key })) }, stickerSvg(st.key, 72)),
+        h('button', { type: 'button', class: 'gif-pick', 'aria-label': tr`Envoyer le sticker ${st.label}`, onclick: () => send(() => api.sendSticker(groupId, { builtin: st.key })) }, stickerSvg(st.key, 72)),
         star('builtin', st.key),
       );
     const groupTile = (s) =>
       h(
         'div',
         { class: 'gif-tile sticker' },
-        h('button', { type: 'button', class: 'gif-pick', 'aria-label': 'Envoyer ce sticker', onclick: () => send(() => api.sendSticker(groupId, { stickerId: s.id })) }, h('img', { src: s.url, alt: 'Sticker du groupe', loading: 'lazy' })),
+        h('button', { type: 'button', class: 'gif-pick', 'aria-label': tr('Envoyer ce sticker'), onclick: () => send(() => api.sendSticker(groupId, { stickerId: s.id })) }, h('img', { src: s.url, alt: tr('Sticker du groupe'), loading: 'lazy' })),
         star('sticker', s.id),
       );
 
     async function paint() {
       clear(
         tabs,
-        [['favs', 'Favoris'], ['gif', 'GIF'], ['stickers', 'Stickers'], ['group', 'Du groupe']].map(([k, l]) =>
+        [['favs', tr('Favoris')], ['gif', 'GIF'], ['stickers', 'Stickers'], ['group', tr('Du groupe')]].map(([k, l]) =>
           h('button', { type: 'button', role: 'tab', 'aria-selected': String(k === tab), 'aria-pressed': String(k === tab), onclick: () => ((tab = k), paint()) }, l),
         ),
       );
@@ -636,7 +616,7 @@ export function gifSheet(groupId, { features, onError }) {
           grid,
           favs.length
             ? favs.map((f) => (f.kind === 'gif' ? gifTile({ id: f.ref, ...f.data }) : f.kind === 'builtin' ? builtinTile(STICKERS.find((s) => s.key === f.ref) ?? STICKERS[0]) : groupTile(f.data)))
-            : h('p', { class: 'muted empty-note' }, 'Touche l’étoile d’un GIF ou d’un sticker pour le retrouver ici.'),
+            : h('p', { class: 'muted empty-note' }, tr('Touche l’étoile d’un GIF ou d’un sticker pour le retrouver ici.')),
         );
       } else if (tab === 'stickers') {
         clear(grid, STICKERS.map(builtinTile));
@@ -660,18 +640,18 @@ export function gifSheet(groupId, { features, onError }) {
           h(
             'div',
             { class: 'col', style: { gridColumn: '1 / -1', gap: '8px' } },
-            h('p', { class: 'small muted', style: { margin: 0 } }, 'Pour créer un sticker depuis un dessin : ouvre le dessin dans la discussion, puis « En faire un sticker ».'),
-            button('Importer une image', () => upload.click(), { iconName: 'image', small: true }),
+            h('p', { class: 'small muted', style: { margin: 0 } }, tr('Pour créer un sticker depuis un dessin : ouvre le dessin dans la discussion, puis « En faire un sticker ».')),
+            button(tr('Importer une image'), () => upload.click(), { iconName: 'image', small: true }),
             upload,
           ),
         );
       } else if (!features.gifs) {
-        clear(grid, h('p', { class: 'muted empty-note' }, 'Les GIF ne sont pas activés sur ce serveur (clé GIPHY à ajouter par l’admin).'));
+        clear(grid, h('p', { class: 'muted empty-note' }, tr('Les GIF ne sont pas activés sur ce serveur (clé GIPHY à ajouter par l’admin).')));
       } else {
-        clear(grid, h('p', { class: 'muted empty-note' }, 'Chargement…'));
+        clear(grid, h('p', { class: 'muted empty-note' }, tr('Chargement…')));
         try {
           const list = query ? await api.gifsSearch(query) : await api.gifsTrending();
-          if (tab === 'gif') clear(grid, list.length ? list.map(gifTile) : h('p', { class: 'muted empty-note' }, 'Aucun GIF trouvé'));
+          if (tab === 'gif') clear(grid, list.length ? list.map(gifTile) : h('p', { class: 'muted empty-note' }, tr('Aucun GIF trouvé')));
         } catch (e) {
           clear(grid, h('p', { class: 'muted empty-note' }, e.message));
         }
@@ -698,7 +678,7 @@ export function gifSheet(groupId, { features, onError }) {
       search,
       grid,
       err,
-      features.gifs && h('p', { class: 'small muted', style: { margin: 0, textAlign: 'center' } }, 'Powered by GIPHY · via ton serveur'),
+      features.gifs && h('p', { class: 'small muted', style: { margin: 0, textAlign: 'center' } }, tr('Powered by GIPHY · via ton serveur')),
     ];
   });
 }

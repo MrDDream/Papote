@@ -1,5 +1,7 @@
 package fr.papote.app.ui.profile
 
+import fr.papote.app.tr
+
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -35,6 +37,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import fr.papote.app.PapoteApp
 import fr.papote.app.data.ApiException
@@ -56,7 +59,7 @@ import fr.papote.app.ui.theme.Papote
 import fr.papote.app.ui.theme.ThemeMode
 import kotlinx.coroutines.launch
 
-private val MONTHS = listOf("janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre")
+private val MONTHS = listOf(tr("janvier"), tr("février"), tr("mars"), tr("avril"), tr("mai"), tr("juin"), tr("juillet"), tr("août"), tr("septembre"), tr("octobre"), tr("novembre"), tr("décembre"))
 
 /** "--03-14" or "1990-03-14" → "14/03". */
 private fun birthdayToField(b: String?): String {
@@ -118,7 +121,7 @@ fun ProfileScreen(onBack: () -> Unit) {
             } catch (e: ApiException) {
                 error = e.message
             } catch (e: Exception) {
-                error = "Cette image n’a pas pu être lue"
+                error = tr("Cette image n’a pas pu être lue")
             } finally {
                 busy = false
             }
@@ -130,7 +133,7 @@ fun ProfileScreen(onBack: () -> Unit) {
 
     fun save() {
         val bday = fieldToBirthday(birthday).getOrElse {
-            error = "Anniversaire : écris le jour puis le mois, par exemple 14/03"
+            error = tr("Anniversaire : écris le jour puis le mois, par exemple 14/03")
             return
         }
         busy = true
@@ -151,7 +154,7 @@ fun ProfileScreen(onBack: () -> Unit) {
         Modifier.fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        TopBar("Paramètres", onBack)
+        TopBar(tr("Paramètres"), onBack)
 
         Row(
             Modifier.fillMaxWidth().clip(RoundedCornerShape(28.dp)).background(c.card).padding(18.dp),
@@ -161,16 +164,16 @@ fun ProfileScreen(onBack: () -> Unit) {
             Box {
                 Avatar(name, color, u?.photo, size = 88.dp)
                 SquareIconButton(
-                    PIcons.Photo, "Changer la photo de profil",
+                    PIcons.Photo, tr("Changer la photo de profil"),
                     { pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                     Modifier.align(Alignment.BottomEnd).padding(0.dp),
                     background = c.primary, tint = c.onPrimary, size = 36.dp,
                 )
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Image de profil", style = MaterialTheme.typography.labelLarge, color = c.ink)
+                Text(tr("Image de profil"), style = MaterialTheme.typography.labelLarge, color = c.ink)
                 if (u?.photo != null) {
-                    SecondaryButton("Revenir à la frimousse", {
+                    SecondaryButton(tr("Revenir à la frimousse"), {
                         scope.launch {
                             try {
                                 fill(app.api.deletePhoto())
@@ -180,25 +183,25 @@ fun ProfileScreen(onBack: () -> Unit) {
                         }
                     }, height = 40.dp)
                 } else {
-                    Text("Ta frimousse prend ta couleur. Touche l’appareil photo pour mettre une photo.", style = MaterialTheme.typography.bodySmall, color = c.muted)
+                    Text(tr("Ta frimousse prend ta couleur. Touche l’appareil photo pour mettre une photo."), style = MaterialTheme.typography.bodySmall, color = c.muted)
                 }
             }
         }
 
-        SettingsCard("Mon profil") {
+        SettingsCard(tr("Mon profil")) {
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                FieldLabel("Mon petit nom")
-                PapoteField(name, { name = it.take(40); saved = false }, label = "Mon petit nom")
+                FieldLabel(tr("Mon petit nom"))
+                PapoteField(name, { name = it.take(40); saved = false }, label = tr("Mon petit nom"))
             }
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                FieldLabel("Ma petite phrase")
-                PapoteField(bio, { bio = it.take(140); saved = false }, placeholder = "Fan de pop-corn et de dessins ratés", label = "Ma petite phrase")
+                FieldLabel(tr("Ma petite phrase"))
+                PapoteField(bio, { bio = it.take(140); saved = false }, placeholder = tr("Fan de pop-corn et de dessins ratés"), label = tr("Ma petite phrase"))
             }
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                FieldLabel("Anniversaire")
+                FieldLabel(tr("Anniversaire"))
                 PapoteField(
                     birthday, { birthday = formatBirthdayInput(it); saved = false },
-                    placeholder = "JJ/MM", keyboardType = KeyboardType.Number, imeAction = ImeAction.Done, label = "Anniversaire, jour et mois",
+                    placeholder = "JJ/MM", keyboardType = KeyboardType.Number, imeAction = ImeAction.Done, label = tr("Anniversaire, jour et mois"),
                 )
                 fieldToBirthday(birthday).getOrNull()?.let { b ->
                     val (mo, d) = b.removePrefix("--").split("-").map { it.toInt() }
@@ -206,12 +209,12 @@ fun ProfileScreen(onBack: () -> Unit) {
                 }
             }
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                FieldLabel("Ma couleur")
+                FieldLabel(tr("Ma couleur"))
                 TintPicker(color, { color = it; saved = false })
             }
             ErrorText(error)
             if (dirty || saved) {
-                PrimaryButton(if (saved && !dirty) "Enregistré !" else "Enregistrer", ::save, Modifier.fillMaxWidth(), enabled = dirty && name.isNotBlank(), loading = busy)
+                PrimaryButton(if (saved && !dirty) tr("Enregistré !") else tr("Enregistrer"), ::save, Modifier.fillMaxWidth(), enabled = dirty && name.isNotBlank(), loading = busy)
             }
         }
 
@@ -219,29 +222,71 @@ fun ProfileScreen(onBack: () -> Unit) {
         DevicesCard(onMerged = ::fill)
         SecurityCard(totpEnabled = u?.totp == true, onTotpChanged = { scope.launch { runCatching { fill(app.api.me()) } } })
 
-        SettingsCard("Apparence") {
-            Text("Style", style = MaterialTheme.typography.labelLarge, color = c.ink)
+        SettingsCard(tr("Apparence")) {
+            Text(tr("Style"), style = MaterialTheme.typography.labelLarge, color = c.ink)
             StylePicker(session.style, app.session::setStyle)
-            Text("Mode", style = MaterialTheme.typography.labelLarge, color = c.ink)
-            Segmented(listOf(ThemeMode.Light to "Clair", ThemeMode.Dark to "Sombre", ThemeMode.Auto to "Auto"), session.theme, app.session::setTheme)
+            Text(tr("Mode"), style = MaterialTheme.typography.labelLarge, color = c.ink)
+            Segmented(listOf(ThemeMode.Light to tr("Clair"), ThemeMode.Dark to tr("Sombre"), ThemeMode.Auto to "Auto"), session.theme, app.session::setTheme)
+            Text(tr("Langue"), style = MaterialTheme.typography.labelLarge, color = c.ink)
+            val context = androidx.compose.ui.platform.LocalContext.current
+            // The app restarts in the chosen language.
+            Segmented(fr.papote.app.I18n.LANGS.map { (code, name, flag) -> code to "$flag $name" }, fr.papote.app.I18n.lang, { code -> fr.papote.app.I18n.set(context, code) })
         }
 
         NotificationsCard()
 
-        SettingsCard("Serveur") {
+        AppVersionCard()
+
+        SettingsCard(tr("Serveur")) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 Box(Modifier.size(10.dp).clip(CircleShape).background(c.ok))
                 Column(Modifier.weight(1f)) {
                     Text(session.server?.substringAfter("://").orEmpty(), style = MaterialTheme.typography.labelLarge, color = c.ink)
-                    Text("Papote auto-hébergé", style = MaterialTheme.typography.bodySmall, color = c.muted)
+                    Text(tr("Papote auto-hébergé"), style = MaterialTheme.typography.bodySmall, color = c.muted)
                 }
             }
-            SecondaryButton("Se déconnecter", {
+            SecondaryButton(tr("Se déconnecter"), {
                 scope.launch {
                     runCatching { app.api.logout() }
                     app.session.logout()
                 }
             }, Modifier.fillMaxWidth(), icon = PIcons.Logout, danger = true)
+        }
+    }
+}
+
+/** This app's version, and a newer APK from GitHub when there is one (asked through the server). */
+@Composable
+private fun AppVersionCard() {
+    val app = PapoteApp.instance
+    val c = Papote.colors
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = rememberCoroutineScope()
+    var checking by remember { mutableStateOf(false) }
+    var result by remember { mutableStateOf<String?>(null) }
+    var found by remember { mutableStateOf<fr.papote.app.data.LatestRelease?>(null) }
+    SettingsCard(tr("Application")) {
+        Text("Papote ${fr.papote.app.data.AppUpdates.current}", style = MaterialTheme.typography.labelLarge, color = c.ink)
+        result?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = c.muted) }
+        val r = found
+        if (r != null) {
+            PrimaryButton(tr("Installer la {}", r.version), { fr.papote.app.data.AppUpdates.download(context, r) }, Modifier.fillMaxWidth(), textSize = 17.sp)
+        } else {
+            SecondaryButton(tr("Vérifier les mises à jour"), {
+                checking = true
+                scope.launch {
+                    val info = runCatching { app.api.updates() }.getOrNull()
+                    val latest = info?.latest
+                    found = latest?.takeIf { fr.papote.app.data.AppUpdates.isNewer(it.version, fr.papote.app.data.AppUpdates.current) }
+                    result = when {
+                        found != null -> tr("La {} est sortie : elle s’installe par-dessus celle-ci, sans rien perdre.", latest!!.version)
+                        info == null -> tr("Ton serveur ne sait pas encore vérifier les mises à jour (il faut le mettre à jour lui aussi).")
+                        !info.enabled -> tr("Ton serveur ne vérifie pas les mises à jour (UPDATE_CHECK=false).")
+                        else -> tr("C’est la dernière version.")
+                    }
+                    checking = false
+                }
+            }, Modifier.fillMaxWidth(), icon = PIcons.Refresh, enabled = !checking)
         }
     }
 }

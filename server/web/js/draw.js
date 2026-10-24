@@ -1,19 +1,20 @@
 import { api, live } from './api.js';
 import { back, go, session } from './app.js';
 import { h, clear, icon, iconButton, primaryButton, button, errorBox, avatar, timeOf, dayLabel } from './ui.js';
+import { tr } from './i18n.js';
 
 // Same tools and storage as the Android drawing screen: ops in 0..1 coordinates, exported at 1024×1024.
 // The strokes also travel to the server (0..1000 space) so a drawing can be replayed as a timelapse.
 const TOOLS = [
-  ['brush', 'Pinceau', 'pencil'],
-  ['marker', 'Feutre', 'marker'],
-  ['eraser', 'Gomme', 'eraser'],
-  ['bucket', 'Pot de peinture', 'bucket'],
-  ['stamp', 'Tampons', 'star'],
+  ['brush', tr('Pinceau'), 'pencil'],
+  ['marker', tr('Feutre'), 'marker'],
+  ['eraser', tr('Gomme'), 'eraser'],
+  ['bucket', tr('Pot de peinture'), 'bucket'],
+  ['stamp', tr('Tampons'), 'star'],
 ];
 const INKS = [
-  ['#2E2442', 'Encre'], ['#FF7A93', 'Rose bonbon'], ['#FF9F43', 'Mandarine'], ['#FFD66B', 'Citron'],
-  ['#4CC38A', 'Menthe'], ['#4A9BEF', 'Ciel'], ['#8B6CF0', 'Lilas'], ['#FFFFFF', 'Blanc'],
+  ['#2E2442', tr('Encre')], ['#FF7A93', tr('Rose bonbon')], ['#FF9F43', tr('Mandarine')], ['#FFD66B', tr('Citron')],
+  ['#4CC38A', tr('Menthe')], ['#4A9BEF', tr('Ciel')], ['#8B6CF0', tr('Lilas')], ['#FFFFFF', tr('Blanc')],
 ];
 const SIZES = [0.008, 0.016, 0.03, 0.05];
 const PAPER = '#FFFDF6';
@@ -114,7 +115,7 @@ export function loadImage(src) {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('Image illisible'));
+    img.onerror = () => reject(new Error(tr('Image illisible')));
     img.src = src;
   });
 }
@@ -135,7 +136,7 @@ export function createBoard({ editable = true, onOp = () => {}, base = null } = 
   let size = 1;
   let baseImg = base;
   let frame = 0;
-  const canvas = h('canvas', { 'aria-label': 'Zone de dessin', role: 'img' });
+  const canvas = h('canvas', { 'aria-label': tr('Zone de dessin'), role: 'img' });
   const wrap = h('div', { class: 'canvas-wrap' }, canvas);
   const layer = document.createElement('canvas');
   const listeners = new Set();
@@ -209,18 +210,18 @@ export function createBoard({ editable = true, onOp = () => {}, base = null } = 
         tools &&
           h(
             'div',
-            { class: 'tools', role: 'group', 'aria-label': 'Outils' },
+            { class: 'tools', role: 'group', 'aria-label': tr('Outils') },
             TOOLS.map(([key, label, ic]) => h('button', { type: 'button', class: 'tool', 'aria-pressed': String(key === tool), 'aria-label': label, title: label, onclick: () => ((tool = key), paint()) }, icon(ic, 24))),
           ),
         h(
           'div',
-          { class: 'inks', role: 'group', 'aria-label': 'Couleurs' },
+          { class: 'inks', role: 'group', 'aria-label': tr('Couleurs') },
           INKS.map(([c, label]) => h('button', { type: 'button', class: 'ink', style: { backgroundColor: c }, 'aria-pressed': String(c === ink), 'aria-label': label, title: label, onclick: () => ((ink = c), paint()) })),
         ),
         h(
           'div',
-          { class: 'row', role: 'group', 'aria-label': 'Épaisseur' },
-          h('span', { class: 'label grow' }, 'Épaisseur'),
+          { class: 'row', role: 'group', 'aria-label': tr('Épaisseur') },
+          h('span', { class: 'label grow' }, tr('Épaisseur')),
           SIZES.map((_, i) =>
             h('button', { type: 'button', class: 'size-btn', 'aria-pressed': String(i === size), 'aria-label': `Taille ${i + 1}`, onclick: () => ((size = i), paint()) }, h('span', { style: { width: `${6 + i * 5}px`, height: `${6 + i * 5}px` } })),
           ),
@@ -361,10 +362,10 @@ export function drawScreen(groupId, query = new URLSearchParams()) {
       }
     },
   });
-  if (baseUrl) loadImage(baseUrl).then((img) => board.setBase(img)).catch(() => err.show('Impossible de charger l’image de fond'));
-  const undoBtn = iconButton('undo', 'Annuler le dernier trait', () => board.undo());
-  const redoBtn = iconButton('redo', 'Rétablir', () => board.redo());
-  const send = primaryButton('Envoyer le dessin', null, { iconName: 'send' });
+  if (baseUrl) loadImage(baseUrl).then((img) => board.setBase(img)).catch(() => err.show(tr('Impossible de charger l’image de fond')));
+  const undoBtn = iconButton('undo', tr('Annuler le dernier trait'), () => board.undo());
+  const redoBtn = iconButton('redo', tr('Rétablir'), () => board.redo());
+  const send = primaryButton(tr('Envoyer le dessin'), null, { iconName: 'send' });
   board.onChange(() => {
     undoBtn.disabled = !board.canUndo;
     redoBtn.disabled = !board.canRedo;
@@ -400,8 +401,8 @@ export function drawScreen(groupId, query = new URLSearchParams()) {
       h(
         'div',
         { class: 'row' },
-        iconButton('close', 'Fermer le dessin', () => back(`/chat/${groupId}`)),
-        h('div', { class: 'col grow', style: { gap: 0 } }, h('h1', { class: 'title' }, baseUrl ? 'Dessiner dessus' : 'Un petit dessin'), subtitle),
+        iconButton('close', tr('Fermer le dessin'), () => back(`/chat/${groupId}`)),
+        h('div', { class: 'col grow', style: { gap: 0 } }, h('h1', { class: 'title' }, baseUrl ? tr('Dessiner dessus') : tr('Un petit dessin')), subtitle),
         undoBtn,
         redoBtn,
       ),
@@ -421,8 +422,8 @@ export function liveDrawScreen(groupId) {
   let session_ = null;
   let members = new Map();
   const err = errorBox();
-  const artistsRow = h('div', { class: 'row artists', 'aria-label': 'Artistes' });
-  const subtitle = h('span', { class: 'small muted' }, 'En direct');
+  const artistsRow = h('div', { class: 'row artists', 'aria-label': tr('Artistes') });
+  const subtitle = h('span', { class: 'small muted' }, tr('En direct'));
   const mine = [];
   const stream = streamer(groupId, 'draw', () => ({ sid: session_?.id }));
   const board = createBoard({
@@ -431,7 +432,7 @@ export function liveDrawScreen(groupId) {
       if (session_) stream.onOp(op, phase);
     },
   });
-  const undoBtn = iconButton('undo', 'Annuler mon dernier trait', () => {
+  const undoBtn = iconButton('undo', tr('Annuler mon dernier trait'), () => {
     const op = mine.pop();
     if (!op) return;
     const i = board.ops.indexOf(op);
@@ -439,11 +440,11 @@ export function liveDrawScreen(groupId) {
     stream.undo(op);
     board.redraw();
   });
-  const send = primaryButton('Envoyer', null, { iconName: 'send' });
+  const send = primaryButton(tr('Envoyer'), null, { iconName: 'send' });
 
   function paintArtists() {
     const ids = session_?.artists ?? [];
-    subtitle.textContent = `En direct · ${ids.length} artiste${ids.length > 1 ? 's' : ''}`;
+    subtitle.textContent = tr`En direct · ${ids.length} artiste${ids.length > 1 ? 's' : ''}`;
     clear(artistsRow, ids.map((id) => avatar(members.get(id) ?? { name: '?', color: 'lilas' }, 32, { initial: true })));
   }
 
@@ -491,7 +492,7 @@ export function liveDrawScreen(groupId) {
     live.on('livedraw', (e) => {
       if (e.groupId !== groupId) return;
       if (!e.session) {
-        err.show('La toile a été envoyée dans le groupe');
+        err.show(tr('La toile a été envoyée dans le groupe'));
         send.disabled = true;
         setTimeout(() => back(`/chat/${groupId}`), 1200);
       }
@@ -509,8 +510,8 @@ export function liveDrawScreen(groupId) {
       h(
         'div',
         { class: 'row' },
-        iconButton('back', 'Retour au groupe', () => back(`/chat/${groupId}`)),
-        h('div', { class: 'col grow', style: { gap: 0 } }, h('h1', { class: 'title' }, 'Toile commune'), subtitle),
+        iconButton('back', tr('Retour au groupe'), () => back(`/chat/${groupId}`)),
+        h('div', { class: 'col grow', style: { gap: 0 } }, h('h1', { class: 'title' }, tr('Toile commune')), subtitle),
         undoBtn,
       ),
       artistsRow,
@@ -520,7 +521,7 @@ export function liveDrawScreen(groupId) {
       h(
         'div',
         { class: 'row' },
-        button('Arrêter sans envoyer', async () => {
+        button(tr('Arrêter sans envoyer'), async () => {
           await api.endLiveDraw(groupId).catch(() => {});
           back(`/chat/${groupId}`);
         }, { small: true }),
@@ -544,7 +545,7 @@ export function liveDrawScreen(groupId) {
 export function drawingScreen(messageId, query) {
   const groupId = Number(query.get('g'));
   const err = errorBox();
-  const canvas = h('canvas', { class: 'timelapse', role: 'img', 'aria-label': 'Dessin' });
+  const canvas = h('canvas', { class: 'timelapse', role: 'img', 'aria-label': tr('Dessin') });
   const layer = document.createElement('canvas');
   const bar = h('div', { class: 'progress-fill' });
   const head = h('div', { class: 'row' });
@@ -592,17 +593,17 @@ export function drawingScreen(messageId, query) {
     try {
       const [around, members] = await Promise.all([api.messagesAround(groupId, messageId), api.members(groupId)]);
       message = around.find((m) => m.id === messageId);
-      if (!message || message.deleted) throw new Error('Ce dessin a été supprimé');
+      if (!message || message.deleted) throw new Error(tr('Ce dessin a été supprimé'));
       const author = members.find((m) => m.id === message.authorId);
       clear(
         head,
-        iconButton('back', 'Retour', () => back(`/chat/${groupId}`)),
+        iconButton('back', tr('Retour'), () => back(`/chat/${groupId}`)),
         avatar(author ?? { name: '?', color: 'lilas' }, 40, { initial: true }),
         h(
           'div',
           { class: 'col grow', style: { gap: 0 } },
-          h('h1', { class: 'title', style: { fontSize: '20px' } }, message.meta?.live ? 'Toile commune' : 'Dessin'),
-          h('span', { class: 'small muted' }, `${author?.name ?? 'Ancien membre'} · ${dayLabel(message.createdAt).toLowerCase()} ${timeOf(message.createdAt)}${message.meta?.strokes ? ` · ${message.meta.strokes} traits` : ''}`),
+          h('h1', { class: 'title', style: { fontSize: '20px' } }, message.meta?.live ? tr('Toile commune') : tr('Dessin')),
+          h('span', { class: 'small muted' }, `${author?.name ?? tr('Ancien membre')} · ${dayLabel(message.createdAt).toLowerCase()} ${timeOf(message.createdAt)}${message.meta?.strokes ? tr` · ${message.meta.strokes} traits` : ''}`),
         ),
       );
       canvas.width = canvas.height = 720;
@@ -630,29 +631,29 @@ export function drawingScreen(messageId, query) {
   function renderActions() {
     const speeds = h(
       'div',
-      { class: 'segmented', role: 'group', 'aria-label': 'Vitesse du timelapse' },
+      { class: 'segmented', role: 'group', 'aria-label': tr('Vitesse du timelapse') },
       [1, 4].map((v) => h('button', { type: 'button', 'aria-pressed': String(speed === v), onclick: () => ((speed = v), renderActions(), play()) }, `×${v}`)),
     );
     let stickerDone = false;
-    const stickerBtn = button('En faire un sticker', async () => {
+    const stickerBtn = button(tr('En faire un sticker'), async () => {
       if (stickerDone) return;
       try {
         await api.makeSticker(groupId, messageId);
         stickerDone = true;
-        clear(stickerBtn, icon('check', 20), 'Sticker créé !');
+        clear(stickerBtn, icon('check', 20), tr('Sticker créé !'));
       } catch (e) {
         err.show(e.message);
       }
     }, { iconName: 'sticker' });
     clear(
       actions,
-      ops && h('div', { class: 'row' }, h('div', { class: 'progress grow', 'aria-hidden': 'true' }, bar), iconButton('play', 'Rejouer le timelapse', play), speeds),
+      ops && h('div', { class: 'row' }, h('div', { class: 'progress grow', 'aria-hidden': 'true' }, bar), iconButton('play', tr('Rejouer le timelapse'), play), speeds),
       h(
         'div',
         { class: 'row wrap' },
         stickerBtn,
-        button('Dessiner dessus', () => go(`/draw/${groupId}?base=${messageId}&img=${encodeURIComponent(message.media.url)}`), { iconName: 'pencil' }),
-        h('a', { class: 'btn', href: message.media.url, download: `dessin-${messageId}.png` }, icon('download', 20), 'Télécharger'),
+        button(tr('Dessiner dessus'), () => go(`/draw/${groupId}?base=${messageId}&img=${encodeURIComponent(message.media.url)}`), { iconName: 'pencil' }),
+        h('a', { class: 'btn', href: message.media.url, download: `dessin-${messageId}.png` }, icon('download', 20), tr('Télécharger')),
       ),
     );
   }

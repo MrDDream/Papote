@@ -46,6 +46,8 @@ sealed interface Event {
     data class GroupRefresh(val groupId: Long) : Event
     /** Read on another of the user's devices. */
     data class GroupRead(val groupId: Long) : Event
+    /** Someone else in the group read up to [messageId]: the ticks under my messages. */
+    data class MemberRead(val groupId: Long, val userId: Long, val messageId: Long) : Event
     data class UserUpdated(val user: User) : Event
     /** Emitted after (re)connecting: screens refetch what they may have missed. */
     data object Reconnected : Event
@@ -160,6 +162,7 @@ class Realtime(private val client: OkHttpClient, private val session: Session, p
             "group.updated" -> Event.GroupUpdated((o["group"] as JsonObject)["id"]!!.jsonPrimitive.longOrNull ?: return null)
             "group.removed" -> Event.GroupRemoved(long("groupId"))
             "group.read" -> Event.GroupRead(long("groupId"))
+            "member.read" -> Event.MemberRead(long("groupId"), long("userId"), long("messageId"))
             "group.refresh" -> Event.GroupRefresh(long("groupId"))
             "user.updated" -> Event.UserUpdated(PapoteJson.decodeFromJsonElement(o["user"]!!))
             else -> null

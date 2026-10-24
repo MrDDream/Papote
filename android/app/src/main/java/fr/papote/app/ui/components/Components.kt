@@ -1,5 +1,7 @@
 package fr.papote.app.ui.components
 
+import fr.papote.app.tr
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -30,7 +32,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.gestures.detectTransformGestures
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -108,7 +117,7 @@ fun Face(color: Color, modifier: Modifier = Modifier, size: Dp = 48.dp) {
     }
 }
 
-/** Profile photo when there is one, else the face in the user's colour. */
+/** Profile photo when there is one, else the face in the user's colour. [zoomable]: a tap shows the photo big. */
 @Composable
 fun Avatar(
     name: String,
@@ -118,9 +127,19 @@ fun Avatar(
     size: Dp = 40.dp,
     online: Boolean = false,
     initialOnly: Boolean = false,
+    zoomable: Boolean = false,
 ) {
     val t = tint(color)
-    Box(modifier.size(size)) {
+    var zoom by remember { mutableStateOf(false) }
+    if (zoom && photo != null) PhotoZoom(photo, tr("Photo de {}", name)) { zoom = false }
+    Box(
+        modifier.size(size).then(
+            if (zoomable && photo != null) {
+                Modifier.clickable(role = Role.Button, onClickLabel = tr("Agrandir la photo")) { zoom = true }
+                    .semantics { contentDescription = tr("Photo de {}", name) }
+            } else Modifier,
+        ),
+    ) {
         when {
             photo != null -> AsyncImage(
                 model = PapoteApp.instance.mediaUrl(photo),
@@ -152,9 +171,12 @@ fun Avatar(
 }
 
 @Composable
-fun GroupBadge(color: String, icon: String, modifier: Modifier = Modifier, size: Dp = 52.dp, photo: String? = null) {
+fun GroupBadge(color: String, icon: String, modifier: Modifier = Modifier, size: Dp = 52.dp, photo: String? = null, zoomable: Boolean = false, name: String = "groupe") {
+    var zoom by remember { mutableStateOf(false) }
+    if (zoom && photo != null) PhotoZoom(photo, tr("Photo de {}", name)) { zoom = false }
     Box(
-        modifier.size(size).rotate(-4f).clip(RoundedCornerShape(size * 0.35f)).background(tint(color).tint),
+        modifier.size(size).rotate(-4f).clip(RoundedCornerShape(size * 0.35f)).background(tint(color).tint)
+            .then(if (zoomable && photo != null) Modifier.clickable(role = Role.Button, onClickLabel = tr("Agrandir la photo")) { zoom = true } else Modifier),
         contentAlignment = Alignment.Center,
     ) {
         if (photo != null) {
@@ -172,12 +194,41 @@ fun GroupBadge(color: String, icon: String, modifier: Modifier = Modifier, size:
 
 /** A group's badge, or for a two-person conversation the other person's avatar. */
 @Composable
-fun GroupAvatar(g: fr.papote.app.data.GroupSummary?, size: Dp = 52.dp, modifier: Modifier = Modifier) {
+fun GroupAvatar(g: fr.papote.app.data.GroupSummary?, size: Dp = 52.dp, modifier: Modifier = Modifier, zoomable: Boolean = false) {
     val peer = g?.peer
     if (g?.direct == true && peer != null) {
-        Avatar(peer.name, peer.color, peer.photo, modifier, size = size, online = peer.online)
+        Avatar(peer.name, peer.color, peer.photo, modifier, size = size, online = peer.online, zoomable = zoomable)
     } else {
-        GroupBadge(g?.color ?: "rose", g?.icon ?: "heart", modifier, size = size, photo = g?.photo)
+        GroupBadge(g?.color ?: "rose", g?.icon ?: "heart", modifier, size = size, photo = g?.photo, zoomable = zoomable, name = g?.name ?: "groupe")
+    }
+}
+
+/** A profile or group picture full screen: pinch to zoom in, tap or "Fermer" to close. */
+@Composable
+fun PhotoZoom(photo: String, label: String, onClose: () -> Unit) {
+    var scale by remember { mutableFloatStateOf(1f) }
+    var pan by remember { mutableStateOf(Offset.Zero) }
+    androidx.compose.ui.window.Dialog(onDismissRequest = onClose, properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
+        Box(
+            Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.94f))
+                .pointerInput(Unit) {
+                    detectTransformGestures { _, p, zoom, _ ->
+                        scale = (scale * zoom).coerceIn(1f, 5f)
+                        pan = if (scale == 1f) Offset.Zero else pan + p
+                    }
+                }
+                .clickable(onClickLabel = tr("Fermer"), onClick = onClose),
+            contentAlignment = Alignment.Center,
+        ) {
+            AsyncImage(
+                model = if (photo.startsWith("/")) PapoteApp.instance.mediaUrl(photo) else photo,
+                contentDescription = label,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxWidth().padding(12.dp)
+                    .graphicsLayer(scaleX = scale, scaleY = scale, translationX = pan.x, translationY = pan.y),
+            )
+            SquareIconButton(PIcons.Close, tr("Fermer"), onClose, Modifier.align(Alignment.TopEnd).padding(16.dp))
+        }
     }
 }
 
@@ -388,7 +439,7 @@ fun PapoteSwitch(checked: Boolean, onChange: (Boolean) -> Unit, label: String, m
             .clickable(role = Role.Switch) { onChange(!checked) }
             .semantics {
                 contentDescription = label
-                stateDescription = if (checked) "activé" else "désactivé"
+                stateDescription = if (checked) tr("activé") else tr("désactivé")
             }
             .padding(3.dp),
         contentAlignment = if (checked) Alignment.CenterEnd else Alignment.CenterStart,
@@ -406,7 +457,7 @@ fun TopBar(
     actions: @Composable RowScope.() -> Unit = {},
 ) {
     Row(modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        if (onBack != null) SquareIconButton(PIcons.Back, "Retour", onBack)
+        if (onBack != null) SquareIconButton(PIcons.Back, tr("Retour"), onBack)
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.headlineSmall, color = Papote.colors.ink, maxLines = 1)
             if (subtitle != null) Text(subtitle, style = MaterialTheme.typography.bodySmall, color = Papote.colors.muted, maxLines = 1)

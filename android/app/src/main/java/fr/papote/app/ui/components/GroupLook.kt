@@ -1,5 +1,7 @@
 package fr.papote.app.ui.components
 
+import fr.papote.app.tr
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -31,10 +33,10 @@ import fr.papote.app.ui.theme.Papote
 fun GroupLookPicker(icon: String, onIcon: (String) -> Unit, hasImage: Boolean, onPickImage: () -> Unit, onClearImage: () -> Unit) {
     val c = Papote.colors
     Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)) {
-        FieldLabel(if (hasImage) "Image" else "Icône ou image")
+        FieldLabel(if (hasImage) "Image" else tr("Icône ou image"))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            SecondaryButton(if (hasImage) "Changer l’image" else "Choisir une image", onPickImage, icon = PIcons.Image, height = 42.dp)
-            if (hasImage) SecondaryButton("Revenir à l’icône", onClearImage, height = 42.dp)
+            SecondaryButton(if (hasImage) tr("Changer l’image") else tr("Choisir une image"), onPickImage, icon = PIcons.Image, height = 42.dp)
+            if (hasImage) SecondaryButton(tr("Revenir à l’icône"), onClearImage, height = 42.dp)
         }
         if (!hasImage) {
             FlowRow(
@@ -49,7 +51,7 @@ fun GroupLookPicker(icon: String, onIcon: (String) -> Unit, hasImage: Boolean, o
                             .border(2.dp, if (on) c.primary else c.line, RoundedCornerShape(15.dp))
                             .clickable(role = Role.RadioButton) { onIcon(key) }
                             .semantics {
-                                contentDescription = "Icône $key"
+                                contentDescription = tr("Icône {}", key)
                                 stateDescription = if (on) "choisie" else ""
                             },
                         contentAlignment = Alignment.Center,

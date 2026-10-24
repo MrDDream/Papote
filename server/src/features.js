@@ -29,6 +29,10 @@ const EXT = {
   'audio/opus': 'opus',
   'audio/webm': 'webm',
   'application/json': 'json',
+  'video/mp4': 'mp4',
+  'video/quicktime': 'mov',
+  'video/webm': 'webm',
+  'video/3gpp': '3gp',
 };
 const BUILTIN = /^[a-z][a-z0-9-]{0,19}$/;
 const GIF_ID = /^[A-Za-z0-9]{4,40}$/;
@@ -758,7 +762,14 @@ export function createFeatures({ router, store, hub, upload, mediaDir, gifs, whi
     }
     rt.groupId = row.group_id;
     rt.drawer = state.status === 'drawing' ? state.drawer : null;
-    rt.timerAt = state.status === 'drawing' ? state.deadline : state.status === 'between' ? state.betweenUntil : null;
+    rt.timerAt =
+      state.status === 'drawing'
+        ? state.hinted === false
+          ? state.startedAt + Math.floor((state.deadline - state.startedAt) / 2) + 1
+          : state.deadline
+        : state.status === 'between'
+          ? state.betweenUntil
+          : null;
   }
 
   function saveGame(row, state) {
@@ -961,13 +972,16 @@ export function createFeatures({ router, store, hub, upload, mediaDir, gifs, whi
         const meta = json(m.meta);
         let file = null;
         if (m.file && fs.existsSync(path.join(mediaDir, m.file))) {
-          file = `media/${stamp(m.created_at).replace(/[: ]/g, '-')}_${m.id}.${EXT[m.mime] ?? 'bin'}`;
+          const ext = m.type === 'file' ? (meta.name?.match(/\.([A-Za-z0-9]{1,8})$/)?.[1] ?? 'bin') : (EXT[m.mime] ?? 'bin');
+          file = `media/${stamp(m.created_at).replace(/[: ]/g, '-')}_${m.id}.${ext}`;
           await zip.add(file, fs.readFileSync(path.join(mediaDir, m.file)), { compress: false, date: new Date(m.created_at) });
         }
         const what = {
           text: m.text,
           photo: `[Photo${file ? ` : ${file}` : ''}]${m.text ? ` ${m.text}` : ''}`,
           drawing: `[Dessin${file ? ` : ${file}` : ''}]`,
+          video: `[Vidéo${file ? ` : ${file}` : ''}]${m.text ? ` ${m.text}` : ''}`,
+          file: `[Fichier « ${meta.name ?? 'fichier'} »${file ? ` : ${file}` : ''}]`,
           voice: `[Vocal${file ? ` : ${file}` : ''}]${meta.transcript ? ` « ${meta.transcript} »` : ''}`,
           gif: `[GIF${meta.title ? ` « ${meta.title} »` : ''}${file ? ` : ${file}` : ''}]`,
           sticker: `[Sticker${file ? ` : ${file}` : ''}]`,

@@ -28,6 +28,8 @@ export function createWeb() {
     res.setHeader('Permissions-Policy', 'microphone=(self), camera=(), geolocation=()');
     next();
   });
+  // "Partager" → Papote before the service worker took over: open the app's share screen (empty).
+  router.post('/share', (_req, res) => res.redirect(303, '/web/#/share'));
   router.use('/fonts', express.static(FONTS_DIR, { maxAge: '30d', index: false }));
   router.use(
     express.static(WEB_DIR, {

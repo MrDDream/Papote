@@ -14,9 +14,14 @@ const shuffle = (a) => {
   return out;
 };
 
-/** "Éléphant " → "elephant": guesses are compared without case or accents. */
+/** "Éléphant " → "elephant", "Cœur" → "coeur": guesses are compared without case or accents. */
 export const fold = (s) =>
   String(s ?? '')
+    .toLowerCase()
+    // Ligatures don't decompose: without this "cœur" and "œuf" could never be guessed.
+    .replace(/œ/g, 'oe')
+    .replace(/æ/g, 'ae')
+    .replace(/ß/g, 'ss')
     .normalize('NFD')
     .replace(/\p{M}/gu, '')
     .toLowerCase()
@@ -329,6 +334,7 @@ function startRound(state) {
   state.deadline = now() + ROUND_MS;
   state.found = [];
   state.guesses = [];
+  state.hinted = false;
   state.status = 'drawing';
   state.strokesVersion = (state.strokesVersion ?? 0) + 1;
 }
@@ -364,6 +370,11 @@ const pictionary = {
   tick(state) {
     if (state.status === 'drawing' && now() > state.deadline) {
       endRound(state);
+      return true;
+    }
+    // Halfway: everyone gets the extra hint letter, even if nobody guessed in the meantime.
+    if (state.status === 'drawing' && !state.hinted && now() - state.startedAt > ROUND_MS / 2) {
+      state.hinted = true;
       return true;
     }
     if (state.status === 'between' && now() > state.betweenUntil) {
@@ -428,6 +439,8 @@ const pictionary = {
       status: state.status,
       drawer: state.drawer ?? null,
       deadline: drawing ? state.deadline : null,
+      // Time left as the server sees it: phones whose clock is off still show the right countdown.
+      remainingMs: drawing ? Math.max(0, state.deadline - now()) : null,
       betweenUntil: state.status === 'between' ? state.betweenUntil : null,
       word: !drawing || isDrawer ? (state.word ?? null) : null,
       hint: drawing && state.word ? hint(state.word, now() - state.startedAt) : null,

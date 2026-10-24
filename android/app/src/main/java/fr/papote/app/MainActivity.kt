@@ -47,14 +47,26 @@ import fr.papote.app.ui.members.MembersScreen
 import fr.papote.app.ui.profile.ProfileScreen
 import fr.papote.app.ui.theme.Papote
 import fr.papote.app.ui.theme.PapoteTheme
+import androidx.core.content.IntentCompat
+import fr.papote.app.service.ShareShortcuts
+import fr.papote.app.ui.chat.PendingPhoto
+import fr.papote.app.ui.chat.PendingShare
+import fr.papote.app.ui.share.ShareScreen
+import fr.papote.app.ui.share.Shared
 
 /** An invitation opened from a shared papote://join link. */
 data class PendingInvite(val server: String?, val code: String?)
+
+/** "Partager" → Papote from another app; [groupId] when a conversation was picked in the share sheet itself. */
+data class IncomingShare(val shared: Shared, val groupId: Long?)
 
 // FragmentActivity (not ComponentActivity): the fingerprint prompt needs it.
 class MainActivity : FragmentActivity() {
     private val pendingInvite = mutableStateOf<PendingInvite?>(null)
     private val pendingChat = mutableStateOf<Long?>(null)
+    private val incomingShare = mutableStateOf<IncomingShare?>(null)
+    /** What the share screen offers to send, until a conversation is picked. */
+    private val sharing = mutableStateOf<Shared?>(null)
     private val locked = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -62,6 +74,7 @@ class MainActivity : FragmentActivity() {
         super.onCreate(savedInstanceState)
         pendingInvite.value = parseInvite(intent?.data)
         pendingChat.value = intent?.getLongExtra(Notifier.EXTRA_GROUP_ID, -1)?.takeIf { it > 0 }
+        if (savedInstanceState == null) incomingShare.value = parseShare(intent)
         val app = application as PapoteApp
         locked.value = savedInstanceState == null && app.session.state.value.lock != Session.LockMode.None
         setContent {
@@ -88,13 +101,27 @@ class MainActivity : FragmentActivity() {
                             pendingChat.value = null
                         }
                     }
+                    val share = incomingShare.value
+                    LaunchedEffect(share, session.loggedIn) {
+                        if (share != null && session.loggedIn) {
+                            incomingShare.value = null
+                            if (share.groupId != null) {
+                                sendShared(nav, share.groupId, share.shared)
+                            } else {
+                                sharing.value = share.shared
+                                nav.navigate(Routes.SHARE) { launchSingleTop = true }
+                            }
+                        }
+                    }
                     // Logged out (by hand or because the token died): back to the join screen.
                     LaunchedEffect(session.loggedIn) {
                         if (!session.loggedIn && nav.currentDestination?.route?.startsWith("join") != true) {
                             nav.navigate(Routes.join(null, null)) { popUpTo(0) }
                         }
                     }
-                    PapoteNav(nav, startLoggedIn = session.loggedIn)
+                    PapoteNav(nav, startLoggedIn = session.loggedIn, sharing = sharing.value, onShareTo = { id ->
+                        sharing.value?.let { sendShared(nav, id, it) }
+                    })
                     if (session.loggedIn && !locked.value) NotificationPrompt()
                     if (locked.value && session.lock != Session.LockMode.None) {
                         LockScreen(session.lock) { locked.value = false }
@@ -120,6 +147,30 @@ class MainActivity : FragmentActivity() {
         super.onNewIntent(intent)
         parseInvite(intent.data)?.let { pendingInvite.value = it }
         intent.getLongExtra(Notifier.EXTRA_GROUP_ID, -1).takeIf { it > 0 }?.let { pendingChat.value = it }
+        parseShare(intent)?.let { incomingShare.value = it }
+    }
+
+    private fun parseShare(intent: Intent?): IncomingShare? {
+        if (intent?.action != Intent.ACTION_SEND) return null
+        // Apps often repeat the title inside the text (a link and its page title): keep each piece once.
+        val parts = listOfNotNull(intent.getStringExtra(Intent.EXTRA_SUBJECT), intent.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString())
+            .map { it.trim() }.filter { it.isNotEmpty() }
+        val text = parts.filterIndexed { i, p -> parts.withIndex().none { (j, o) -> j != i && o.contains(p) && (o.length > p.length || j < i) } }
+            .joinToString("\n").takeIf { it.isNotEmpty() }
+        val image = if (intent.type?.startsWith("image/") == true) IntentCompat.getParcelableExtra(intent, Intent.EXTRA_STREAM, Uri::class.java) else null
+        if (text == null && image == null) return null
+        return IncomingShare(Shared(text, image), ShareShortcuts.groupIdOf(intent.getStringExtra(androidx.core.content.pm.ShortcutManagerCompat.EXTRA_SHORTCUT_ID)))
+    }
+
+    /** Opens the conversation with the shared text in its field; a picture goes through "Décorer la photo" first. */
+    private fun sendShared(nav: NavHostController, groupId: Long, shared: Shared) {
+        ShareShortcuts.used(this, groupId)
+        PendingShare.text = shared.text
+        nav.navigate(Routes.chat(groupId)) { popUpTo(Routes.GROUPS) }
+        if (shared.image != null) {
+            PendingPhoto.uri = shared.image
+            nav.navigate(Routes.photo(groupId, false))
+        }
     }
 
     private fun parseInvite(uri: Uri?): PendingInvite? {
@@ -133,6 +184,7 @@ object Routes {
     const val PROFILE = "profile"
     const val NEW_GROUP = "newgroup"
     const val CONTACTS = "contacts"
+    const val SHARE = "share"
     fun join(server: String?, code: String?) =
         "join?server=${Uri.encode(server.orEmpty())}&code=${Uri.encode(code.orEmpty())}"
     fun chat(id: Long) = "chat/$id"
@@ -153,7 +205,7 @@ object Routes {
 }
 
 @Composable
-private fun PapoteNav(nav: NavHostController, startLoggedIn: Boolean) {
+private fun PapoteNav(nav: NavHostController, startLoggedIn: Boolean, sharing: Shared?, onShareTo: (Long) -> Unit) {
     val groupArg = listOf(navArgument("id") { type = NavType.LongType })
     // Fixed for the activity's lifetime: changing it would reset the back stack on login/logout.
     val start = remember { if (startLoggedIn) Routes.GROUPS else "join?server=&code=" }
@@ -183,6 +235,11 @@ private fun PapoteNav(nav: NavHostController, startLoggedIn: Boolean) {
                 onProfile = { nav.navigate(Routes.PROFILE) },
                 onContacts = { nav.navigate(Routes.CONTACTS) },
             )
+        }
+        composable(Routes.SHARE) {
+            // Nothing left to share (the app was restarted meanwhile): straight back.
+            if (sharing == null) LaunchedEffect(Unit) { nav.popBackStack() }
+            else ShareScreen(sharing, onBack = { nav.popBackStack() }, onPick = { onShareTo(it.id) })
         }
         composable(Routes.CONTACTS) {
             ContactsScreen(onBack = { nav.popBackStack() }, onOpen = { id -> nav.navigate(Routes.chat(id)) { popUpTo(Routes.GROUPS) } })

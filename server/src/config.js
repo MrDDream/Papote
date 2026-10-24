@@ -46,6 +46,11 @@ export function parseConfig(env) {
     // Whisper: an explicit address, or the "whisper" compose profile (its container is then next to us).
     whisperUrl: env.WHISPER_URL || (/(^|,)\s*whisper\s*(,|$)/.test(env.PAPOTE_PROFILES ?? '') ? 'http://whisper:9000' : null),
     whisperLanguage: env.WHISPER_LANGUAGE || 'fr',
+    // New versions: the server asks GitHub for the latest release twice a day (the apps only ask the server).
+    updateCheck: env.UPDATE_CHECK !== 'false',
+    // Largest video or document ("Fichier") a member can send, in MB.
+    maxUploadMb: wholeNumber(env, 'MAX_UPLOAD_MB', { fallback: 20, min: 1 }),
+    updateRepo: env.UPDATE_REPO || 'MrDDream/Papote',
     vapidKeys: env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY ? { publicKey: env.VAPID_PUBLIC_KEY, privateKey: env.VAPID_PRIVATE_KEY } : null,
   };
 }

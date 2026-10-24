@@ -1,5 +1,7 @@
 package fr.papote.app.ui.profile
 
+import fr.papote.app.tr
+
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -78,39 +80,39 @@ fun NotificationsCard() {
     val askNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
     SettingsCard(
-        "Notifications et batterie",
+        tr("Notifications et batterie"),
         action = {
             InfoButton(
-                "Recevoir les messages app fermée",
-                "Papote n’utilise pas les services de Google : pour te prévenir des nouveaux messages, l’app garde une connexion ouverte avec ton serveur. " +
-                    "Android affiche alors une petite notification discrète « Papote reste connecté ». " +
-                    "Il faut aussi autoriser Papote à tourner en arrière-plan (optimisation de batterie désactivée), sinon Android coupe la connexion.",
+                tr("Recevoir les messages app fermée"),
+                tr("Papote n’utilise pas les services de Google : pour te prévenir des nouveaux messages, l’app garde une connexion ouverte avec ton serveur. ") +
+                    tr("Android affiche alors une petite notification discrète « Papote reste connecté ». ") +
+                    tr("Il faut aussi autoriser Papote à tourner en arrière-plan (optimisation de batterie désactivée), sinon Android coupe la connexion."),
             )
         },
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Column(Modifier.weight(1f)) {
-                Text("Recevoir les messages app fermée", style = MaterialTheme.typography.labelLarge, color = c.ink)
-                Text(if (r.background) "Connexion gardée en arrière-plan" else "Seulement quand Papote est ouvert", style = MaterialTheme.typography.bodySmall, color = c.muted)
+                Text(tr("Recevoir les messages app fermée"), style = MaterialTheme.typography.labelLarge, color = c.ink)
+                Text(if (r.background) tr("Connexion gardée en arrière-plan") else tr("Seulement quand Papote est ouvert"), style = MaterialTheme.typography.bodySmall, color = c.muted)
             }
-            PapoteSwitch(r.background, { on -> if (on) enable() else app.session.setBackground(false) }, "Recevoir les messages app fermée")
+            PapoteSwitch(r.background, { on -> if (on) enable() else app.session.setBackground(false) }, tr("Recevoir les messages app fermée"))
         }
         StatusRow(
             PIcons.Bell,
-            "Notifications",
-            if (r.notifications) "Autorisées" else "Bloquées : tu ne verras pas les nouveaux messages",
+            tr("Notifications"),
+            if (r.notifications) tr("Autorisées") else tr("Bloquées : tu ne verras pas les nouveaux messages"),
             r.notifications,
-            if (r.notifications) "Régler" else "Autoriser",
+            if (r.notifications) tr("Régler") else tr("Autoriser"),
         ) {
             if (!r.notifications && Build.VERSION.SDK_INT >= 33) askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
             else context.startActivity(Notifier.notificationSettingsIntent(context))
         }
         StatusRow(
             PIcons.Battery,
-            "Optimisation de batterie",
-            if (r.battery) "Désactivée pour Papote" else "Active : Android peut couper Papote en arrière-plan",
+            tr("Optimisation de batterie"),
+            if (r.battery) tr("Désactivée pour Papote") else tr("Active : Android peut couper Papote en arrière-plan"),
             r.battery,
-            if (r.battery) null else "Désactiver",
+            if (r.battery) null else tr("Désactiver"),
         ) { context.startActivity(Notifier.batteryIntent(context)) }
     }
 }
@@ -147,11 +149,11 @@ fun NotificationPrompt() {
         onDismissRequest = ::close,
         containerColor = c.card,
         icon = { Icon(PIcons.Bell, null, tint = c.primary) },
-        title = { Text("Recevoir tes messages", style = MaterialTheme.typography.titleLarge, color = c.ink) },
+        title = { Text(tr("Recevoir tes messages"), style = MaterialTheme.typography.titleLarge, color = c.ink) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    "Pour être prévenu·e des nouveaux messages même quand Papote est fermé, autorise les notifications et laisse Papote tourner en arrière-plan.",
+                    tr("Pour être prévenu·e des nouveaux messages même quand Papote est fermé, autorise les notifications et laisse Papote tourner en arrière-plan."),
                     style = MaterialTheme.typography.bodyMedium,
                     color = c.muted,
                 )
@@ -159,11 +161,11 @@ fun NotificationPrompt() {
                     app.session.notificationPromptOff = true
                     close()
                 }, modifier = Modifier.fillMaxWidth()) {
-                    Text("Ne plus me demander", style = MaterialTheme.typography.labelLarge, color = c.muted)
+                    Text(tr("Ne plus me demander"), style = MaterialTheme.typography.labelLarge, color = c.muted)
                 }
             }
         },
-        confirmButton = { TextButton(onClick = enable) { Text("Activer", style = MaterialTheme.typography.labelLarge, color = c.primary) } },
-        dismissButton = { TextButton(onClick = ::close) { Text("Plus tard", style = MaterialTheme.typography.labelLarge, color = c.ink) } },
+        confirmButton = { TextButton(onClick = enable) { Text(tr("Activer"), style = MaterialTheme.typography.labelLarge, color = c.primary) } },
+        dismissButton = { TextButton(onClick = ::close) { Text(tr("Plus tard"), style = MaterialTheme.typography.labelLarge, color = c.ink) } },
     )
 }
