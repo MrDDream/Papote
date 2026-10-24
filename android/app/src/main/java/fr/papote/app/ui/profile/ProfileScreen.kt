@@ -225,8 +225,10 @@ fun ProfileScreen(onBack: () -> Unit) {
         SecurityCard(totpEnabled = u?.totp == true, onTotpChanged = { scope.launch { runCatching { fill(app.api.me()) } } })
 
         SettingsCard(tr("Apparence")) {
-            Text(tr("Style"), style = MaterialTheme.typography.labelLarge, color = c.ink)
-            StylePicker(session.style, app.session::setStyle)
+            Text(tr("Thème"), style = MaterialTheme.typography.labelLarge, color = c.ink)
+            LookPicker(session.look, app.session::setLook)
+            Text(tr("Couleurs"), style = MaterialTheme.typography.labelLarge, color = c.ink)
+            StylePicker(session.look, session.style, app.session::setStyle)
             Text(tr("Mode"), style = MaterialTheme.typography.labelLarge, color = c.ink)
             Segmented(listOf(ThemeMode.Light to tr("Clair"), ThemeMode.Dark to tr("Sombre"), ThemeMode.Auto to "Auto"), session.theme, app.session::setTheme)
             Text(tr("Langue"), style = MaterialTheme.typography.labelLarge, color = c.ink)

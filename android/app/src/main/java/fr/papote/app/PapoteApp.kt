@@ -106,7 +106,7 @@ class PapoteApp : Application(), ImageLoaderFactory {
         if (m.type == "system" || m.authorId == null || m.authorId == session.userId) return
         // On screen already: the chat itself, or the groups list with its badges.
         if (inForeground && (openGroupId == m.groupId || openGroupId == null)) return
-        Notifier.message(this, m, e.groupName, e.authorName, e.direct)
+        scope.launch { Notifier.message(this@PapoteApp, m, e.groupName, e.authorName, e.direct) }
     }
 
     /** Coil fetches media through the same client, with the session token for our own server only. */

@@ -97,8 +97,8 @@ private fun palette(
     dangerBg = if (dark) Color(0xFF4A2433) else Color(0xFFFFE0E8),
 )
 
-/** Complete looks for the whole app (Profil → Apparence). Papote, the original, stays the default. */
-enum class ThemeStyle(val label: String, val light: PapoteColors, val night: PapoteColors, val look: Look = PapoteLook) {
+/** The colours (Paramètres → Apparence → Couleurs). With the Pastel theme they set the whole palette; with another theme, its accent. */
+enum class ThemeStyle(val label: String, val light: PapoteColors, val night: PapoteColors) {
     Papote(
         "Papote",
         palette(false, 0xFFF7F3FF, 0xFFFFFFFF, 0xFF2E2442, 0xFF5E5474, 0xFFE6DDFB, 0xFFFBF9FF, 0xFFEDE6FF, 0xFF6A47D6, 0xFF4A2FA8),
@@ -130,7 +130,14 @@ enum class ThemeStyle(val label: String, val light: PapoteColors, val night: Pap
         palette(true, 0xFF121216, 0xFF1D1E24, 0xFFF1F1F5, 0xFFA9AAB8, 0xFF34353F, 0xFF17181D, 0xFF2A2B33, 0xFFB8BBD4, 0xFF6A6D88, 0xFF121216),
     ),
 
-    // Whole new looks: fonts and shapes change too (same as the web app).
+}
+
+/**
+ * The themes (Paramètres → Apparence → Thème): Pastel, the original, takes its whole palette from the
+ * chosen colours; the others have their own palette, fonts and shapes (same as the web app).
+ */
+enum class ThemeLook(val label: String, val light: PapoteColors?, val night: PapoteColors?, val look: Look) {
+    Pastel(tr("Pastel"), null, null, PapoteLook),
     Nuit(
         tr("Nuit étoilée"),
         palette(false, 0xFFEEF0FB, 0xFFFFFFFF, 0xFF1A1F3D, 0xFF545B85, 0xFFD6DAF2, 0xFFF7F8FE, 0xFFE3E6FA, 0xFF5B43E0, 0xFF3D2BB0),
@@ -170,6 +177,16 @@ enum class ThemeStyle(val label: String, val light: PapoteColors, val night: Pap
             bubble = { mine -> if (mine) RoundedCornerShape(4.dp, 18.dp, 4.dp, 18.dp) else RoundedCornerShape(18.dp, 4.dp, 18.dp, 4.dp) },
         ),
     ),
+}
+
+/** The palette for a theme and its colours; [color] null = the theme's own ("D'origine"). */
+fun paletteOf(look: ThemeLook, color: ThemeStyle?, dark: Boolean): PapoteColors {
+    val own = if (dark) look.night else look.light
+    val pick = color ?: ThemeStyle.Papote
+    val chosen = if (dark) pick.night else pick.light
+    if (own == null) return chosen
+    if (color == null) return own
+    return own.copy(primary = chosen.primary, primaryDark = chosen.primaryDark, onPrimary = chosen.onPrimary)
 }
 
 // Read lazily: ThemeStyle's own initialisation calls palette() in this file, so a top-level value read
@@ -282,15 +299,17 @@ private fun typography(look: Look): Typography {
 enum class ThemeMode { Light, Dark, Auto }
 
 @Composable
-fun PapoteTheme(mode: ThemeMode = ThemeMode.Auto, style: ThemeStyle = ThemeStyle.Papote, content: @Composable () -> Unit) {
+fun PapoteTheme(mode: ThemeMode = ThemeMode.Auto, themeLook: ThemeLook = ThemeLook.Pastel, style: ThemeStyle? = null, content: @Composable () -> Unit) {
     val dark = when (mode) {
         ThemeMode.Light -> false
         ThemeMode.Dark -> true
         ThemeMode.Auto -> isSystemInDarkTheme()
     }
-    val c = if (dark) style.night else style.light
-    ActiveLook.value = style.look
-    val typography = remember(style) { typography(style.look) }
+    val c = paletteOf(themeLook, style, dark)
+    // With chosen colours, my bubbles take them too (not the theme's own post-it yellow…).
+    val look = if (style != null && themeLook != ThemeLook.Pastel) themeLook.look.copy(mine = null) else themeLook.look
+    ActiveLook.value = look
+    val typography = remember(themeLook) { typography(themeLook.look) }
     val scheme = if (dark) {
         darkColorScheme(
             primary = c.primary, onPrimary = c.onPrimary, background = c.ground, onBackground = c.ink,

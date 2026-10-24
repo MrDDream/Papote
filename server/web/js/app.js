@@ -38,30 +38,65 @@ export function setTheme(mode) {
   applyTheme();
 }
 
-export function getStyle() {
+const LOOKS = ['nuit', 'carnet', 'neopop', 'sobre', 'arcade', 'foret'];
+
+function stored(key, fallback) {
   try {
-    return localStorage.getItem('papote.style') ?? 'papote';
+    return localStorage.getItem(key) ?? fallback;
   } catch {
-    return 'papote';
+    return fallback;
   }
 }
 
-export function setStyle(style) {
+function store(key, value) {
   try {
-    localStorage.setItem('papote.style', style);
+    localStorage.setItem(key, value);
   } catch {
     /* ignore */
   }
+}
+
+// 0.4.0 kept the themes among the colours: such a choice becomes that theme in its own colours.
+if (LOOKS.includes(stored('papote.style', ''))) {
+  store('papote.look', stored('papote.style', ''));
+  store('papote.style', 'default');
+}
+
+/** The theme: 'pastel' (the original) or one of the whole new looks. */
+export function getLook() {
+  const look = stored('papote.look', 'pastel');
+  return LOOKS.includes(look) ? look : 'pastel';
+}
+
+/** A new theme starts in its own colours. */
+export function setLook(look) {
+  store('papote.look', look);
+  store('papote.style', 'default');
+  applyTheme();
+}
+
+/** The colours: 'default' = the theme's own (Papote's violet with Pastel). */
+export function getStyle() {
+  return stored('papote.style', 'default');
+}
+
+export function setStyle(style) {
+  store('papote.style', style);
   applyTheme();
 }
 
 function applyTheme() {
+  const root = document.documentElement;
   const mode = getTheme();
-  if (mode === 'auto') delete document.documentElement.dataset.theme;
-  else document.documentElement.dataset.theme = mode;
+  if (mode === 'auto') delete root.dataset.theme;
+  else root.dataset.theme = mode;
+  const look = getLook();
+  if (look === 'pastel') delete root.dataset.look;
+  else root.dataset.look = look;
+  // With Pastel, Papote's violet is the base palette; on another theme it's a colour like the others.
   const style = getStyle();
-  if (style === 'papote') delete document.documentElement.dataset.style;
-  else document.documentElement.dataset.style = style;
+  if (style === 'default' || (style === 'papote' && look === 'pastel')) delete root.dataset.style;
+  else root.dataset.style = style;
 }
 applyTheme();
 

@@ -38,10 +38,15 @@ object I18n {
     fun set(context: Context, code: String) {
         if (code == lang) return
         prefs(context).edit().putString("lang", code).commit()
-        val restart = context.packageManager.getLaunchIntentForPackage(context.packageName)?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        val restart = context.packageManager.getLaunchIntentForPackage(context.packageName)
+            ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            ?.putExtra(EXTRA_OPEN_SETTINGS, true)
         if (restart != null) context.startActivity(restart)
         Runtime.getRuntime().exit(0)
     }
+
+    /** Back in Paramètres after the restart, where the language was changed. */
+    const val EXTRA_OPEN_SETTINGS = "papote.openSettings"
 
     private fun prefs(context: Context) = context.getSharedPreferences("papote", Context.MODE_PRIVATE)
 }

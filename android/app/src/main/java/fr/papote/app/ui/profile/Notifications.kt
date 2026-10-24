@@ -107,6 +107,25 @@ fun NotificationsCard() {
             if (!r.notifications && Build.VERSION.SDK_INT >= 33) askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
             else context.startActivity(Notifier.notificationSettingsIntent(context))
         }
+        // Like the other messengers: a pop-up at the top of the screen, and bubbles (Android 11+).
+        var tick by remember { mutableIntStateOf(0) }
+        LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { tick++ }
+        val popsUp = remember(tick) { Notifier.popsUp(context) }
+        val bubbles = remember(tick) { Notifier.bubblesAllowed(context) }
+        if (r.notifications) StatusRow(
+            PIcons.Bell,
+            tr("Pop-up en haut de l’écran"),
+            if (popsUp) tr("Les nouveaux messages s’affichent par-dessus ce que tu fais") else tr("Désactivé : les messages arrivent seulement dans la barre de notification"),
+            popsUp,
+            if (popsUp) null else tr("Activer"),
+        ) { context.startActivity(Notifier.channelSettingsIntent(context)) }
+        if (r.notifications && Build.VERSION.SDK_INT >= 30) StatusRow(
+            PIcons.Chat,
+            tr("Bulles de discussion"),
+            if (bubbles) tr("Touche l’icône de bulle d’une notification pour garder la discussion à portée de main") else tr("Une petite bulle flottante pour répondre sans ouvrir l’appli"),
+            bubbles,
+            if (bubbles) tr("Régler") else tr("Activer"),
+        ) { context.startActivity(Notifier.bubbleSettingsIntent(context)) }
         StatusRow(
             PIcons.Battery,
             tr("Optimisation de batterie"),

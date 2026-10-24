@@ -61,6 +61,8 @@ import fr.papote.app.ui.theme.Baloo
 import fr.papote.app.ui.theme.PIcons
 import fr.papote.app.ui.theme.Papote
 import fr.papote.app.ui.theme.ThemeStyle
+import fr.papote.app.ui.theme.paletteOf
+import fr.papote.app.ui.theme.ThemeLook
 import kotlinx.coroutines.launch
 
 /** Account 2FA (asked when the personal code opens the account elsewhere) and the app lock. */
@@ -300,27 +302,54 @@ private fun PinSetupDialog(onDismiss: () -> Unit) {
     )
 }
 
-/** The complete looks, each previewed with its own colours. */
+/** The themes (Pastel, Nuit étoilée…), each previewed in its own colours and font. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun StylePicker(selected: ThemeStyle, onPick: (ThemeStyle) -> Unit) {
+fun LookPicker(selected: ThemeLook, onPick: (ThemeLook) -> Unit) {
     val c = Papote.colors
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        for (style in ThemeStyle.entries) {
-            val on = style == selected
-            val p = if (c.dark) style.night else style.light
+        for (look in ThemeLook.entries) {
+            val on = look == selected
+            val p = paletteOf(look, if (look == ThemeLook.Pastel) ThemeStyle.Papote else null, c.dark)
             Row(
                 Modifier.clip(pShape(16.dp)).background(p.ground)
                     .border(2.dp, if (on) c.primary else c.line, pShape(16.dp))
+                    .clickable(role = Role.RadioButton) { onPick(look) }
+                    .semantics { stateDescription = if (on) tr("choisi") else "" }
+                    .padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Box(Modifier.size(18.dp).clip(look.look.corner(6.dp)).background(p.primary))
+                Text(look.label, fontFamily = look.look.display(), fontSize = (15 * look.look.displayScale.coerceAtLeast(0.7f)).sp, color = p.ink)
+            }
+        }
+    }
+}
+
+/** The colours; with a theme other than Pastel, "D'origine" keeps the theme's own. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun StylePicker(look: ThemeLook, selected: ThemeStyle?, onPick: (ThemeStyle?) -> Unit) {
+    val c = Papote.colors
+    val current = selected ?: if (look == ThemeLook.Pastel) ThemeStyle.Papote else null
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        val options: List<ThemeStyle?> = (if (look == ThemeLook.Pastel) emptyList<ThemeStyle?>() else listOf(null)) + ThemeStyle.entries
+        for (style in options) {
+            val on = style == current
+            val p = paletteOf(look, style, c.dark)
+            Row(
+                Modifier.clip(pShape(16.dp)).background(c.field)
+                    .border(2.dp, if (on) c.primary else c.line, pShape(16.dp))
                     .clickable(role = Role.RadioButton) { onPick(style) }
-                    .semantics { stateDescription = if (on) "choisi" else "" }
+                    .semantics { stateDescription = if (on) tr("choisi") else "" }
                     .padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Box(Modifier.size(18.dp).clip(CircleShape).background(p.primary))
                 Box(Modifier.size(12.dp).clip(CircleShape).background(p.soft))
-                Text(style.label, style = MaterialTheme.typography.labelLarge, color = p.ink)
+                Text(style?.label ?: tr("D’origine"), style = MaterialTheme.typography.labelLarge, color = c.ink)
             }
         }
     }

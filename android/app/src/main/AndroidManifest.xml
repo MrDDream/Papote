@@ -52,6 +52,14 @@
                 android:name="android.app.shortcuts"
                 android:resource="@xml/shortcuts" />
         </activity>
+        <!-- A conversation in a bubble (conversation notifications, Android 11+) -->
+        <activity
+            android:name=".ui.chat.BubbleActivity"
+            android:exported="false"
+            android:allowEmbedded="true"
+            android:documentLaunchMode="always"
+            android:resizeableActivity="true"
+            android:windowSoftInputMode="adjustResize" />
         <service
             android:name=".service.LiveService"
             android:exported="false"

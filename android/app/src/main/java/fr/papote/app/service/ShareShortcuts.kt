@@ -54,6 +54,31 @@ object ShareShortcuts {
         runCatching { ShortcutManagerCompat.setDynamicShortcuts(context, shortcuts) }
     }
 
+    fun idOf(groupId: Long) = "$PREFIX$groupId"
+
+    /**
+     * Makes sure the conversation has its long-lived shortcut: Android needs one to show a message
+     * as a conversation (with its picture, in the "Conversations" part of the shade) and as a bubble.
+     */
+    suspend fun ensure(context: Context, groupId: Long, fallbackName: String): IconCompat {
+        val id = idOf(groupId)
+        val app = PapoteApp.instance
+        val g = runCatching { kotlinx.coroutines.withTimeout(4000) { app.api.group(groupId) } }.getOrNull()
+        val name = g?.name ?: fallbackName
+        val photo = (if (g?.direct == true) g.peer?.photo else g?.photo)?.let { app.mediaUrl(it) }
+        val icon = icon(context, photo, name, if (g?.direct == true) g.peer?.color ?: g.color else g?.color ?: "lilas")
+        val shortcut = ShortcutInfoCompat.Builder(context, id)
+            .setShortLabel(name)
+            .setIcon(icon)
+            .setIntent(Intent(context, MainActivity::class.java).setAction(Intent.ACTION_VIEW).putExtra(Notifier.EXTRA_GROUP_ID, groupId))
+            .setCategories(setOf(CATEGORY))
+            .setLongLived(true)
+            .setLocusId(androidx.core.content.LocusIdCompat(id))
+            .build()
+        runCatching { ShortcutManagerCompat.pushDynamicShortcut(context, shortcut) }
+        return icon
+    }
+
     /** Lets the launcher rank the conversations people share to most. */
     fun used(context: Context, groupId: Long) {
         runCatching { ShortcutManagerCompat.reportShortcutUsed(context, "$PREFIX$groupId") }

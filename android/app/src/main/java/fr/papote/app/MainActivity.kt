@@ -65,6 +65,7 @@ class MainActivity : FragmentActivity() {
     private val pendingInvite = mutableStateOf<PendingInvite?>(null)
     private val pendingChat = mutableStateOf<Long?>(null)
     private val incomingShare = mutableStateOf<IncomingShare?>(null)
+    private val openSettings = mutableStateOf(false)
     /** What the share screen offers to send, until a conversation is picked. */
     private val sharing = mutableStateOf<Shared?>(null)
     private val locked = mutableStateOf(false)
@@ -75,6 +76,7 @@ class MainActivity : FragmentActivity() {
         pendingInvite.value = parseInvite(intent?.data)
         pendingChat.value = intent?.getLongExtra(Notifier.EXTRA_GROUP_ID, -1)?.takeIf { it > 0 }
         if (savedInstanceState == null) incomingShare.value = parseShare(intent)
+        openSettings.value = savedInstanceState == null && intent?.getBooleanExtra(I18n.EXTRA_OPEN_SETTINGS, false) == true
         val app = application as PapoteApp
         locked.value = savedInstanceState == null && app.session.state.value.lock != Session.LockMode.None
         setContent {
@@ -84,7 +86,7 @@ class MainActivity : FragmentActivity() {
                 if (session.lock != Session.LockMode.None) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
                 else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
             }
-            PapoteTheme(session.theme, session.style) {
+            PapoteTheme(session.theme, session.look, session.style) {
                 Box(Modifier.fillMaxSize().background(Papote.colors.ground).safeDrawingPadding()) {
                     val nav = rememberNavController()
                     val invite = pendingInvite.value
@@ -99,6 +101,14 @@ class MainActivity : FragmentActivity() {
                         if (chat != null && session.loggedIn) {
                             nav.navigate(Routes.chat(chat)) { launchSingleTop = true }
                             pendingChat.value = null
+                        }
+                    }
+                    // Restarted for a language change: back in Paramètres.
+                    val settings = openSettings.value
+                    LaunchedEffect(settings, session.loggedIn) {
+                        if (settings && session.loggedIn) {
+                            openSettings.value = false
+                            nav.navigate(Routes.PROFILE) { launchSingleTop = true }
                         }
                     }
                     val share = incomingShare.value

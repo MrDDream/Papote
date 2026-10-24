@@ -1,5 +1,5 @@
 import { api, live, ApiError } from './api.js';
-import { session, go, back, loggedIn, install, getTheme, setTheme, getStyle, setStyle } from './app.js';
+import { session, go, back, loggedIn, install, getTheme, setTheme, getStyle, setStyle, getLook, setLook } from './app.js';
 import { pushState, enablePush, disablePush } from './push.js';
 import {
   h,
@@ -1138,7 +1138,6 @@ export function profileScreen() {
       securityCard(),
       settingsCard(
         tr('Apparence'),
-        h('span', { class: 'label' }, tr('Style')),
         stylePicker(),
         h('span', { class: 'label' }, tr('Mode')),
         segmented([['light', tr('Clair')], ['dark', tr('Sombre')], ['auto', 'Auto']], getTheme(), setTheme, tr('Mode clair ou sombre')),
@@ -1214,6 +1213,7 @@ function settingsCard(title, ...children) {
   return h('section', { class: 'card' }, h('div', { class: 'row between' }, ...head), ...children);
 }
 
+// Colours: with Pastel they set the whole palette, with another theme its accent.
 const STYLES = [
   ['papote', 'Papote', '#6A47D6', '#EDE6FF'],
   ['menthe', tr('Menthe'), '#23845A', '#DDF4E9'],
@@ -1221,31 +1221,57 @@ const STYLES = [
   ['corail', tr('Corail'), '#C23660', '#FFE0E8'],
   ['soleil', tr('Soleil'), '#A65A05', '#FFEBD6'],
   ['encre', tr('Encre'), '#3A3D52', '#E8E9EF'],
-  // Whole new looks: fonts and shapes change too.
-  ['nuit', tr('Nuit étoilée'), '#7C5CFF', '#FFD166'],
-  ['carnet', tr('Carnet'), '#2B2B2B', '#FFE98A'],
-  ['neopop', tr('Néo-pop'), '#FF5A5F', '#FFD23F'],
-  ['sobre', tr('Sobre'), '#2563EB', '#E8EDF5'],
-  ['arcade', tr('Arcade'), '#39D353', '#FF4FD8'],
-  ['foret', tr('Forêt'), '#2F5D3A', '#C66B3D'],
 ];
 
-/** The complete looks (same as the Android app); Papote, the original, is the default. */
+// Themes: whole looks, fonts and shapes included (same as the Android app). [key, name, font, ground, accent]
+const LOOKS = [
+  ['pastel', tr('Pastel'), "'Baloo 2'", '#F7F3FF', '#6A47D6'],
+  ['nuit', tr('Nuit étoilée'), "'Space Grotesk'", '#0F1530', '#7C5CFF'],
+  ['carnet', tr('Carnet'), "'Patrick Hand'", '#FBF6EA', '#2B2B2B'],
+  ['neopop', tr('Néo-pop'), "'Space Grotesk'", '#FFF4D6', '#FF5A5F'],
+  ['sobre', tr('Sobre'), 'system-ui', '#F4F5F7', '#2563EB'],
+  ['arcade', tr('Arcade'), "'Press Start 2P'", '#101010', '#39D353'],
+  ['foret', tr('Forêt'), "'Fraunces'", '#F3EFE6', '#2F5D3A'],
+];
+
+/** Thème, then Couleurs ("D’origine" keeps a theme's own colours). */
 function stylePicker() {
-  const wrap = h('div', { class: 'style-picker', role: 'radiogroup', 'aria-label': tr('Style') });
-  const render = () =>
+  const wrap = h('div', { class: 'col', style: { gap: '10px' } });
+  const render = () => {
+    const look = getLook();
+    const current = getStyle() === 'default' && look === 'pastel' ? 'papote' : getStyle();
+    const colours = look === 'pastel' ? STYLES : [['default', tr('D’origine'), LOOKS.find((l) => l[0] === look)[4], 'transparent'], ...STYLES];
     clear(
       wrap,
-      STYLES.map(([key, label, primary, soft]) =>
-        h(
-          'button',
-          { type: 'button', role: 'radio', 'aria-checked': String(getStyle() === key), onclick: () => (setStyle(key), render()) },
-          h('span', { class: 'sw', style: { background: primary } }),
-          h('span', { class: 'sw small', style: { background: soft } }),
-          label,
+      h('span', { class: 'label' }, tr('Thème')),
+      h(
+        'div',
+        { class: 'style-picker', role: 'radiogroup', 'aria-label': tr('Thème') },
+        LOOKS.map(([key, label, font, ground, accent]) =>
+          h(
+            'button',
+            { type: 'button', role: 'radio', 'aria-checked': String(look === key), onclick: () => (setLook(key), render()) },
+            h('span', { class: 'sw', style: { background: accent, outline: `4px solid ${ground}` } }),
+            h('span', { style: { fontFamily: font, fontSize: key === 'arcade' ? '10px' : '' } }, label),
+          ),
+        ),
+      ),
+      h('span', { class: 'label' }, tr('Couleurs')),
+      h(
+        'div',
+        { class: 'style-picker', role: 'radiogroup', 'aria-label': tr('Couleurs') },
+        colours.map(([key, label, primary, soft]) =>
+          h(
+            'button',
+            { type: 'button', role: 'radio', 'aria-checked': String(current === key), onclick: () => (setStyle(key), render()) },
+            h('span', { class: 'sw', style: { background: primary } }),
+            soft !== 'transparent' && h('span', { class: 'sw small', style: { background: soft } }),
+            label,
+          ),
         ),
       ),
     );
+  };
   render();
   return wrap;
 }

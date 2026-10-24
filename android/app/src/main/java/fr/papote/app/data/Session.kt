@@ -3,6 +3,7 @@ package fr.papote.app.data
 import android.content.Context
 import fr.papote.app.ui.theme.ThemeMode
 import fr.papote.app.ui.theme.ThemeStyle
+import fr.papote.app.ui.theme.ThemeLook
 import java.security.MessageDigest
 import java.security.SecureRandom
 import javax.crypto.SecretKeyFactory
@@ -23,7 +24,10 @@ class Session(context: Context) {
         val token: String?,
         val userId: Long?,
         val theme: ThemeMode,
-        val style: ThemeStyle = ThemeStyle.Papote,
+        /** Pastel, Nuit étoilée, Carnet… */
+        val look: ThemeLook = ThemeLook.Pastel,
+        /** Colours; null = the theme's own ("D'origine"), Papote's violet with Pastel. */
+        val style: ThemeStyle? = null,
         /** Keep the connection (and notifications) going when the app is closed. */
         val background: Boolean = false,
         val lock: LockMode = LockMode.None,
@@ -45,7 +49,10 @@ class Session(context: Context) {
         token = prefs.getString("token", null),
         userId = prefs.getLong("userId", -1).takeIf { it > 0 },
         theme = runCatching { ThemeMode.valueOf(prefs.getString("theme", null) ?: "Auto") }.getOrDefault(ThemeMode.Auto),
-        style = runCatching { ThemeStyle.valueOf(prefs.getString("style", null) ?: "Papote") }.getOrDefault(ThemeStyle.Papote),
+        // 0.4.0 kept the themes in "style": a theme name there means that theme in its own colours.
+        look = ThemeLook.entries.firstOrNull { it.name == prefs.getString("style", null) }
+            ?: ThemeLook.entries.firstOrNull { it.name == prefs.getString("look", null) } ?: ThemeLook.Pastel,
+        style = ThemeStyle.entries.firstOrNull { it.name == prefs.getString("style", null) },
         background = prefs.getBoolean("background", false),
         lock = runCatching { LockMode.valueOf(prefs.getString("lock", null) ?: "None") }.getOrDefault(LockMode.None),
         lockAfter = prefs.getInt("lockAfter", 0),
@@ -74,8 +81,15 @@ class Session(context: Context) {
         _state.value = read()
     }
 
-    fun setStyle(style: ThemeStyle) {
-        prefs.edit().putString("style", style.name).apply()
+    /** Colours; null = the theme's own. */
+    fun setStyle(style: ThemeStyle?) {
+        prefs.edit().putString("style", style?.name ?: "Default").apply()
+        _state.value = read()
+    }
+
+    /** A new theme starts in its own colours. */
+    fun setLook(look: ThemeLook) {
+        prefs.edit().putString("look", look.name).putString("style", "Default").apply()
         _state.value = read()
     }
 
