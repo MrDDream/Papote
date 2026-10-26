@@ -21,9 +21,9 @@ A cosy, self-hosted messenger for family and friends: an Android app, an install
 
 <p align="center">
 <img src="docs/screens/home.png" width="23%" alt="Groups">
+<img src="docs/screens/signup.png" width="23%" alt="Your account">
 <img src="docs/screens/chat.png" width="23%" alt="Chat">
-<img src="docs/screens/themes.png" width="23%" alt="Themes">
-<img src="docs/screens/game.png" width="23%" alt="Mini-games">
+<img src="docs/screens/chat-poll.png" width="23%" alt="Polls and location">
 </p>
 
 Everyone has an account (a username and a password, the same on every device); people join a group when a member adds them, or with an invitation code or QR code. Messages, photos, voice notes and drawings stay on your server: no account at a third party, no Google services, no tracking.

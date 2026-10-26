@@ -21,9 +21,9 @@ Une messagerie douillette et auto-hébergée pour la famille et les amis : une a
 
 <p align="center">
 <img src="docs/screens/home.png" width="23%" alt="Groupes">
+<img src="docs/screens/signup.png" width="23%" alt="Ton compte">
 <img src="docs/screens/chat.png" width="23%" alt="Discussion">
-<img src="docs/screens/themes.png" width="23%" alt="Thèmes">
-<img src="docs/screens/game.png" width="23%" alt="Mini-jeux">
+<img src="docs/screens/chat-poll.png" width="23%" alt="Sondage et position">
 </p>
 
 Chacun a son compte (un identifiant et un mot de passe, les mêmes sur tous ses appareils) ; on entre dans un groupe quand un membre nous y ajoute, ou avec un code d'invitation ou un QR code. Messages, photos, vocaux et dessins restent sur ton serveur : pas de compte chez un tiers, pas de services Google, aucun pistage.
