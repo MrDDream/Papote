@@ -467,6 +467,15 @@ export function createStore(db) {
 
   // --- the server access code (Admin → tableau de bord): one standing code to create an account ----
 
+  /** Who can create an account: 'open' (anyone, from the apps) or 'code' (an invitation or the server code). */
+  function registration() {
+    return q("SELECT value FROM admin_settings WHERE key = 'registration'").get()?.value === 'code' ? 'code' : 'open';
+  }
+
+  function setRegistration(mode) {
+    q("INSERT INTO admin_settings (key, value) VALUES ('registration', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").run(mode === 'code' ? 'code' : 'open');
+  }
+
   function serverCode({ create = false } = {}) {
     const code = q("SELECT value FROM admin_settings WHERE key = 'server_code'").get()?.value;
     const inv = code && q('SELECT * FROM invites WHERE code = ? AND revoked = 0').get(code);
@@ -494,6 +503,8 @@ export function createStore(db) {
     db,
     q,
     serverCode,
+    registration,
+    setRegistration,
     regenerateServerCode,
     disableServerCode,
     personalCode,

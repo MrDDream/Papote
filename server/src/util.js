@@ -102,10 +102,36 @@ export function pick(value, allowed, fallback) {
   return allowed.includes(value) ? value : fallback;
 }
 
+// --- standard accounts: username and password ------------------------------------------------
+
+/** "Lou.B" → "lou.b"; null when it isn't a valid username (3-24 letters, digits, . _ -). */
+export function normalizeUsername(input) {
+  const v = String(input ?? '').trim().replace(/^@/, '').toLowerCase();
+  return /^[a-z0-9][a-z0-9._-]{2,23}$/.test(v) ? v : null;
+}
+
+export const MIN_PASSWORD = 8;
+
+/** scrypt, with its own salt: "scrypt$<salt>$<hash>" (base64). */
+export function hashPassword(password) {
+  const salt = crypto.randomBytes(16);
+  const hash = crypto.scryptSync(String(password), salt, 32, { N: 16384, r: 8, p: 1 });
+  return `scrypt$${salt.toString('base64')}$${hash.toString('base64')}`;
+}
+
+export function verifyPassword(password, stored) {
+  const [kind, salt, hash] = String(stored ?? '').split('$');
+  if (kind !== 'scrypt' || !salt || !hash) return false;
+  const expected = Buffer.from(hash, 'base64');
+  const actual = crypto.scryptSync(String(password ?? ''), Buffer.from(salt, 'base64'), expected.length, { N: 16384, r: 8, p: 1 });
+  return crypto.timingSafeEqual(actual, expected);
+}
+
 export function userDto(u, { online = false } = {}) {
   return {
     id: u.id,
     name: u.name,
+    username: u.username ?? null,
     bio: u.bio,
     birthday: u.birthday ?? null,
     color: u.color,

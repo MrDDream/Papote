@@ -67,7 +67,7 @@ async function call(method, path, body) {
   const data = await res.json().catch(() => null);
   if (!res.ok) {
     const code = data?.error ?? `http_${res.status}`;
-    const message = FRIENDLY[code] ?? (res.status < 500 && data?.message) ?? tr`Oups, le serveur a eu un souci (${res.status})`;
+    const message = FRIENDLY[code] ?? (res.status < 500 && data?.message && tr(data.message)) ?? tr`Oups, le serveur a eu un souci (${res.status})`;
     const err = new ApiError(res.status, code, message);
     if (res.status === 401 && path !== '/api/me') window.dispatchEvent(new CustomEvent('papote:logout'));
     throw err;
@@ -81,9 +81,18 @@ export const api = {
   server: () => call('GET', '/api/server'),
   join: (code, name, color) => call('POST', '/api/join', { code, name, color }),
   link: (code, totp) => call('POST', '/api/link', { code, totp }),
+  register: (fields) => call('POST', '/api/register', fields),
+  login: (username, password, totp) => call('POST', '/api/login', { username, password, totp }),
+  setAccount: (fields) => call('PUT', '/api/me/account', fields),
+  lookupUser: (username) => call('GET', `/api/users/lookup?username=${encodeURIComponent(username)}`),
+  addToGroup: (id, who) => call('POST', `/api/groups/${id}/add`, who),
+  invitations: () => call('GET', '/api/me/invitations'),
+  acceptInvitation: (groupId) => call('POST', `/api/me/invitations/${groupId}/accept`),
+  declineInvitation: (groupId) => call('DELETE', `/api/me/invitations/${groupId}`),
   personalCode: () => call('GET', '/api/me/code'),
   regeneratePersonalCode: () => call('POST', '/api/me/code'),
   merge: (code, totp) => call('POST', '/api/me/merge', { code, totp }),
+  mergeWith: (username, password, totp) => call('POST', '/api/me/merge', { username, password, totp }),
   startTotp: () => call('POST', '/api/me/2fa/start'),
   confirmTotp: (code) => call('POST', '/api/me/2fa/confirm', { code }),
   disableTotp: (code) => call('POST', '/api/me/2fa/disable', { code }),

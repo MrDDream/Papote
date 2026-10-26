@@ -28,6 +28,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -102,8 +103,13 @@ fun JoinScreen(initialServer: String, initialCode: String, onBack: (() -> Unit)?
     var code by rememberSaveable { mutableStateOf(cleanCode(initialCode)) }
     var name by rememberSaveable { mutableStateOf("") }
     var color by rememberSaveable { mutableStateOf("rose") }
-    // "J'ai déjà un compte": a one-time code from another of my devices instead of an invitation.
-    var linking by rememberSaveable { mutableStateOf(false) }
+    var username by rememberSaveable { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    // Signed out: "login" (username and password), "register" (a new account) or "link" (an account
+    // from before passwords, opened with its personal code). Signed in: joining a group with its code.
+    var mode by rememberSaveable { mutableStateOf(if (initialCode.isNotBlank()) "register" else "login") }
+    val linking = !loggedIn && mode == "link"
+    var registration by remember { mutableStateOf("open") }
     var totp by rememberSaveable { mutableStateOf("") }
     var needsTotp by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
@@ -112,7 +118,18 @@ fun JoinScreen(initialServer: String, initialCode: String, onBack: (() -> Unit)?
     // Joining another server than the one we are logged into would need a second account: not supported.
     val serverLocked = loggedIn
     val normalized = Session.normalizeServer(server)
-    val ready = normalized != null && code.length == (if (linking) 8 else 6) && (loggedIn || linking || name.isNotBlank())
+    // Whether this server asks for a code to create an account.
+    LaunchedEffect(normalized) {
+        val base = normalized ?: return@LaunchedEffect
+        kotlinx.coroutines.delay(400)
+        runCatching { Api(app.http, { base }, { null }).server() }.onSuccess { registration = it.registration }
+    }
+    val ready = normalized != null && when {
+        loggedIn -> code.length == 6
+        linking -> code.length == 8
+        mode == "login" -> username.trim().length >= 3 && password.isNotEmpty()
+        else -> name.isNotBlank() && username.trim().length >= 3 && password.length >= 8 && (registration == "open" || code.length == 6)
+    }
 
     val scanner = androidx.activity.compose.rememberLauncherForActivityResult(com.journeyapps.barcodescanner.ScanContract()) { result ->
         val text = result.contents ?: return@rememberLauncherForActivityResult
@@ -122,7 +139,7 @@ fun JoinScreen(initialServer: String, initialCode: String, onBack: (() -> Unit)?
             return@rememberLauncherForActivityResult
         }
         scanned.server?.let { server = it }
-        if (!loggedIn) linking = scanned.personal
+        if (!loggedIn) mode = if (scanned.personal) "link" else if (mode == "link") "register" else mode
         code = cleanCode(scanned.code, if (scanned.personal && !loggedIn) 8 else 6)
         error = null
     }
@@ -136,14 +153,26 @@ fun JoinScreen(initialServer: String, initialCode: String, onBack: (() -> Unit)?
                 val sameServer = base == session.server
                 val api = Api(app.http, { base }, { if (sameServer) app.session.token else null })
                 api.server()
-                if (linking) {
-                    val res = api.link(code, totp.ifBlank { null })
-                    app.session.login(base, res.token ?: error("no token"), res.user.id)
-                    onJoined(null)
-                } else {
-                    val res = api.join(code, name.trim().ifBlank { null }, color)
-                    if (res.token != null) app.session.login(base, res.token, res.user.id)
-                    onJoined(res.groupId)
+                when {
+                    loggedIn -> onJoined(api.join(code, null, null).groupId)
+                    linking -> {
+                        val res = api.link(code, totp.ifBlank { null })
+                        app.session.login(base, res.token ?: error("no token"), res.user.id)
+                        onJoined(null)
+                    }
+                    mode == "login" -> {
+                        val res = api.login(username.trim(), password, totp.ifBlank { null })
+                        val token = res.token ?: error("no token")
+                        // Opened from an invitation while signed out: join its group too.
+                        val groupId = if (code.length == 6) runCatching { Api(app.http, { base }, { token }).join(code, null, null).groupId }.getOrNull() else null
+                        app.session.login(base, token, res.user.id)
+                        onJoined(groupId)
+                    }
+                    else -> {
+                        val res = api.register(name.trim(), username.trim(), password, color, code.ifEmpty { null })
+                        app.session.login(base, res.token ?: error("no token"), res.user.id)
+                        onJoined(res.groupId)
+                    }
                 }
             } catch (e: ApiException) {
                 if (e.code == "totp_required" || e.code == "totp_invalid") needsTotp = true
@@ -156,6 +185,14 @@ fun JoinScreen(initialServer: String, initialCode: String, onBack: (() -> Unit)?
                 busy = false
             }
         }
+    }
+
+    fun switchTo(m: String) {
+        mode = m
+        needsTotp = false
+        totp = ""
+        if (m == "link" || code.length == 8) code = ""
+        error = null
     }
 
     Box(Modifier.fillMaxSize().imePadding()) {
@@ -202,11 +239,44 @@ fun JoinScreen(initialServer: String, initialCode: String, onBack: (() -> Unit)?
                         }
                     }
                 }
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    FieldLabel(if (linking) tr("Mon code personnel") else tr("Code d’invitation"))
-                    CodeInput(code, { code = it }, length = if (linking) 8 else 6)
+                if (!loggedIn && mode == "register") {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FieldLabel(tr("Ton petit nom"))
+                        PapoteField(name, { name = it.take(40) }, placeholder = "Lou", label = tr("Ton petit nom"))
+                        Text(tr("Le nom que tes groupes verront."), style = MaterialTheme.typography.bodySmall, color = c.muted)
+                    }
                 }
-                if (linking && needsTotp) {
+                if (!loggedIn && (mode == "login" || mode == "register")) {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FieldLabel(tr("Identifiant"))
+                        PapoteField(username, { username = it.trim().take(25) }, placeholder = "lou", keyboardType = KeyboardType.Ascii, label = tr("Identifiant"))
+                        if (mode == "register") Text(tr("Pour te connecter, et pour qu’on t’ajoute dans un groupe. Lettres, chiffres, point ou tiret."), style = MaterialTheme.typography.bodySmall, color = c.muted)
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FieldLabel(tr("Mot de passe"))
+                        fr.papote.app.ui.components.PasswordField(password, { password = it }, tr("Mot de passe"), imeAction = ImeAction.Done, onIme = { if (ready) submit() })
+                        if (mode == "register") Text(tr("8 caractères au moins."), style = MaterialTheme.typography.bodySmall, color = c.muted)
+                    }
+                }
+                if (loggedIn || linking || mode == "register") {
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FieldLabel(
+                            when {
+                                linking -> tr("Mon code personnel")
+                                loggedIn || registration == "code" -> tr("Code d’invitation")
+                                else -> tr("Code d’invitation (facultatif)")
+                            },
+                        )
+                        CodeInput(code, { code = it }, length = if (linking) 8 else 6)
+                        if (!loggedIn && mode == "register") Text(
+                            if (registration == "code") tr("Ce serveur demande un code : celui d’un groupe ou le code d’accès donné par l’admin.")
+                            else tr("Si on t’a donné le code d’un groupe, tu le rejoins tout de suite."),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = c.muted,
+                        )
+                    }
+                }
+                if ((linking || mode == "login") && needsTotp) {
                     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         FieldLabel(tr("Code de ton application d’authentification"))
                         PapoteField(
@@ -217,11 +287,7 @@ fun JoinScreen(initialServer: String, initialCode: String, onBack: (() -> Unit)?
                         )
                     }
                 }
-                if (!loggedIn && !linking) {
-                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        FieldLabel(tr("Ton petit nom"))
-                        PapoteField(name, { name = it.take(40) }, placeholder = "Lou", label = tr("Ton petit nom"), imeAction = ImeAction.Done, onIme = { if (ready) submit() })
-                    }
+                if (!loggedIn && mode == "register") {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         FieldLabel(tr("Ta frimousse"))
                         TintPicker(color, { color = it }, face = true)
@@ -231,7 +297,14 @@ fun JoinScreen(initialServer: String, initialCode: String, onBack: (() -> Unit)?
             }
 
             Spacer(Modifier.weight(1f))
-            PrimaryButton(if (linking) tr("Me connecter") else tr("Rejoindre"), ::submit, Modifier.fillMaxWidth(), enabled = ready, loading = busy, icon = PIcons.Forward)
+            PrimaryButton(
+                when {
+                    loggedIn -> tr("Rejoindre")
+                    mode == "register" -> tr("Créer mon compte")
+                    else -> tr("Me connecter")
+                },
+                ::submit, Modifier.fillMaxWidth(), enabled = ready, loading = busy, icon = PIcons.Forward,
+            )
             fr.papote.app.ui.components.SecondaryButton(tr("Scanner un QR code"), {
                 scanner.launch(
                     com.journeyapps.barcodescanner.ScanOptions()
@@ -243,19 +316,20 @@ fun JoinScreen(initialServer: String, initialCode: String, onBack: (() -> Unit)?
             }, Modifier.fillMaxWidth(), icon = PIcons.Scan)
             if (!loggedIn) {
                 Text(
-                    if (linking) tr("Je suis nouveau·elle ici") else tr("J’ai déjà un compte sur un autre appareil"),
+                    if (mode == "login") tr("Je suis nouveau·elle ici : créer un compte") else tr("J’ai déjà un compte"),
                     style = MaterialTheme.typography.labelLarge.copy(fontSize = 15.sp),
                     color = if (c.dark) c.ink else c.primaryDark,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.fillMaxWidth().clip(pShape(18.dp))
-                        .clickable(role = Role.Button) {
-                            linking = !linking
-                            needsTotp = false
-                            totp = ""
-                            code = ""
-                            error = null
-                        }
+                        .clickable(role = Role.Button) { switchTo(if (mode == "login") "register" else "login") }
                         .padding(vertical = 14.dp),
+                )
+                if (!linking) Text(
+                    tr("Compte d’avant, sans mot de passe ? Entre ton code personnel"),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = c.muted,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth().clip(pShape(14.dp)).clickable(role = Role.Button) { switchTo("link") }.padding(vertical = 8.dp),
                 )
             }
             Spacer(Modifier.height(4.dp))

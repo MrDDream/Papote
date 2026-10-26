@@ -34,6 +34,8 @@ sealed interface Event {
     data class MemberUpdated(val groupId: Long, val userId: Long, val role: String?, val mutedUntil: Long? = null) : Event
     data class MemberPending(val groupId: Long, val userId: Long, val name: String) : Event
     data class GroupApproved(val groupId: Long) : Event
+    /** Someone invited me to a group (I wasn't their contact yet). */
+    data class InvitationNew(val groupId: Long) : Event
     data class LiveDraw(val groupId: Long, val session: LiveSession?) : Event
     /** A piece of a stroke drawn by someone else (shared drawing, Pictionary). */
     data class LiveStroke(val groupId: Long, val channel: String, val userId: Long, val data: JsonObject) : Event
@@ -154,6 +156,7 @@ class Realtime(private val client: OkHttpClient, private val session: Session, p
             "member.updated" -> Event.MemberUpdated(long("groupId"), long("userId"), o["role"]?.jsonPrimitive?.contentOrNull, o["mutedUntil"]?.jsonPrimitive?.longOrNull)
             "member.pending" -> Event.MemberPending(long("groupId"), long("userId"), o["name"]?.jsonPrimitive?.content ?: "")
             "group.approved" -> Event.GroupApproved(long("groupId"))
+            "invitation.new" -> Event.InvitationNew(long("groupId"))
             "livedraw" -> Event.LiveDraw(long("groupId"), (o["session"] as? JsonObject)?.let { PapoteJson.decodeFromJsonElement<LiveSession>(it) })
             "live" -> Event.LiveStroke(long("groupId"), o["channel"]!!.jsonPrimitive.content, long("userId"), o["data"] as JsonObject)
             "story.new", "story.removed" -> Event.StoriesChanged(long("groupId"))

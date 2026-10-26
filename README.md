@@ -40,7 +40,7 @@ People join a group with a 6-character invitation code (or a QR code). Messages,
 - **Voice**: playback speed, voice filters (mouse, robot, echo, giant), walkie-talkie mode, optional transcription by a **Whisper** container on your machine.
 - **Photos**: decorate before sending (text, stickers, drawing, crop, filters), or make them disappear after 24 hours.
 - **Groups**: colours, 20 icons or a picture, background patterns, the group's own quick reactions, roles (owner / admin / member), approval of newcomers, mute, export as `.zip`, two-person conversations.
-- **One account, several devices**, with a permanent personal code (and QR code), account merge, optional 2FA, app lock (PIN or fingerprint) on Android.
+- **Standard accounts**: a display name, a username and a password, the same on every device. Sign-up is open to anyone or invitation-only (admin setting); add a contact to a group in one tap, or anyone by their username (they accept an invitation). Account merge, optional 2FA, app lock (PIN or fingerprint) on Android.
 - **Notifications without Google**: the Android app keeps its own connection; browsers and the iPhone PWA get Web Push, encrypted for the browser.
 - **Admin web** (`/admin`): dashboard, server health, storage, **backup & restore**, journal with filters, invitation codes, members, groups with a **30-day trash**, 2FA, IP allowlist, a **new personal code for a member** who lost their phone (all their devices signed out, account 2FA removed), **new version check** (the Android app offers the new APK by itself). The admin never sees group content.
 
@@ -112,7 +112,7 @@ curl -LO https://raw.githubusercontent.com/MrDDream/Papote/main/docker-compose.y
 curl -L -o .env https://raw.githubusercontent.com/MrDDream/Papote/main/.env.example
 ```
 
-Then start it and read the first access code:
+Then start it:
 
 ```bash
 docker compose up -d
@@ -122,11 +122,11 @@ docker compose up -d
 docker compose logs papote
 ```
 
-On the first start, the log prints the **server access code** for the first person (`Code d'accès pour la première personne : K7P-2Q9`). The same code is on the admin dashboard, where it can be regenerated.
+Then open the app and **create an account** (display name, username, password). Sign-up is open by default: in `/admin`, "Inscriptions" switches it to invitation-only (a group's code or the server access code, which the log prints on the first start and the dashboard can regenerate).
 
 - Web app: `http://<your-server>:3000/web/` (port and address: `PORT` and `BIND_ADDRESS` in `.env`; by default the port only listens on `127.0.0.1`, for a reverse proxy on the same machine).
 - Admin: `http://<your-server>:3000/admin`
-- Android: install the APK from the [latest release](https://github.com/MrDDream/Papote/releases/latest), then enter your server address and the code.
+- Android: install the APK from the [latest release](https://github.com/MrDDream/Papote/releases/latest), then enter your server address and sign in or create an account.
 
 **Updating**
 

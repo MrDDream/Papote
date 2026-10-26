@@ -3,7 +3,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { renderSVG } from 'uqr';
-import { EXPIRIES, GROUP_ICONS, COLORS, cleanText, now, parseCookies, pick } from '../util.js';
+import crypto from 'node:crypto';
+import { EXPIRIES, GROUP_ICONS, COLORS, cleanText, now, parseCookies, pick, hashPassword } from '../util.js';
 import { filterBar, formatBytes, formatDate, html, icon, layout, loginPage, messagePage, pageHead, raw, relative, twoFactorPage } from './html.js';
 import { TRASH_DAYS } from '../store.js';
 import { rateLimit } from '../ratelimit.js';
@@ -346,6 +347,21 @@ ${
 }
 </section>
 
+<section class="card" aria-labelledby="signup">
+<div class="card-head"><h2 id="signup">${icon('people')} Inscriptions</h2>${
+      store.registration() === 'open' ? html`<span class="pill">Ouvertes</span>` : html`<span class="pill warn">Sur invitation</span>`
+    }</div>
+<p class="empty">${
+      store.registration() === 'open'
+        ? 'N’importe qui peut créer un compte depuis l’app (pseudo, identifiant, mot de passe). Sans invitation, personne ne voit tes groupes : on y entre seulement si un membre l’ajoute.'
+        : 'Pour créer un compte, il faut un code : celui d’un groupe ou le code d’accès au serveur ci-dessus.'
+    }</p>
+<form method="post" action="/admin/registration" class="inline">
+<input type="hidden" name="mode" value="${store.registration() === 'open' ? 'code' : 'open'}">
+<button type="submit" class="ghost">${store.registration() === 'open' ? 'Passer sur invitation' : 'Ouvrir les inscriptions'}</button>
+</form>
+</section>
+
 <div class="stats">
 ${stats.map(([label, value, sub, bg]) => html`<div class="stat" style="background:${raw(bg)}"><b>${label}</b><span>${value}</span><small>${sub}</small></div>`)}
 </div>
@@ -400,6 +416,13 @@ ${otherInvites.length ? inviteRows(otherInvites.slice(0, 5)) : html`<p class="em
     else if (u.error) flash(res, 'error', `GitHub injoignable : ${u.error}`);
     else flash(res, 'ok', u.available ? `Papote v${u.latest.version} est disponible` : 'Papote est à jour');
     res.redirect(303, '/admin#maj');
+  });
+
+  router.post('/registration', (req, res) => {
+    store.setRegistration(req.body?.mode === 'code' ? 'code' : 'open');
+    sec.audit('registration', req, store.registration());
+    flash(res, 'ok', store.registration() === 'open' ? 'Inscriptions ouvertes à tous' : 'Inscriptions sur invitation seulement');
+    res.redirect(303, '/admin');
   });
 
   router.post('/server-code/regenerate', (req, res) => {
@@ -510,13 +533,13 @@ ${
 <tbody>
 ${shown.map(
   (u) => html`<tr class="${u.disabled ? 'off' : ''}" data-search="${u.name}">
-<td><b>${u.name}</b>${hub.isOnline(u.id) ? html` <span class="pill">en ligne</span>` : ''}${u.disabled ? html` <span class="pill off">bloqué</span>` : ''}</td>
+<td><b>${u.name}</b>${u.username ? html` <small class="empty">@${u.username}</small>` : ''}${hub.isOnline(u.id) ? html` <span class="pill">en ligne</span>` : ''}${u.disabled ? html` <span class="pill off">bloqué</span>` : ''}</td>
 <td>${u.group_count}</td>
 <td>${u.sessions}</td>
 <td>${hub.isOnline(u.id) ? 'maintenant' : relative(u.last_seen_at)}</td>
 <td>${formatDate(u.created_at)}</td>
 <td class="actions">
-<a class="btn ghost" href="/admin/members/${u.id}/code" title="Téléphone perdu, code oublié : un nouveau code personnel">Nouveau code</a>
+<a class="btn ghost" href="/admin/members/${u.id}/code" title="Mot de passe oublié, téléphone perdu">Nouveau mot de passe</a>
 <form method="post" action="/admin/members/${u.id}/signout"><button class="soft" type="submit">Déconnecter</button></form>
 <form method="post" action="/admin/members/${u.id}/${u.disabled ? 'enable' : 'disable'}"><button class="${u.disabled ? 'soft' : 'danger'}" type="submit">${u.disabled ? 'Débloquer' : 'Bloquer'}</button></form>
 </td>
@@ -528,7 +551,8 @@ ${shown.map(
     );
   });
 
-  // Lost phone, forgotten code: a new personal code, the account's 2FA removed, every device signed out.
+  // Forgotten password, lost phone: a temporary password (and a username if the account had none),
+  // the account's 2FA removed, every device signed out.
   router.get('/members/:id/code', (req, res) => {
     const u = store.getUser(Number(req.params.id));
     if (!u) return res.redirect(303, '/admin/members');
@@ -536,46 +560,55 @@ ${shown.map(
       req,
       res,
       '/admin/members',
-      'Nouveau code personnel',
-      html`${pageHead(`Nouveau code pour ${u.name} ?`, 'Téléphone perdu, code oublié')}
+      'Nouveau mot de passe',
+      html`${pageHead(`Nouveau mot de passe pour ${u.name} ?`, 'Mot de passe oublié, téléphone perdu')}
 <section class="card">
-<p>Papote crée un nouveau code personnel pour ${u.name}. L’ancien cesse de marcher, tous ses appareils sont déconnectés (le téléphone perdu compris)${
+<p>Papote crée un mot de passe provisoire pour ${u.name}${u.username ? html` (identifiant <code>${u.username}</code>)` : ' et lui choisit un identifiant'}. L’ancien mot de passe cesse de marcher, tous ses appareils sont déconnectés (le téléphone perdu compris)${
         u.totp_secret ? ' et sa double authentification est retirée : elle pourra la réactiver ensuite' : ''
       }. Ses groupes et ses messages restent intacts.</p>
-<p class="empty">Le nouveau code s’affiche une seule fois ici : donne-le à ${u.name} de vive voix ou par un moyen sûr.</p>
+<p class="empty">Le mot de passe provisoire s’affiche une seule fois ici : donne-le à ${u.name} de vive voix ou par un moyen sûr. Elle pourra le changer dans Paramètres → Mon compte.</p>
 <form method="post" action="/admin/members/${u.id}/code" class="inline">
 <input type="hidden" name="confirm" value="1">
-<button type="submit" class="danger">Créer un nouveau code</button>
+<button type="submit" class="danger">Créer un mot de passe provisoire</button>
 <a class="btn ghost" href="/admin/members">Annuler</a>
 </form>
 </section>`,
     );
   });
 
+  /** A username from the display name when the account has none yet ("Lou B." → "lou.b", "lou.b2"…). */
+  function usernameFor(u) {
+    const base = (u.name.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]+/g, '.').replace(/^\.+|\.+$/g, '') || 'membre').slice(0, 20).padEnd(3, '0');
+    for (let i = 0; i < 1000; i++) {
+      const candidate = i ? `${base}${i + 1}` : base;
+      if (!q('SELECT 1 FROM users WHERE username = ?').get(candidate)) return candidate;
+    }
+    return `membre${u.id}`;
+  }
+
   router.post('/members/:id/code', (req, res) => {
     const u = store.getUser(Number(req.params.id));
     if (!u || req.body?.confirm !== '1') return res.redirect(303, '/admin/members');
-    const code = store.personalCode(u.id, { fresh: true });
-    q('UPDATE users SET totp_secret = NULL, totp_pending = NULL, recovery_codes = NULL WHERE id = ?').run(u.id);
+    const alphabet = 'abcdefghjkmnpqrstuvwxyz23456789';
+    const raw = Array.from({ length: 12 }, () => alphabet[crypto.randomInt(alphabet.length)]).join('');
+    const password = `${raw.slice(0, 4)}-${raw.slice(4, 8)}-${raw.slice(8)}`;
+    const username = u.username ?? usernameFor(u);
+    q('UPDATE users SET username = ?, password_hash = ?, totp_secret = NULL, totp_pending = NULL, recovery_codes = NULL WHERE id = ?').run(username, hashPassword(password), u.id);
     q('DELETE FROM tokens WHERE user_id = ?').run(u.id);
     hub.disconnectUser(u.id);
     sec.audit('member_code_reset', req, u.name);
     const origin = `${req.protocol}://${req.get('host')}`;
-    const link = `${origin}/web/#/join?link=1&code=${code.replace('-', '')}`;
-    // uqr's SVG is built from our own link only: safe to inline.
-    const svg = renderSVG(link, { border: 4, whiteColor: '#FFFFFF', blackColor: '#2E2442' });
     page(
       req,
       res,
       '/admin/members',
-      'Nouveau code personnel',
-      html`${pageHead(`Nouveau code pour ${u.name}`, 'Il ne sera plus affiché après cette page')}
+      'Nouveau mot de passe',
+      html`${pageHead(`Nouveau mot de passe pour ${u.name}`, 'Il ne sera plus affiché après cette page')}
 <section class="card">
-<p>Sur son nouveau téléphone ou ordinateur, ${u.name} choisit « J’ai déjà un compte », entre l’adresse du serveur <code>${origin}</code> et ce code :</p>
-<div class="code-big">${code}</div>
-<p>Ou scanne ce QR code avec l’appareil photo :</p>
-<div class="qr">${raw(svg)}</div>
-<p class="empty">Tous ses appareils ont été déconnectés${u.totp_secret ? ' et sa double authentification retirée' : ''}. Ses groupes et ses messages l’attendent.</p>
+<p>Dans l’app (adresse du serveur <code>${origin}</code>), ${u.name} choisit « J’ai déjà un compte » et entre :</p>
+<p>Identifiant : <code class="secret">${username}</code></p>
+<div class="code-big">${password}</div>
+<p class="empty">Tous ses appareils ont été déconnectés${u.totp_secret ? ' et sa double authentification retirée' : ''}. Ses groupes et ses messages l’attendent. Elle pourra changer ce mot de passe dans Paramètres → Mon compte.</p>
 <a class="btn primary" href="/admin/members">Retour aux membres</a>
 </section>`,
     );
@@ -836,7 +869,8 @@ ${trashed.map(
     code_created: 'Code créé',
     code_revoked: 'Code révoqué',
     member_signout: 'Membre déconnecté',
-    member_code_reset: 'Nouveau code personnel pour un membre',
+    member_code_reset: 'Nouveau mot de passe pour un membre',
+    registration: 'Inscriptions modifiées',
     member_disable: 'Membre bloqué',
     member_enable: 'Membre débloqué',
     group_created: 'Groupe créé',

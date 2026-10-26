@@ -368,6 +368,48 @@ describe('personal code', () => {
     a.ws.close();
   });
 
+  it('signs up and in with a username and a password, on every device', async () => {
+    const lou = (await agent.post('/api/register').send({ name: 'Lou', username: 'Lou.B', password: 'pop-corn-du-samedi', color: 'menthe' })).body;
+    expect(lou.user).toMatchObject({ name: 'Lou', username: 'lou.b', hasPassword: true });
+    expect((await agent.post('/api/register').send({ name: 'Autre', username: 'lou.b', password: 'pop-corn-du-samedi' })).body.error).toBe('username_taken');
+    expect((await agent.post('/api/register').send({ name: 'Court', username: 'court', password: 'abc' })).body.error).toBe('weak_password');
+    expect((await agent.post('/api/login').send({ username: 'lou.b', password: 'faux-mot-de-passe' })).status).toBe(401);
+    const phone = (await agent.post('/api/login').send({ username: '@LOU.B', password: 'pop-corn-du-samedi' })).body;
+    expect(phone.user.id).toBe(lou.user.id);
+    // Changing the password needs the current one, and signs the other devices out.
+    expect((await agent.put('/api/me/account').set(auth(phone.token)).send({ password: 'nouveau-secret-1', currentPassword: 'nope' })).status).toBe(401);
+    expect((await agent.put('/api/me/account').set(auth(phone.token)).send({ password: 'nouveau-secret-1', currentPassword: 'pop-corn-du-samedi' })).status).toBe(200);
+    expect((await agent.get('/api/me').set(auth(lou.token))).status).toBe(401);
+    expect((await agent.post('/api/login').send({ username: 'lou.b', password: 'nouveau-secret-1' })).status).toBe(201);
+  });
+
+  it('lets an account made with a code choose its username and password', async () => {
+    const { lou } = await setup();
+    expect((await agent.get('/api/me').set(auth(lou.token))).body).toMatchObject({ username: null, hasPassword: false });
+    const set = await agent.put('/api/me/account').set(auth(lou.token)).send({ username: 'lou', password: 'pop-corn-du-samedi' });
+    expect(set.body).toMatchObject({ username: 'lou', hasPassword: true });
+    expect((await agent.post('/api/login').send({ username: 'lou', password: 'pop-corn-du-samedi' })).status).toBe(201);
+  });
+
+  it('adds a contact to a group right away, and invites anyone else', async () => {
+    const { lou, group } = await setup();
+    const { member: sam } = await inviteAndJoin(lou.token, group.id, 'Sam');
+    const other = (await agent.post('/api/groups').set(auth(lou.token)).send({ name: 'Coloc' })).body;
+    // Sam shares "Les copines" with Lou: added to "Coloc" at once.
+    expect((await agent.post(`/api/groups/${other.id}/add`).set(auth(lou.token)).send({ userId: sam.user.id })).body).toMatchObject({ added: true });
+    expect((await agent.get(`/api/groups/${other.id}/members`).set(auth(sam.token))).status).toBe(200);
+    // Zoé signed up on her own: found by her username, she gets an invitation.
+    const zoe = (await agent.post('/api/register').send({ name: 'Zoé', username: 'zoe', password: 'un-long-secret' })).body;
+    expect((await agent.get('/api/users/lookup?username=Zoe').set(auth(lou.token))).body).toMatchObject({ name: 'Zoé', username: 'zoe' });
+    expect((await agent.get('/api/users/lookup?username=personne').set(auth(lou.token))).status).toBe(404);
+    expect((await agent.post(`/api/groups/${other.id}/add`).set(auth(lou.token)).send({ username: 'zoe' })).body).toMatchObject({ invited: true });
+    expect((await agent.get(`/api/groups/${other.id}/members`).set(auth(zoe.token))).status).toBe(404);
+    const invitations = (await agent.get('/api/me/invitations').set(auth(zoe.token))).body;
+    expect(invitations).toMatchObject([{ group: { id: other.id, name: 'Coloc' }, by: 'Lou' }]);
+    expect((await agent.post(`/api/me/invitations/${other.id}/accept`).set(auth(zoe.token))).body).toMatchObject({ groupId: other.id });
+    expect((await agent.get(`/api/groups/${other.id}/members`).set(auth(zoe.token))).body.map((m) => m.name).sort()).toEqual(['Lou', 'Sam', 'Zoé']);
+  });
+
   it('sets illustrated backgrounds and a background picture for a group', async () => {
     const { lou, group } = await setup();
     expect((await agent.patch(`/api/groups/${group.id}/settings`).set(auth(lou.token)).send({ pattern: 'hearts' })).status).toBe(200);

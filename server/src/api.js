@@ -27,6 +27,10 @@ import {
   userDto,
   VOICE_FILTERS,
   cleanOps,
+  normalizeUsername,
+  hashPassword,
+  verifyPassword,
+  MIN_PASSWORD,
 } from './util.js';
 import { tx } from './db.js';
 import { renderSVG } from 'uqr';
@@ -177,7 +181,7 @@ export function createApi({ store, hub, push, dataDir, serverName, version, gifs
     return token;
   }
 
-  const meDto = (u) => ({ ...userDto(u, { online: true }), totp: !!u.totp_secret });
+  const meDto = (u) => ({ ...userDto(u, { online: true }), totp: !!u.totp_secret, hasPassword: !!u.password_hash });
 
   const memberDto = (row) => ({
     ...userDto(row, { online: hub.isOnline(row.id) }),
@@ -219,6 +223,8 @@ export function createApi({ store, hub, push, dataDir, serverName, version, gifs
       moods: MOODS,
       // Optional services: the apps hide what isn't set up.
       features: { gifs: !!gifs?.enabled, transcription: !!whisper?.enabled, maxUploadMb },
+      // 'open': anyone creates an account in the apps; 'code': only with an invitation or the server code.
+      registration: store.registration(),
     });
   });
 
@@ -294,6 +300,87 @@ export function createApi({ store, hub, push, dataDir, serverName, version, gifs
     q('UPDATE users SET recovery_codes = ? WHERE id = ?').run(JSON.stringify(codes.filter((c) => c !== hash)), user.id);
   }
 
+  // --- standard accounts: sign up and sign in with a username and a password ---------------------
+
+  const loginLimit = rateLimit({ windowMs: 10 * 60_000, max: 20 });
+  const signupLimit = rateLimit({ windowMs: 60 * 60_000, max: 10 });
+
+  function checkUsername(input, exceptId = null) {
+    const username = normalizeUsername(input);
+    if (!username) throw new HttpError(400, 'bad_username', 'L’identifiant fait 3 à 24 caractères : lettres, chiffres, point, tiret');
+    const taken = q('SELECT id FROM users WHERE username = ?').get(username);
+    if (taken && taken.id !== exceptId) throw new HttpError(409, 'username_taken', 'Cet identifiant est déjà pris');
+    return username;
+  }
+
+  function checkPassword(input) {
+    const password = String(input ?? '');
+    if (password.length < MIN_PASSWORD) throw new HttpError(400, 'weak_password', `Le mot de passe fait au moins ${MIN_PASSWORD} caractères`);
+    if (password.length > 200) throw new HttpError(400, 'weak_password', 'Mot de passe trop long');
+    return password;
+  }
+
+  /** Someone joined a group (invitation, code, contact): the group hears about it. */
+  function announceJoin(groupId, user, pending) {
+    if (pending) {
+      // Waiting for approval: only the group's admins hear about it.
+      const admins = q("SELECT user_id FROM members WHERE group_id = ? AND status = 'active' AND role != 'member'").all(groupId);
+      for (const a of admins) hub.sendToUser(a.user_id, { type: 'member.pending', groupId, userId: user.id, name: user.name });
+      return;
+    }
+    const member = q('SELECT users.*, members.role, members.joined_at FROM members JOIN users ON users.id = members.user_id WHERE group_id = ? AND user_id = ?').get(groupId, user.id);
+    hub.sendToGroup(groupId, { type: 'member.joined', groupId, member: memberDto(member) });
+    postSystem(groupId, 'joined', { userId: user.id });
+  }
+
+  // A new account: display name, username, password. Open to anyone, or only with a code when the
+  // admin chose "sur invitation". An invitation code also joins its group.
+  router.post('/register', signupLimit, (req, res) => {
+    const b = req.body ?? {};
+    const name = cleanText(b.name, 40);
+    if (!name) throw new HttpError(400, 'name_required', 'Choisis un petit nom');
+    const username = checkUsername(b.username);
+    const password = checkPassword(b.password);
+    const code = b.code ? normalizeCode(b.code) : null;
+    if (b.code && !code) throw new HttpError(400, 'invalid_code', 'Le code fait 6 caractères');
+    if (!code && store.registration() === 'code') throw new HttpError(403, 'code_required', 'Il faut un code d’invitation pour créer un compte sur ce serveur');
+    const passwordHash = hashPassword(password);
+    const result = tx(store.db, () => {
+      const inv = code ? store.usableInvite(code) : null;
+      const { lastInsertRowid } = q('INSERT INTO users (name, color, username, password_hash, created_at) VALUES (?, ?, ?, ?, ?)').run(
+        name,
+        pick(b.color, COLORS, 'rose'),
+        username,
+        passwordHash,
+        now(),
+      );
+      const user = store.getUser(Number(lastInsertRowid));
+      return { user, token: issueToken(user.id, deviceLabel(req)), ...(inv ? store.redeemInvite(inv, user.id) : {}) };
+    });
+    if (result.groupId && !result.alreadyMember) announceJoin(result.groupId, result.user, result.pending);
+    if (isWebClient(req)) setSessionCookie(req, res, result.token);
+    res.status(201).json({
+      token: isWebClient(req) ? null : result.token,
+      user: meDto(result.user),
+      groupId: result.pending ? null : (result.groupId ?? null),
+      pending: !!result.pending,
+    });
+  });
+
+  router.post('/login', loginLimit, (req, res) => {
+    const username = normalizeUsername(req.body?.username);
+    const user = username ? q('SELECT * FROM users WHERE username = ?').get(username) : null;
+    // The same answer for an unknown username and a wrong password.
+    if (!user || !user.password_hash || !verifyPassword(req.body?.password, user.password_hash)) {
+      throw new HttpError(401, 'bad_credentials', 'Identifiant ou mot de passe incorrect');
+    }
+    if (user.disabled) throw new HttpError(403, 'account_disabled', 'Ce compte est bloqué');
+    checkUserTotp(user, req.body?.totp);
+    const token = issueToken(user.id, deviceLabel(req));
+    if (isWebClient(req)) setSessionCookie(req, res, token);
+    res.status(201).json({ token: isWebClient(req) ? null : token, user: meDto(user) });
+  });
+
   router.post('/link', personalCodeLimit, (req, res) => {
     const user = userFromPersonalCode(req.body?.code);
     checkUserTotp(user, req.body?.totp);
@@ -307,6 +394,26 @@ export function createApi({ store, hub, push, dataDir, serverName, version, gifs
   router.use(requireUser);
 
   router.get('/me', (req, res) => res.json(meDto(req.user)));
+
+  // Username and password: chosen once by accounts made with a code, changed later with the current password.
+  router.put('/me/account', loginLimit, (req, res) => {
+    const b = req.body ?? {};
+    const u = req.user;
+    if (u.password_hash && !verifyPassword(b.currentPassword, u.password_hash)) {
+      throw new HttpError(401, 'bad_password', 'Mot de passe actuel incorrect');
+    }
+    const username = b.username !== undefined ? checkUsername(b.username, u.id) : u.username;
+    if (!username) throw new HttpError(400, 'bad_username', 'Choisis un identifiant');
+    const passwordHash = b.password ? hashPassword(checkPassword(b.password)) : u.password_hash;
+    if (!passwordHash) throw new HttpError(400, 'weak_password', 'Choisis un mot de passe');
+    q('UPDATE users SET username = ?, password_hash = ? WHERE id = ?').run(username, passwordHash, u.id);
+    // A new password signs out the other devices (a lost phone, a stolen password).
+    if (b.password && u.password_hash) {
+      const current = sha256(sessionToken(req));
+      q('DELETE FROM tokens WHERE user_id = ? AND hash != ?').run(u.id, current);
+    }
+    res.json(meDto(store.getUser(u.id)));
+  });
 
   // Latest Papote release on GitHub (asked by the server, cached): the Android app offers its new APK.
   router.get('/updates', (_req, res) => {
@@ -390,6 +497,89 @@ export function createApi({ store, hub, push, dataDir, serverName, version, gifs
 
   // --- people and two-person conversations ---------------------------------------------------
 
+  // --- adding someone to a group -------------------------------------------------------------
+
+  const lookupLimit = rateLimit({ windowMs: 60_000, max: 30 });
+  const shareAGroup = (a, b) =>
+    !!q(
+      `SELECT 1 FROM members x JOIN members y ON x.group_id = y.group_id
+       WHERE x.user_id = ? AND y.user_id = ? AND x.status = 'active' AND y.status = 'active'
+         AND x.group_id NOT IN (SELECT id FROM groups WHERE deleted_at IS NOT NULL)`,
+    ).get(a, b);
+
+  /** Someone by their exact username (no listing of the server's accounts). */
+  router.get('/users/lookup', lookupLimit, (req, res) => {
+    const username = normalizeUsername(req.query.username);
+    const u = username ? q('SELECT * FROM users WHERE username = ? AND disabled = 0').get(username) : null;
+    if (!u) throw new HttpError(404, 'user_not_found', 'Personne avec cet identifiant');
+    res.json(userDto(u, { online: hub.isOnline(u.id) }));
+  });
+
+  /**
+   * Adds someone to a group: a contact (already in one of my groups) joins right away; anyone else,
+   * found by their exact username, gets an invitation they accept or decline.
+   */
+  router.post('/groups/:id/add', (req, res) => {
+    const id = intParam(req.params.id);
+    const me = store.requireCanPost(id, req.user.id);
+    rejectDirect(id, 'direct_group');
+    const g = q('SELECT * FROM groups WHERE id = ?').get(id);
+    const settings = groupDto(g).settings;
+    if (me.role === 'member' && !settings.anyoneInvites) throw new HttpError(403, 'not_group_admin', 'Seuls les admins invitent dans ce groupe');
+    const b = req.body ?? {};
+    let target = null;
+    if (b.userId != null) target = store.getUser(Number(b.userId));
+    else {
+      const username = normalizeUsername(b.username);
+      target = username ? q('SELECT * FROM users WHERE username = ?').get(username) : null;
+    }
+    if (!target || target.disabled) throw new HttpError(404, 'user_not_found', 'Personne avec cet identifiant');
+    const already = q('SELECT status FROM members WHERE group_id = ? AND user_id = ?').get(id, target.id);
+    if (already) return res.json({ added: already.status === 'active', pending: already.status === 'pending', invited: false });
+    if (shareAGroup(req.user.id, target.id)) {
+      // A newcomer added by a plain member still waits for the admins when the group approves its members.
+      const pending = settings.approval && me.role === 'member';
+      q('INSERT INTO members (group_id, user_id, role, joined_at, status) VALUES (?, ?, ?, ?, ?)').run(id, target.id, 'member', now(), pending ? 'pending' : 'active');
+      q('DELETE FROM group_invitations WHERE group_id = ? AND user_id = ?').run(id, target.id);
+      announceJoin(id, target, pending);
+      if (!pending) hub.sendToUser(target.id, { type: 'group.approved', groupId: id, group: groupDto(g) });
+      return res.json({ added: !pending, pending, invited: false });
+    }
+    // Not a contact: an invitation, so nobody gets dragged into a stranger's group.
+    q('INSERT OR IGNORE INTO group_invitations (group_id, user_id, invited_by, created_at) VALUES (?, ?, ?, ?)').run(id, target.id, req.user.id, now());
+    hub.sendToUser(target.id, { type: 'invitation.new', groupId: id, groupName: g.name, by: req.user.name });
+    res.json({ added: false, pending: false, invited: true });
+  });
+
+  router.get('/me/invitations', (req, res) => {
+    const rows = q(
+      `SELECT i.created_at, i.invited_by, g.*, u.name AS by_name FROM group_invitations i
+       JOIN groups g ON g.id = i.group_id LEFT JOIN users u ON u.id = i.invited_by
+       WHERE i.user_id = ? AND g.deleted_at IS NULL ORDER BY i.created_at DESC`,
+    ).all(req.user.id);
+    res.json(rows.map((r) => ({ group: groupDto(r), by: r.by_name ?? null, createdAt: r.created_at })));
+  });
+
+  router.post('/me/invitations/:gid/accept', (req, res) => {
+    const id = intParam(req.params.gid);
+    const inv = q('SELECT * FROM group_invitations WHERE group_id = ? AND user_id = ?').get(id, req.user.id);
+    const g = inv && q('SELECT * FROM groups WHERE id = ? AND deleted_at IS NULL').get(id);
+    if (!g) throw new HttpError(404, 'invitation_not_found', 'Cette invitation n’existe plus');
+    const by = inv.invited_by && q("SELECT role FROM members WHERE group_id = ? AND user_id = ? AND status = 'active'").get(id, inv.invited_by);
+    const pending = groupDto(g).settings.approval && (!by || by.role === 'member');
+    q('DELETE FROM group_invitations WHERE group_id = ? AND user_id = ?').run(id, req.user.id);
+    if (!q('SELECT 1 FROM members WHERE group_id = ? AND user_id = ?').get(id, req.user.id)) {
+      q('INSERT INTO members (group_id, user_id, role, joined_at, status) VALUES (?, ?, ?, ?, ?)').run(id, req.user.id, 'member', now(), pending ? 'pending' : 'active');
+      announceJoin(id, req.user, pending);
+    }
+    res.json({ groupId: pending ? null : id, pending });
+  });
+
+  router.delete('/me/invitations/:gid', (req, res) => {
+    q('DELETE FROM group_invitations WHERE group_id = ? AND user_id = ?').run(intParam(req.params.gid), req.user.id);
+    res.status(204).end();
+  });
+
   router.get('/contacts', (req, res) => {
     res.json(store.contacts(req.user.id).map((u) => userDto(u, { online: hub.isOnline(u.id) })));
   });
@@ -406,7 +596,17 @@ export function createApi({ store, hub, push, dataDir, serverName, version, gifs
 
   // "Fusionner avec mon autre compte": this account is folded into the one whose personal code is given.
   router.post('/me/merge', personalCodeLimit, (req, res) => {
-    const target = userFromPersonalCode(req.body?.code);
+    // The other account: its username and password, or (accounts from before) its personal code.
+    let target;
+    if (req.body?.username !== undefined) {
+      const username = normalizeUsername(req.body.username);
+      target = username ? q('SELECT * FROM users WHERE username = ?').get(username) : null;
+      if (!target || !target.password_hash || !verifyPassword(req.body?.password, target.password_hash)) {
+        throw new HttpError(401, 'bad_credentials', 'Identifiant ou mot de passe incorrect');
+      }
+    } else {
+      target = userFromPersonalCode(req.body?.code);
+    }
     if (target.id === req.user.id) throw new HttpError(400, 'same_account', 'C’est déjà ce compte-ci');
     checkUserTotp(target, req.body?.totp);
     const { groups, deletePhoto } = store.mergeUsers(req.user.id, target.id);

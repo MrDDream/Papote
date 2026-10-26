@@ -222,6 +222,18 @@ function migrate(db) {
   const inviteCols = db.prepare('PRAGMA table_info(invites)').all().map((c) => c.name);
   if (!inviteCols.includes('by_admin')) db.exec('ALTER TABLE invites ADD COLUMN by_admin INTEGER NOT NULL DEFAULT 0');
   db.exec('CREATE UNIQUE INDEX IF NOT EXISTS users_personal_code ON users(personal_code)');
+  // Standard accounts: a username (lowercase, unique) and a password, on top of the display name.
+  if (!userCols.includes('username')) db.exec('ALTER TABLE users ADD COLUMN username TEXT');
+  if (!userCols.includes('password_hash')) db.exec('ALTER TABLE users ADD COLUMN password_hash TEXT');
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS users_username ON users(username)');
+  // Someone who isn't a contact yet was invited to a group: they accept or decline.
+  db.exec(`CREATE TABLE IF NOT EXISTS group_invitations (
+    group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    invited_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at INTEGER NOT NULL,
+    PRIMARY KEY (group_id, user_id)
+  )`);
   // Replaced by the permanent personal code.
   db.exec('DROP TABLE IF EXISTS device_links');
 }

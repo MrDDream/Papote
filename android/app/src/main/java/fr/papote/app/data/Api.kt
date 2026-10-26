@@ -102,6 +102,23 @@ class Api(
         send("POST", "/api/join", jsonOf("code" to code, "name" to name, "color" to color))
 
     suspend fun link(code: String, totp: String? = null): LinkResponse = send("POST", "/api/link", jsonOf("code" to code, "totp" to totp))
+
+    // Standard accounts: username and password
+    suspend fun register(name: String, username: String, password: String, color: String, code: String?): JoinResponse =
+        send("POST", "/api/register", jsonOf("name" to name, "username" to username, "password" to password, "color" to color, "code" to code))
+    suspend fun login(username: String, password: String, totp: String? = null): LinkResponse =
+        send("POST", "/api/login", jsonOf("username" to username, "password" to password, "totp" to totp))
+    suspend fun setAccount(username: String, password: String?, currentPassword: String?): User =
+        send("PUT", "/api/me/account", jsonOf("username" to username, "password" to password, "currentPassword" to currentPassword))
+    suspend fun mergeWith(username: String, password: String, totp: String? = null): LinkResponse =
+        send("POST", "/api/me/merge", jsonOf("username" to username, "password" to password, "totp" to totp))
+
+    // Adding someone to a group, invitations
+    suspend fun addToGroup(groupId: Long, userId: Long? = null, username: String? = null): AddResult =
+        send("POST", "/api/groups/$groupId/add", if (userId != null) jsonOf("userId" to userId) else jsonOf("username" to username))
+    suspend fun invitations(): List<Invitation> = get("/api/me/invitations")
+    suspend fun acceptInvitation(groupId: Long): AcceptResult = send("POST", "/api/me/invitations/$groupId/accept")
+    suspend fun declineInvitation(groupId: Long) = sendUnit("DELETE", "/api/me/invitations/$groupId")
     suspend fun personalCode(): PersonalCode = get("/api/me/code")
     suspend fun regeneratePersonalCode(): PersonalCode = send("POST", "/api/me/code")
     suspend fun merge(code: String, totp: String? = null): LinkResponse = send("POST", "/api/me/merge", jsonOf("code" to code, "totp" to totp))
@@ -302,7 +319,7 @@ class Api(
             "contact_not_found" -> tr("Tu ne peux écrire qu’aux personnes de tes groupes")
             "code_expired" -> tr("Ce code a expiré")
             "code_used" -> tr("Ce code a déjà servi")
-            "name_required" -> serverMessage ?: tr("Il manque un nom")
+            "name_required" -> serverMessage?.let { tr(it) } ?: tr("Il manque un nom")
             "too_many_attempts" -> tr("Trop d’essais, réessaie dans quelques minutes")
             "unauthorized" -> tr("Ta session a expiré, reconnecte-toi")
             "group_not_found" -> tr("Ce groupe n’existe plus")
@@ -322,7 +339,7 @@ class Api(
             "not_enough_messages" -> tr("Pas encore assez de messages dans le groupe pour ce jeu")
             "not_enough_players" -> tr("Il faut au moins deux joueurs")
             "too_many_pins" -> tr("Déjà 30 messages épinglés")
-            else -> serverMessage?.takeIf { status < 500 } ?: tr("Oups, le serveur a eu un souci ({})", status)
+            else -> serverMessage?.takeIf { status < 500 }?.let { tr(it) } ?: tr("Oups, le serveur a eu un souci ({})", status)
         }
     }
 }

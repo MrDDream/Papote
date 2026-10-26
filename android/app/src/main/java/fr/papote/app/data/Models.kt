@@ -26,7 +26,21 @@ data class User(
     val totp: Boolean = false,
     /** "dispo", "fatigue", "jeu", "cine", "dnd" or null. */
     val mood: String? = null,
+    /** Lowercase, unique: to sign in, and to be added to a group. */
+    val username: String? = null,
+    /** Only filled for the signed-in user: false for accounts from before passwords. */
+    val hasPassword: Boolean = true,
 )
+
+/** Someone who isn't a contact yet invited me to a group. */
+@Serializable
+data class Invitation(val group: GroupSummary, val by: String? = null, val createdAt: Long = 0)
+
+@Serializable
+data class AddResult(val added: Boolean = false, val pending: Boolean = false, val invited: Boolean = false)
+
+@Serializable
+data class AcceptResult(val groupId: Long? = null, val pending: Boolean = false)
 
 @Serializable
 data class Member(
@@ -41,6 +55,7 @@ data class Member(
     val role: String = "member",
     val joinedAt: Long = 0,
     val mood: String? = null,
+    val username: String? = null,
     /** "pending" while waiting for an admin's approval (only admins see those). */
     val status: String = "active",
     val mutedUntil: Long? = null,
@@ -235,7 +250,7 @@ data class Device(
 )
 
 @Serializable
-data class ServerInfo(val name: String, val version: String, val features: Features = Features())
+data class ServerInfo(val name: String, val version: String, val features: Features = Features(), val registration: String = "open")
 
 @Serializable
 data class ApiError(val error: String = "error", val message: String? = null)

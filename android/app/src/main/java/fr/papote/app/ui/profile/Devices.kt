@@ -45,6 +45,8 @@ import fr.papote.app.data.Device
 import fr.papote.app.data.User
 import fr.papote.app.ui.components.ErrorText
 import fr.papote.app.ui.components.PapoteField
+import fr.papote.app.ui.components.PasswordField
+import fr.papote.app.ui.components.FieldLabel
 import fr.papote.app.ui.components.SecondaryButton
 import fr.papote.app.ui.shortWhen
 import fr.papote.app.ui.theme.Baloo
@@ -55,6 +57,57 @@ import fr.papote.app.ui.theme.lookShadow
 import kotlinx.coroutines.launch
 
 private val CODE_CHARS = Regex("[A-HJ-NP-Z2-9]")
+
+/** Username and password: chosen once by accounts made with a code, changed later with the current password. */
+@Composable
+fun AccountCard(me: User?, onSaved: (User) -> Unit) {
+    val app = PapoteApp.instance
+    val c = Papote.colors
+    val scope = rememberCoroutineScope()
+    var username by remember(me?.username) { mutableStateOf(me?.username.orEmpty()) }
+    var current by remember { mutableStateOf("") }
+    var next by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
+    var saved by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    val hasPassword = me?.hasPassword == true
+    SettingsCard(tr("Mon compte"), action = { me?.username?.let { Text("@$it", style = MaterialTheme.typography.bodySmall, color = c.muted) } }) {
+        if (!hasPassword) Text(
+            tr("Choisis ton identifiant et ton mot de passe : tu t’en serviras pour te connecter sur tes autres appareils, sans code."),
+            style = MaterialTheme.typography.bodyMedium,
+            color = c.ink,
+            modifier = Modifier.fillMaxWidth().clip(pShape(16.dp)).background(c.soft).padding(12.dp),
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            FieldLabel(tr("Identifiant"))
+            PapoteField(username, { username = it.trim().take(25); saved = false }, placeholder = "lou", label = tr("Identifiant"))
+            Text(tr("Tes proches peuvent t’ajouter à un groupe avec cet identifiant."), style = MaterialTheme.typography.bodySmall, color = c.muted)
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            FieldLabel(if (hasPassword) tr("Changer de mot de passe") else tr("Mot de passe"))
+            if (hasPassword) PasswordField(current, { current = it; saved = false }, tr("Mot de passe actuel"))
+            PasswordField(next, { next = it; saved = false }, if (hasPassword) tr("Nouveau mot de passe (facultatif)") else tr("Mot de passe, 8 caractères au moins"))
+            if (hasPassword) Text(tr("Un nouveau mot de passe déconnecte tes autres appareils."), style = MaterialTheme.typography.bodySmall, color = c.muted)
+        }
+        ErrorText(error)
+        SecondaryButton(if (saved) tr("Enregistré !") else tr("Enregistrer"), {
+            busy = true
+            error = null
+            scope.launch {
+                try {
+                    onSaved(app.api.setAccount(username, next.ifEmpty { null }, if (hasPassword) current else null))
+                    current = ""
+                    next = ""
+                    saved = true
+                } catch (e: ApiException) {
+                    error = e.message
+                } finally {
+                    busy = false
+                }
+            }
+        }, Modifier.fillMaxWidth(), icon = PIcons.Check, enabled = !busy && username.length >= 3 && (hasPassword || next.length >= 8))
+    }
+}
 
 /** One settings block: a rounded card with its title. */
 @Composable
@@ -217,8 +270,7 @@ fun DevicesCard(onMerged: (User) -> Unit) {
             SecondaryButton(tr("Fusionner avec mon autre compte"), { merging = true }, Modifier.weight(1f), icon = PIcons.People, height = 44.dp)
             InfoButton(
                 tr("Fusionner deux comptes"),
-                tr("Tu as rejoint avec une invitation sur un autre appareil et tu te retrouves avec deux comptes ? ") +
-                    tr("Depuis le compte en trop, entre le code personnel du bon compte : groupes, messages et appareils y seront regroupés."),
+                tr("Tu te retrouves avec deux comptes ? Depuis le compte en trop, entre l’identifiant et le mot de passe du bon compte : groupes, messages et appareils y seront regroupés."),
             )
         }
         ErrorText(error)
@@ -237,7 +289,7 @@ fun DevicesCard(onMerged: (User) -> Unit) {
             onDismissRequest = { revoking = null },
             containerColor = c.card,
             title = { Text(tr("Déconnecter « {} » ?", d.label), style = MaterialTheme.typography.titleLarge, color = c.ink) },
-            text = { Text(tr("Il faudra ton code personnel pour revenir sur cet appareil."), style = MaterialTheme.typography.bodyLarge, color = c.muted) },
+            text = { Text(tr("Il faudra ton identifiant et ton mot de passe pour revenir sur cet appareil."), style = MaterialTheme.typography.bodyLarge, color = c.muted) },
             confirmButton = {
                 TextButton(onClick = {
                     revoking = null
@@ -261,12 +313,13 @@ private fun MergeDialog(onDismiss: () -> Unit, onMerged: (User) -> Unit) {
     val app = PapoteApp.instance
     val c = Papote.colors
     val scope = rememberCoroutineScope()
-    var input by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
     var totp by remember { mutableStateOf("") }
     var needsTotp by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
-    val clean = input.uppercase().filter { CODE_CHARS.matches(it.toString()) }.take(8)
+    val ready = username.trim().length >= 3 && password.isNotEmpty()
 
     AlertDialog(
         onDismissRequest = { if (!busy) onDismiss() },
@@ -275,11 +328,12 @@ private fun MergeDialog(onDismiss: () -> Unit, onMerged: (User) -> Unit) {
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    tr("Entre le code personnel de ton autre compte. Ce compte-ci y sera fondu ; tu garderas le nom et la photo de l’autre."),
+                    tr("Entre l’identifiant et le mot de passe de ton autre compte. Ce compte-ci y sera fondu ; tu garderas le nom et la photo de l’autre."),
                     style = MaterialTheme.typography.bodyLarge,
                     color = c.muted,
                 )
-                PapoteField(input, { input = it.take(9) }, placeholder = "ABCD-EF23", label = tr("Code personnel de l’autre compte"))
+                PapoteField(username, { username = it.trim().take(25) }, placeholder = tr("Identifiant de l’autre compte"), label = tr("Identifiant de l’autre compte"))
+                PasswordField(password, { password = it }, tr("Son mot de passe"))
                 if (needsTotp) {
                     PapoteField(totp, { totp = it.take(12) }, placeholder = tr("Code à 6 chiffres"), label = tr("Code de l’application d’authentification"))
                 }
@@ -288,12 +342,12 @@ private fun MergeDialog(onDismiss: () -> Unit, onMerged: (User) -> Unit) {
             }
         },
         confirmButton = {
-            TextButton(enabled = clean.length == 8 && !busy, onClick = {
+            TextButton(enabled = ready && !busy, onClick = {
                 busy = true
                 error = null
                 scope.launch {
                     try {
-                        val res = app.api.merge(clean, totp.ifBlank { null })
+                        val res = app.api.mergeWith(username, password, totp.ifBlank { null })
                         app.session.switchUser(res.user.id)
                         onMerged(res.user)
                     } catch (e: ApiException) {
@@ -303,7 +357,7 @@ private fun MergeDialog(onDismiss: () -> Unit, onMerged: (User) -> Unit) {
                         busy = false
                     }
                 }
-            }) { Text(tr("Fusionner"), style = MaterialTheme.typography.labelLarge, color = if (clean.length == 8) c.danger else c.muted) }
+            }) { Text(tr("Fusionner"), style = MaterialTheme.typography.labelLarge, color = if (ready) c.danger else c.muted) }
         },
         dismissButton = { TextButton(onClick = onDismiss, enabled = !busy) { Text(tr("Annuler"), style = MaterialTheme.typography.labelLarge, color = c.ink) } },
     )

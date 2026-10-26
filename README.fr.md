@@ -40,7 +40,7 @@ On rejoint un groupe avec un code d'invitation à 6 caractères (ou un QR code).
 - **Vocaux** : vitesse de lecture, filtres de voix (souris, robot, écho, géant), mode talkie, transcription en option par un conteneur **Whisper** sur ta machine.
 - **Photos** : décorées avant l'envoi (texte, stickers, dessin, recadrage, filtres), ou éphémères (effacées au bout de 24 h).
 - **Groupes** : couleurs, 20 icônes ou une image, motifs de fond, réactions rapides propres au groupe, rôles (créateur·rice / admin / membre), validation des nouveaux, sourdine, export en `.zip`, discussions à deux.
-- **Un compte, plusieurs appareils**, avec un code personnel permanent (et son QR code), fusion de comptes, 2FA en option, verrouillage de l'app (code ou empreinte) sur Android.
+- **Des comptes classiques** : un pseudo, un identifiant et un mot de passe, les mêmes sur tous tes appareils. Inscriptions ouvertes à tous ou sur invitation (réglage de l'admin) ; on ajoute un contact dans un groupe en un geste, ou n'importe qui par son identifiant (il accepte une invitation). Fusion de comptes, 2FA en option, verrouillage de l'app (code ou empreinte) sur Android.
 - **Notifications sans Google** : l'app Android garde sa propre connexion ; les navigateurs et la PWA iPhone reçoivent du Web Push, chiffré pour le navigateur.
 - **Admin web** (`/admin`) : tableau de bord, santé du serveur, stockage, **sauvegarde & restauration**, journal filtrable, codes d'invitation, membres, groupes avec une **corbeille de 30 jours**, 2FA, liste d'adresses autorisées, **nouveau code personnel pour un membre** qui a perdu son téléphone (tous ses appareils déconnectés, 2FA du compte retirée), **vérification des nouvelles versions** (l'app Android propose elle-même le nouvel APK). L'admin ne voit jamais le contenu des groupes.
 
@@ -112,7 +112,7 @@ curl -LO https://raw.githubusercontent.com/MrDDream/Papote/main/docker-compose.y
 curl -L -o .env https://raw.githubusercontent.com/MrDDream/Papote/main/.env.example
 ```
 
-Puis démarre et lis le premier code d'accès :
+Puis démarre :
 
 ```bash
 docker compose up -d
@@ -122,11 +122,11 @@ docker compose up -d
 docker compose logs papote
 ```
 
-Au premier démarrage, le journal affiche le **code d'accès au serveur** pour la première personne (`Code d'accès pour la première personne : K7P-2Q9`). Le même code est sur le tableau de bord de l'admin, qui permet de le régénérer.
+Ouvre ensuite l'app et **crée ton compte** (pseudo, identifiant, mot de passe). Les inscriptions sont ouvertes par défaut : dans `/admin`, « Inscriptions » les passe sur invitation (le code d'un groupe ou le code d'accès au serveur, affiché dans le journal au premier démarrage et régénérable depuis le tableau de bord).
 
 - App web : `http://<ton-serveur>:3000/web/` (port et adresse : `PORT` et `BIND_ADDRESS` dans `.env` ; par défaut le port n'écoute que sur `127.0.0.1`, pour un reverse proxy sur la même machine).
 - Admin : `http://<ton-serveur>:3000/admin`
-- Android : installe l'APK de la [dernière version](https://github.com/MrDDream/Papote/releases/latest), puis entre l'adresse du serveur et le code.
+- Android : installe l'APK de la [dernière version](https://github.com/MrDDream/Papote/releases/latest), puis entre l'adresse du serveur et connecte-toi ou crée ton compte.
 
 **Mettre à jour**
 

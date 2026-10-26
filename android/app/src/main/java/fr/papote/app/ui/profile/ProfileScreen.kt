@@ -220,7 +220,9 @@ fun ProfileScreen(onBack: () -> Unit) {
             }
         }
 
-        PersonalCodeCard()
+        AccountCard(u, onSaved = ::fill)
+        // Accounts from before passwords keep their personal code until they choose a password.
+        if (u != null && !u.hasPassword) PersonalCodeCard()
         DevicesCard(onMerged = ::fill)
         SecurityCard(totpEnabled = u?.totp == true, onTotpChanged = { scope.launch { runCatching { fill(app.api.me()) } } })
 

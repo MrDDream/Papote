@@ -83,6 +83,8 @@ class GroupsViewModel : ViewModel() {
         val waiting: List<fr.papote.app.data.PendingGroup> = emptyList(),
         val loading: Boolean = true,
         val error: String? = null,
+        /** Someone who isn't a contact yet invited me to these groups. */
+        val invitations: List<fr.papote.app.data.Invitation> = emptyList(),
         /** A newer Papote APK on GitHub (asked through the server), unless put off. */
         val update: fr.papote.app.data.LatestRelease? = null,
     )
@@ -101,7 +103,7 @@ class GroupsViewModel : ViewModel() {
             app.realtime.events.collect { e ->
                 when (e) {
                     is Event.NewMessage, is Event.UpdatedMessage, is Event.GroupUpdated, is Event.GroupRemoved,
-                    is Event.MemberJoined, is Event.MemberLeft, is Event.GroupRead, is Event.GroupRefresh, is Event.GroupApproved, Event.Reconnected -> refreshSoon()
+                    is Event.MemberJoined, is Event.MemberLeft, is Event.GroupRead, is Event.GroupRefresh, is Event.GroupApproved, is Event.InvitationNew, Event.Reconnected -> refreshSoon()
                     is Event.UserUpdated -> if (e.user.id == app.session.userId) state.update { it.copy(me = e.user) }
                     else -> Unit
                 }
@@ -118,6 +120,18 @@ class GroupsViewModel : ViewModel() {
         }
     }
 
+    /** Accepts (then opens the group, unless an admin has to approve) or declines an invitation. */
+    fun answer(groupId: Long, accept: Boolean, onOpen: (Long) -> Unit) {
+        viewModelScope.launch {
+            try {
+                if (accept) app.api.acceptInvitation(groupId).groupId?.let(onOpen) else app.api.declineInvitation(groupId)
+            } catch (e: ApiException) {
+                state.update { it.copy(error = e.message) }
+            }
+            refresh()
+        }
+    }
+
     fun dismissUpdate() {
         app.session.dismissedUpdate = state.value.update?.version
         state.update { it.copy(update = null) }
@@ -129,7 +143,8 @@ class GroupsViewModel : ViewModel() {
                 val me = app.api.me()
                 val groups = app.api.groups()
                 val waiting = runCatching { app.api.pendingGroups() }.getOrDefault(emptyList())
-                state.update { it.copy(me = me, groups = groups, waiting = waiting, loading = false, error = null) }
+                val invitations = runCatching { app.api.invitations() }.getOrDefault(emptyList())
+                state.update { it.copy(me = me, groups = groups, waiting = waiting, invitations = invitations, loading = false, error = null) }
                 // The latest conversations appear right in Android's "Partager" sheet.
                 launch { runCatching { fr.papote.app.service.ShareShortcuts.publish(app, groups) } }
             } catch (e: ApiException) {
@@ -217,11 +232,45 @@ fun GroupsScreen(onOpen: (Long) -> Unit, onJoinCode: () -> Unit, onNewGroup: () 
         PullToRefreshBox(isRefreshing = false, onRefresh = vm::refresh, modifier = Modifier.weight(1f)) {
             when {
                 state.loading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator(color = c.primary) }
-                state.groups.isEmpty() -> EmptyGroups()
-                visible.isEmpty() -> Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.TopCenter) {
+                // Invitations and requests still show when there's no group yet (a brand-new account).
+                state.groups.isEmpty() && state.invitations.isEmpty() && state.waiting.isEmpty() -> EmptyGroups()
+                visible.isEmpty() && state.invitations.isEmpty() && state.waiting.isEmpty() -> Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.TopCenter) {
                     Text(tr("Rien ici avec ce filtre."), style = MaterialTheme.typography.bodyLarge, color = c.muted)
                 }
                 else -> LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    // An account from before passwords: a nudge to choose a username and a password.
+                    if (state.me?.hasPassword == false) item(key = "account") {
+                        Row(
+                            Modifier.fillMaxWidth().clip(pShape(22.dp)).background(Papote.colors.soft).clickable(role = Role.Button, onClick = onProfile).padding(14.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Icon(PIcons.Shield, null, tint = Papote.colors.primary)
+                            Column(Modifier.weight(1f)) {
+                                Text(tr("Choisis ton identifiant et ton mot de passe"), style = MaterialTheme.typography.titleMedium, color = Papote.colors.ink)
+                                Text(tr("Pour te connecter sur tes autres appareils sans code."), style = MaterialTheme.typography.bodySmall, color = Papote.colors.muted)
+                            }
+                            Icon(PIcons.Forward, null, tint = Papote.colors.muted, modifier = Modifier.size(18.dp))
+                        }
+                    }
+                    items(state.invitations, key = { "i${it.group.id}" }) { inv ->
+                        Column(
+                            Modifier.fillMaxWidth().clip(pShape(22.dp)).background(Papote.colors.card).border(2.dp, Papote.colors.primary, pShape(22.dp)).padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                GroupAvatar(inv.group, size = 40.dp)
+                                Column(Modifier.weight(1f)) {
+                                    Text(inv.group.name, style = MaterialTheme.typography.titleMedium, color = Papote.colors.ink)
+                                    Text(inv.by?.let { tr("{} t’invite dans ce groupe", it) } ?: tr("Invitation dans ce groupe"), style = MaterialTheme.typography.bodySmall, color = Papote.colors.muted)
+                                }
+                            }
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                SecondaryButton(tr("Refuser"), { vm.answer(inv.group.id, false, onOpen) }, Modifier.weight(1f), height = 42.dp)
+                                SecondaryButton(tr("Rejoindre"), { vm.answer(inv.group.id, true, onOpen) }, Modifier.weight(1f), icon = PIcons.Check, height = 42.dp)
+                            }
+                        }
+                    }
                     items(state.waiting, key = { "w${it.id}" }) { w ->
                         Row(
                             Modifier.fillMaxWidth().clip(pShape(22.dp)).background(Papote.colors.card)

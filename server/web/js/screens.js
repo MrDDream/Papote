@@ -43,7 +43,112 @@ function screen(...children) {
 
 // --- join -----------------------------------------------------------------------
 
+/** Signed in: join a group with its code. Not signed in: sign in or create an account (or, for an
+ * account from before passwords, its personal code). */
 export function joinScreen(query) {
+  if (!session.me && query.get('link') !== '1') return authScreen(query);
+  return codeJoinScreen(query);
+}
+
+// --- sign in, create an account ------------------------------------------------------------
+
+function authScreen(query) {
+  const invite = cleanCode(query.get('code'), 6);
+  let mode = query.get('mode') === 'login' || (!invite && query.get('mode') !== 'register') ? 'login' : 'register';
+  let registration = 'open';
+  let color = 'rose';
+  const err = errorBox();
+  const field = (props) => h('input', { class: 'field', spellcheck: 'false', ...props });
+  const nameInput = field({ id: 'name', placeholder: 'Lou', maxlength: 40, autocomplete: 'nickname' });
+  const userInput = field({ id: 'username', placeholder: 'lou', maxlength: 25, autocomplete: 'username', autocapitalize: 'none' });
+  const passInput = field({ id: 'password', type: 'password', minlength: 8, maxlength: 200 });
+  const totpInput = field({ id: 'totp', autocomplete: 'one-time-code', placeholder: tr('123456 ou code de secours') });
+  const codeInput = field({ id: 'code', placeholder: 'K7P-2Q9', maxlength: 7, autocapitalize: 'characters', value: invite });
+  const totpWrap = h('div', { class: 'col', hidden: true }, h('label', { class: 'label', for: 'totp' }, tr('Code de ton application d’authentification')), totpInput);
+  const submit = primaryButton(tr('Me connecter'), null, { iconName: 'forward', type: 'submit' });
+  const card = h('div', { class: 'card', style: { position: 'relative' } });
+  const switcher = h('button', { type: 'button', class: 'link-btn' });
+
+  function render() {
+    passInput.autocomplete = mode === 'login' ? 'current-password' : 'new-password';
+    clear(
+      card,
+      mode === 'register' && h('div', { class: 'col' }, h('label', { class: 'label', for: 'name' }, tr('Ton petit nom')), nameInput, h('span', { class: 'small muted' }, tr('Le nom que tes groupes verront.'))),
+      h('div', { class: 'col' }, h('label', { class: 'label', for: 'username' }, tr('Identifiant')), userInput, mode === 'register' && h('span', { class: 'small muted' }, tr('Pour te connecter, et pour qu’on t’ajoute dans un groupe. Lettres, chiffres, point ou tiret.'))),
+      h('div', { class: 'col' }, h('label', { class: 'label', for: 'password' }, tr('Mot de passe')), passInput, mode === 'register' && h('span', { class: 'small muted' }, tr('8 caractères au moins.'))),
+      mode === 'login' && totpWrap,
+      mode === 'register' && h('div', { class: 'col', style: { gap: '8px' } }, h('span', { class: 'label' }, tr('Ta frimousse')), swatches(color, (c) => (color = c), { face: true })),
+      mode === 'register' &&
+        h(
+          'div',
+          { class: 'col' },
+          h('label', { class: 'label', for: 'code' }, registration === 'code' ? tr('Code d’invitation') : tr('Code d’invitation (facultatif)')),
+          codeInput,
+          h('span', { class: 'small muted' }, registration === 'code' ? tr('Ce serveur demande un code : celui d’un groupe ou le code d’accès donné par l’admin.') : tr('Si on t’a donné le code d’un groupe, tu le rejoins tout de suite.')),
+        ),
+      err,
+    );
+    clear(submit, mode === 'login' ? tr('Me connecter') : tr('Créer mon compte'), icon('forward', 22, 2.4));
+    clear(switcher, mode === 'login' ? tr('Je suis nouveau·elle ici : créer un compte') : tr('J’ai déjà un compte'));
+  }
+  switcher.addEventListener('click', () => {
+    mode = mode === 'login' ? 'register' : 'login';
+    err.show(null);
+    render();
+    (mode === 'register' ? nameInput : userInput).focus();
+  });
+  api.server().then((s) => ((registration = s.registration ?? 'open'), render())).catch(() => {});
+
+  const form = h(
+    'form',
+    {
+      class: 'scroll',
+      onsubmit: async (e) => {
+        e.preventDefault();
+        submit.disabled = true;
+        err.show(null);
+        try {
+          if (mode === 'login') {
+            const res = await api.login(userInput.value.trim(), passInput.value, totpInput.value.trim() || undefined);
+            loggedIn(res.user);
+            // Opened from an invitation while signed out: join its group too.
+            if (invite.length === 6) {
+              const joined = await api.join(invite, null, null).catch(() => null);
+              if (joined?.pending) sessionStorage.setItem('papote.pendingNote', '1');
+              return go(joined?.groupId ? `/chat/${joined.groupId}` : '/groups', { replace: true });
+            }
+            return go('/groups', { replace: true });
+          }
+          const code = cleanCode(codeInput.value, 6);
+          const res = await api.register({ name: nameInput.value.trim(), username: userInput.value.trim(), password: passInput.value, color, code: code || undefined });
+          loggedIn(res.user);
+          if (res.pending) sessionStorage.setItem('papote.pendingNote', '1');
+          go(res.groupId ? `/chat/${res.groupId}` : '/groups', { replace: true });
+        } catch (e2) {
+          if (e2.code === 'totp_required' || e2.code === 'totp_invalid') {
+            totpWrap.hidden = false;
+            totpInput.focus();
+          }
+          err.show(e2.message);
+        }
+        submit.disabled = false;
+      },
+    },
+    h('div', { class: 'blob', style: { width: '220px', height: '220px', top: '-60px', right: '-70px', background: '#FFE3C7' } }),
+    h('div', { class: 'blob', style: { width: '110px', height: '110px', top: '120px', left: '-50px', background: '#CDEFE0' } }),
+    h('div', { class: 'hero' }, mascot(), h('h1', {}, 'Papote'), h('p', {}, tr('Tes petits groupes à toi, sur ton propre serveur.'))),
+    card,
+    h('div', { class: 'grow' }),
+    submit,
+    switcher,
+    h('button', { type: 'button', class: 'link-btn small', onclick: () => go('/join?link=1', { replace: true }) }, tr('Compte d’avant, sans mot de passe ? Entre ton code personnel')),
+  );
+  render();
+  (mode === 'register' ? nameInput : userInput).setAttribute('autofocus', '');
+  return { el: screen(form) };
+}
+
+function codeJoinScreen(query) {
   const already = !!session.me;
   // "J'ai déjà un compte": a one-time code from another of my devices instead of an invitation.
   const linking = !already && query.get('link') === '1';
@@ -195,14 +300,44 @@ export function groupsScreen() {
   searchWrap.append(icon('search', 20), search);
   let groups = [];
   let waiting = []; // groups that still have to approve me
+  let invitations = []; // someone who isn't a contact yet invited me to a group
   const waitingEl = h('div', { class: 'col', style: { gap: '8px' } });
 
   const renderStatus = () =>
     clear(status, h('span', { class: `dot${live.connected ? ' on' : ''}` }), live.connected ? tr`Connecté·e à ${location.host}` : tr`Connexion à ${location.host}…`);
 
+  const answer = (groupId, accept) => async () => {
+    try {
+      const res = accept ? await api.acceptInvitation(groupId) : (await api.declineInvitation(groupId), null);
+      if (res?.groupId) return go(`/chat/${res.groupId}`);
+      load();
+    } catch (e) {
+      err.show(e.message);
+    }
+  };
+
   function renderList() {
     clear(
       waitingEl,
+      // An account from before passwords: a nudge to choose a username and a password.
+      !session.me.hasPassword &&
+        h(
+          'button',
+          { type: 'button', class: 'waiting-card', style: { textAlign: 'left', width: '100%', border: 'none' }, onclick: () => go('/profile') },
+          icon('shield', 24),
+          h('div', { class: 'col grow', style: { gap: 0 } }, h('b', {}, tr('Choisis ton identifiant et ton mot de passe')), h('span', { class: 'small muted' }, tr('Pour te connecter sur tes autres appareils sans code.'))),
+          icon('forward', 18),
+        ),
+      invitations.map((inv) =>
+        h(
+          'div',
+          { class: 'waiting-card' },
+          groupBadge(inv.group, 40),
+          h('div', { class: 'col grow', style: { gap: 0 } }, h('b', {}, inv.group.name), h('span', { class: 'small muted' }, inv.by ? tr`${inv.by} t’invite dans ce groupe` : tr('Invitation dans ce groupe'))),
+          button(tr('Refuser'), answer(inv.group.id, false), { small: true }),
+          button(tr('Rejoindre'), answer(inv.group.id, true), { small: true, iconName: 'check' }),
+        ),
+      ),
       waiting.map((g) =>
         h('div', { class: 'waiting-card' }, groupBadge(g, 40), h('div', { class: 'col grow', style: { gap: 0 } }, h('b', {}, g.name), h('span', { class: 'small muted' }, tr('En attente : un·e admin du groupe doit valider ton arrivée')))),
       ),
@@ -278,7 +413,7 @@ export function groupsScreen() {
   let timer;
   async function load() {
     try {
-      [groups, waiting] = await Promise.all([api.groups(), api.pendingGroups().catch(() => [])]);
+      [groups, waiting, invitations] = await Promise.all([api.groups(), api.pendingGroups().catch(() => []), api.invitations().catch(() => [])]);
       err.show(null);
     } catch (e) {
       err.show(e.message);
@@ -309,7 +444,7 @@ export function groupsScreen() {
 
   const banner = h('div', {}, installBanner(), pushBanner());
   const offs = [
-    ...['message.new', 'message.updated', 'group.updated', 'group.removed', 'group.approved', 'member.joined', 'member.left', 'group.read', 'group.refresh', 'reconnected'].map((t) => live.on(t, soon)),
+    ...['message.new', 'message.updated', 'group.updated', 'group.removed', 'group.approved', 'member.joined', 'member.left', 'group.read', 'group.refresh', 'invitation.new', 'reconnected'].map((t) => live.on(t, soon)),
     live.on('connection', renderStatus),
     live.on('user.updated', (e) => {
       if (e.user.id === session.me.id) session.setMe({ ...session.me, ...e.user });
@@ -799,6 +934,66 @@ function copyButton(text) {
 
 // --- members & group settings ---------------------------------------------------------
 
+/** "Ajouter quelqu'un": a contact in one tap, or anyone by their username (they get an invitation). */
+function addPeopleSheet(groupId, members, onDone) {
+  sheet((close) => {
+    const list = h('div', { class: 'col', style: { gap: '6px' } }, h('p', { class: 'small muted', style: { margin: 0 } }, tr('Chargement…')));
+    const note = h('p', { class: 'small', style: { margin: 0, fontWeight: 800, color: 'var(--ok)' }, role: 'status' });
+    const err = errorBox();
+    const input = h('input', { class: 'field grow', placeholder: tr('Identifiant, par exemple lou'), autocapitalize: 'none', spellcheck: 'false', 'aria-label': tr('Identifiant de la personne') });
+    const inGroup = new Set(members.map((m) => m.id));
+    const add = async (who, label) => {
+      err.show(null);
+      note.textContent = '';
+      try {
+        const res = await api.addToGroup(groupId, who);
+        note.textContent = res.invited
+          ? tr`Invitation envoyée à ${label} : elle la verra dans ses groupes.`
+          : res.pending
+            ? tr`${label} attend la validation d’un·e admin.`
+            : tr`${label} a été ajouté·e au groupe.`;
+        if (who.userId) inGroup.add(who.userId);
+        paint();
+        onDone();
+      } catch (e) {
+        err.show(e.message);
+      }
+    };
+    let contacts = [];
+    const paint = () => {
+      const left = contacts.filter((u) => !inGroup.has(u.id));
+      clear(
+        list,
+        left.length === 0
+          ? h('p', { class: 'small muted', style: { margin: 0 } }, tr('Tous tes contacts sont déjà dans ce groupe.'))
+          : left.map((u) =>
+              h(
+                'button',
+                { type: 'button', class: 'contact', onclick: () => add({ userId: u.id }, u.name) },
+                avatar(u, 40, { initial: true }),
+                h('div', { class: 'col grow', style: { gap: 0, minWidth: 0 } }, h('b', {}, u.name), u.username && h('span', { class: 'small muted' }, `@${u.username}`)),
+                icon('plus', 20),
+              ),
+            ),
+      );
+    };
+    api.contacts().then((c) => ((contacts = c), paint())).catch((e) => err.show(e.message));
+    const byName = () => input.value.trim() && add({ username: input.value.trim() }, input.value.trim().replace(/^@/, ''));
+    input.addEventListener('keydown', (e) => e.key === 'Enter' && byName());
+    return [
+      h('h2', { class: 'title', style: { fontSize: '20px' } }, tr('Ajouter quelqu’un')),
+      h('span', { class: 'label' }, tr('Tes contacts')),
+      list,
+      h('span', { class: 'label' }, tr('Quelqu’un d’autre')),
+      h('div', { class: 'row' }, input, button(tr('Ajouter'), byName, { small: true, iconName: 'plus' })),
+      h('p', { class: 'small muted', style: { margin: 0 } }, tr('Avec son identifiant exact (dans ses Paramètres) : elle reçoit une invitation à accepter.')),
+      note,
+      err,
+      button(tr('Fermer'), close, { small: true }),
+    ];
+  });
+}
+
 export function membersScreen(groupId) {
   let group = null;
   let members = [];
@@ -862,7 +1057,14 @@ export function membersScreen(groupId) {
       topBar(direct ? tr('Discussion') : tr('Membres'), () => back(`/settings/${groupId}`), {
         subtitle: group.name + (isOwner && !direct ? tr(' · tu l’as créé') : ''),
       }),
-      !direct && (rules.anyoneInvites !== false || isAdmin) && button(tr('Inviter quelqu’un dans le groupe'), () => go(`/invite/${groupId}`), { iconName: 'personPlus' }),
+      !direct &&
+        (rules.anyoneInvites !== false || isAdmin) &&
+        h(
+          'div',
+          { class: 'row wrap' },
+          primaryButton(tr('Ajouter quelqu’un'), () => addPeopleSheet(groupId, members, load), { iconName: 'personPlus' }),
+          button(tr('Inviter avec un code'), () => go(`/invite/${groupId}`), { iconName: 'share' }),
+        ),
       isAdmin &&
         waiting.length > 0 &&
         h(
@@ -1133,7 +1335,9 @@ export function profileScreen() {
         err,
         save,
       ),
-      personalCodeCard(),
+      accountCard(),
+      // Accounts from before passwords keep their personal code until they choose a password.
+      !session.me.hasPassword && personalCodeCard(),
       devicesCard(),
       securityCard(),
       settingsCard(
@@ -1405,6 +1609,41 @@ function disableTotpDialog(onDone) {
   });
 }
 
+// --- my account: username and password ----------------------------------------------------
+
+function accountCard() {
+  const card = h('section', { class: 'card' });
+  const render = () => {
+    const me = session.me;
+    const err = errorBox();
+    const field = (props) => h('input', { class: 'field', spellcheck: 'false', ...props });
+    const user = field({ value: me.username ?? '', placeholder: 'lou', maxlength: 25, autocomplete: 'username', autocapitalize: 'none', 'aria-label': tr('Identifiant') });
+    const current = me.hasPassword && field({ type: 'password', autocomplete: 'current-password', 'aria-label': tr('Mot de passe actuel'), placeholder: tr('Mot de passe actuel') });
+    const next = field({ type: 'password', autocomplete: 'new-password', 'aria-label': me.hasPassword ? tr('Nouveau mot de passe') : tr('Mot de passe'), placeholder: me.hasPassword ? tr('Nouveau mot de passe (facultatif)') : tr('Mot de passe, 8 caractères au moins') });
+    const save = button(tr('Enregistrer'), async () => {
+      err.show(null);
+      try {
+        session.setMe(await api.setAccount({ username: user.value.trim(), password: next.value || undefined, currentPassword: current ? current.value : undefined }));
+        render();
+        card.querySelector('.ok-note')?.removeAttribute('hidden');
+      } catch (e) {
+        err.show(e.message);
+      }
+    }, { iconName: 'check', small: true });
+    clear(
+      card,
+      h('div', { class: 'row between' }, h('h2', { class: 'title', style: { fontSize: '18px' } }, tr('Mon compte')), me.username && h('span', { class: 'small muted' }, `@${me.username}`)),
+      !me.hasPassword && h('p', { class: 'notice', style: { margin: 0 } }, icon('info', 20), tr('Choisis ton identifiant et ton mot de passe : tu t’en serviras pour te connecter sur tes autres appareils, sans code.')),
+      h('div', { class: 'col' }, h('span', { class: 'label' }, tr('Identifiant')), user, h('span', { class: 'small muted' }, tr('Tes proches peuvent t’ajouter à un groupe avec cet identifiant.'))),
+      h('div', { class: 'col' }, h('span', { class: 'label' }, me.hasPassword ? tr('Changer de mot de passe') : tr('Mot de passe')), current, next, me.hasPassword && h('span', { class: 'small muted' }, tr('Un nouveau mot de passe déconnecte tes autres appareils.'))),
+      err,
+      h('div', { class: 'row' }, save, h('span', { class: 'small ok-note', hidden: true, style: { color: 'var(--ok)', fontWeight: 800 } }, tr('Enregistré !'))),
+    );
+  };
+  render();
+  return card;
+}
+
 // --- personal code & my devices -------------------------------------------------------
 
 function personalCodeCard() {
@@ -1481,7 +1720,7 @@ function devicesCard() {
           ),
           !d.current &&
             button(tr('Déconnecter'), async () => {
-              if (!(await confirmDialog(tr`Déconnecter « ${d.label} » ?`, tr('Il faudra ton code personnel pour revenir sur cet appareil.'), tr('Déconnecter')))) return;
+              if (!(await confirmDialog(tr`Déconnecter « ${d.label} » ?`, tr('Il faudra ton identifiant et ton mot de passe pour revenir sur cet appareil.'), tr('Déconnecter')))) return;
               try {
                 await api.revokeDevice(d.id);
               } catch (e) {
@@ -1497,7 +1736,7 @@ function devicesCard() {
         button(tr('Fusionner avec mon autre compte'), () => mergeDialog(load), { iconName: 'personPlus', wide: true }),
         infoButton(
           tr('Fusionner deux comptes'),
-          tr('Tu as rejoint avec une invitation sur un autre appareil et tu te retrouves avec deux comptes ? Depuis le compte en trop, entre le code personnel du bon compte : groupes, messages et appareils y seront regroupés.'),
+          tr('Tu te retrouves avec deux comptes ? Depuis le compte en trop, entre l’identifiant et le mot de passe du bon compte : groupes, messages et appareils y seront regroupés.'),
         ),
       ),
       err,
@@ -1512,21 +1751,23 @@ function devicesCard() {
 function mergeDialog(onDone) {
   const backdrop = h('div', { class: 'backdrop dialog-wrap' });
   const err = errorBox();
-  const input = h('input', { class: 'field', placeholder: 'ABCD-EF23', maxlength: 9, autocapitalize: 'characters', spellcheck: 'false', 'aria-label': tr('Code personnel de l’autre compte') });
+  const input = h('input', { class: 'field', placeholder: tr('Identifiant de l’autre compte'), maxlength: 25, autocapitalize: 'none', spellcheck: 'false', autocomplete: 'off', 'aria-label': tr('Identifiant de l’autre compte') });
+  const password = h('input', { class: 'field', type: 'password', placeholder: tr('Son mot de passe'), autocomplete: 'off', 'aria-label': tr('Mot de passe de l’autre compte') });
   const totp = h('input', { class: 'field', placeholder: tr('Code de l’application d’authentification'), autocomplete: 'one-time-code', hidden: true, 'aria-label': tr('Code de double authentification') });
   const confirmMerge = button(tr('Fusionner'), null, { small: true, danger: true, disabled: true });
-  const clean = () => cleanCode(input.value, 8);
+  const ready = () => input.value.trim().length >= 3 && password.value.length > 0;
   const close = () => {
     backdrop.remove();
     document.removeEventListener('keydown', onKey);
   };
   const onKey = (e) => e.key === 'Escape' && close();
-  input.addEventListener('input', () => (confirmMerge.disabled = clean().length !== 8));
+  input.addEventListener('input', () => (confirmMerge.disabled = !ready()));
+  password.addEventListener('input', () => (confirmMerge.disabled = !ready()));
   confirmMerge.addEventListener('click', async () => {
     confirmMerge.disabled = true;
     err.show(null);
     try {
-      const { user } = await api.merge(clean(), totp.value.trim() || undefined);
+      const { user } = await api.mergeWith(input.value.trim(), password.value, totp.value.trim() || undefined);
       session.setMe(user);
       close();
       onDone();
@@ -1547,9 +1788,10 @@ function mergeDialog(onDone) {
       h(
         'p',
         { class: 'muted', style: { margin: 0 } },
-        tr('Entre le code personnel de ton autre compte (dans son Profil). Ce compte-ci y sera fondu : groupes, messages, réactions et appareils. Tu garderas le nom et la photo de l’autre compte.'),
+        tr('Entre l’identifiant et le mot de passe de ton autre compte. Ce compte-ci y sera fondu : groupes, messages, réactions et appareils. Tu garderas le nom et la photo de l’autre compte.'),
       ),
       input,
+      password,
       totp,
       h('p', { class: 'small', style: { margin: 0, fontWeight: 800, color: 'var(--danger)' } }, tr('C’est définitif.')),
       err,

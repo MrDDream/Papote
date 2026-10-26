@@ -39,6 +39,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import fr.papote.app.PapoteApp
 import fr.papote.app.data.ApiException
 import fr.papote.app.data.Event
@@ -88,6 +89,7 @@ fun MembersScreen(groupId: Long, onBack: () -> Unit, onInvite: () -> Unit, onLef
     var name by remember { mutableStateOf("") }
     var color by remember { mutableStateOf("rose") }
     var icon by remember { mutableStateOf("heart") }
+    var adding by remember { mutableStateOf(false) }
     val context = androidx.compose.ui.platform.LocalContext.current
     val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) scope.launch {
@@ -170,8 +172,9 @@ fun MembersScreen(groupId: Long, onBack: () -> Unit, onInvite: () -> Unit, onLef
             }
         }
         if (!direct && g != null && (g.settings.anyoneInvites || me?.isAdmin == true)) {
-            // Inviting is the first thing people come here for: make it obvious.
-            SecondaryButton(tr("Inviter quelqu’un dans le groupe"), onInvite, Modifier.fillMaxWidth(), icon = PIcons.PersonPlus)
+            // Adding people is the first thing people come here for: make it obvious.
+            fr.papote.app.ui.components.PrimaryButton(tr("Ajouter quelqu’un"), { adding = true }, Modifier.fillMaxWidth(), icon = PIcons.PersonPlus, height = 52.dp, textSize = 17.sp)
+            SecondaryButton(tr("Inviter avec un code"), onInvite, Modifier.fillMaxWidth(), icon = PIcons.Share)
         }
         Text(if (direct) tr("Avec") else tr("Membres"), style = MaterialTheme.typography.titleMedium, color = c.ink)
 
@@ -345,5 +348,73 @@ fun MembersScreen(groupId: Long, onBack: () -> Unit, onInvite: () -> Unit, onLef
             },
             dismissButton = { TextButton(onClick = { confirm = null }) { Text(tr("Annuler"), style = MaterialTheme.typography.labelLarge, color = c.ink) } },
         )
+    }
+    if (adding) AddPeopleSheet(groupId, members.map { it.id }.toSet(), onClose = { adding = false }, onAdded = { scope.launch { reload() } })
+}
+
+/** "Ajouter quelqu'un": a contact in one tap, or anyone by their username (they get an invitation). */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun AddPeopleSheet(groupId: Long, inGroup: Set<Long>, onClose: () -> Unit, onAdded: () -> Unit) {
+    val app = PapoteApp.instance
+    val c = Papote.colors
+    val scope = rememberCoroutineScope()
+    var contacts by remember { mutableStateOf<List<fr.papote.app.data.User>?>(null) }
+    var added by remember { mutableStateOf(inGroup) }
+    var username by remember { mutableStateOf("") }
+    var note by remember { mutableStateOf<String?>(null) }
+    var error by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(Unit) { contacts = runCatching { app.api.contacts() }.getOrDefault(emptyList()) }
+    fun add(userId: Long?, label: String) {
+        error = null
+        note = null
+        scope.launch {
+            try {
+                val r = app.api.addToGroup(groupId, userId = userId, username = if (userId == null) username.trim() else null)
+                note = when {
+                    r.invited -> tr("Invitation envoyée à {} : elle la verra dans ses groupes.", label)
+                    r.pending -> tr("{} attend la validation d’un·e admin.", label)
+                    else -> tr("{} a été ajouté·e au groupe.", label)
+                }
+                if (userId != null) added = added + userId else username = ""
+                onAdded()
+            } catch (e: ApiException) {
+                error = e.message
+            }
+        }
+    }
+    androidx.compose.material3.ModalBottomSheet(onDismissRequest = onClose, containerColor = c.card) {
+        Column(
+            Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(start = 20.dp, end = 20.dp, bottom = 28.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(tr("Ajouter quelqu’un"), style = MaterialTheme.typography.titleLarge, color = c.ink)
+            Text(tr("Tes contacts"), style = MaterialTheme.typography.labelLarge, color = c.ink)
+            val left = contacts?.filter { it.id !in added }
+            when {
+                left == null -> Text(tr("Chargement…"), style = MaterialTheme.typography.bodySmall, color = c.muted)
+                left.isEmpty() -> Text(tr("Tous tes contacts sont déjà dans ce groupe."), style = MaterialTheme.typography.bodySmall, color = c.muted)
+                else -> for (u in left) Row(
+                    Modifier.fillMaxWidth().clip(pShape(18.dp)).background(c.field).clickable(role = Role.Button) { add(u.id, u.name) }.padding(10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Avatar(u.name, u.color, u.photo, size = 40.dp, initialOnly = true)
+                    Column(Modifier.weight(1f)) {
+                        Text(u.name, style = MaterialTheme.typography.titleMedium, color = c.ink)
+                        u.username?.let { Text("@$it", style = MaterialTheme.typography.bodySmall, color = c.muted) }
+                    }
+                    Icon(PIcons.Plus, null, tint = c.primary)
+                }
+            }
+            Text(tr("Quelqu’un d’autre"), style = MaterialTheme.typography.labelLarge, color = c.ink)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                PapoteField(username, { username = it.trim().take(25) }, Modifier.weight(1f), placeholder = tr("Identifiant, par exemple lou"), label = tr("Identifiant de la personne"), imeAction = androidx.compose.ui.text.input.ImeAction.Done, onIme = { if (username.length >= 3) add(null, username) })
+                SecondaryButton(tr("Ajouter"), { add(null, username.removePrefix("@")) }, enabled = username.length >= 3, height = 48.dp)
+            }
+            Text(tr("Avec son identifiant exact (dans ses Paramètres) : elle reçoit une invitation à accepter."), style = MaterialTheme.typography.bodySmall, color = c.muted)
+            note?.let { Text(it, style = MaterialTheme.typography.labelLarge, color = c.ok) }
+            ErrorText(error)
+        }
     }
 }

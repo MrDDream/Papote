@@ -183,22 +183,30 @@ describe('admin access', () => {
     expect(res.status).toBe(429);
   });
 
-  it('gives a member a new personal code after a lost phone', async () => {
+  it('gives a member a temporary password after a lost phone', async () => {
     const { papote, agent } = start();
-    const lou = (await agent.post('/api/join').send({ code: papote.bootstrapCode(), name: 'Lou' })).body;
-    const old = (await agent.get('/api/me/code').set('Authorization', `Bearer ${lou.token}`)).body.code;
+    const lou = (await agent.post('/api/join').send({ code: papote.bootstrapCode(), name: 'Lou B.' })).body;
     const { session } = await login(agent);
-    expect((await agent.get(`/admin/members/${lou.user.id}/code`).set('Cookie', session)).text).toContain('Nouveau code pour Lou');
+    expect((await agent.get(`/admin/members/${lou.user.id}/code`).set('Cookie', session)).text).toContain('Nouveau mot de passe pour Lou B.');
     const page = await agent.post(`/admin/members/${lou.user.id}/code`).set('Cookie', session).type('form').send({ confirm: '1' });
-    const code = page.text.match(/class="code-big">([A-Z0-9-]{9})</)[1];
-    expect(code).not.toBe(old);
-    expect(page.text).toContain('<svg');
-    // The lost phone is signed out; the old code no longer works, the new one opens the account.
+    const password = page.text.match(/class="code-big">([a-z0-9-]{14})</)[1];
+    // The account had no username: one is made from the display name.
+    expect(page.text).toContain('<code class="secret">lou.b</code>');
+    // The lost phone is signed out; the temporary password opens the account.
     expect((await agent.get('/api/me').set('Authorization', `Bearer ${lou.token}`)).status).toBe(401);
-    expect((await agent.post('/api/link').send({ code: old })).status).toBe(404);
-    const linked = await agent.post('/api/link').send({ code });
-    expect(linked.status).toBe(201);
-    expect(linked.body.user.id).toBe(lou.user.id);
+    const signed = await agent.post('/api/login').send({ username: 'Lou.B', password });
+    expect(signed.status).toBe(201);
+    expect(signed.body.user).toMatchObject({ id: lou.user.id, username: 'lou.b', hasPassword: true });
+  });
+
+  it('opens sign-up to anyone, or only with a code', async () => {
+    const { agent } = start();
+    const { session } = await login(agent);
+    expect((await agent.get('/api/server')).body.registration).toBe('open');
+    await agent.post('/admin/registration').set('Cookie', session).type('form').send({ mode: 'code' });
+    expect((await agent.get('/api/server')).body.registration).toBe('code');
+    const refused = await agent.post('/api/register').send({ name: 'Sam', username: 'sam', password: 'un-long-secret' });
+    expect(refused.body.error).toBe('code_required');
   });
 
   it('puts a deleted group in the trash, restorable for 30 days, then purges it', async () => {

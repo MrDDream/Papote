@@ -372,6 +372,7 @@ fun PapoteField(
     background: Color = Papote.colors.field,
     label: String? = null,
     trailing: (@Composable () -> Unit)? = null,
+    password: Boolean = false,
 ) {
     val c = Papote.colors
     BasicTextField(
@@ -381,9 +382,9 @@ fun PapoteField(
         maxLines = if (singleLine) 1 else 5,
         textStyle = TextStyle(fontFamily = Nunito, fontSize = 15.sp, color = c.ink),
         cursorBrush = SolidColor(c.primary),
-        keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = imeAction),
+        keyboardOptions = KeyboardOptions(keyboardType = if (password) KeyboardType.Password else keyboardType, imeAction = imeAction, autoCorrectEnabled = !password),
         keyboardActions = KeyboardActions(onAny = { onIme() }),
-        visualTransformation = VisualTransformation.None,
+        visualTransformation = if (password) androidx.compose.ui.text.input.PasswordVisualTransformation() else VisualTransformation.None,
         modifier = modifier.semantics { if (label != null) contentDescription = label },
         decorationBox = { inner ->
             Row(
@@ -406,6 +407,11 @@ fun PapoteField(
         },
     )
 }
+
+/** A password field (hidden characters, no suggestions). */
+@Composable
+fun PasswordField(value: String, onValueChange: (String) -> Unit, label: String, modifier: Modifier = Modifier, imeAction: ImeAction = ImeAction.Next, onIme: () -> Unit = {}) =
+    PapoteField(value, { onValueChange(it.take(200)) }, modifier, placeholder = label, label = label, password = true, imeAction = imeAction, onIme = onIme)
 
 /** Row of pastel swatches; [selected] is a tint key. */
 @Composable
