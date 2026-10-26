@@ -252,8 +252,8 @@ export function pollBubble(m, members, onError) {
           title: (votes[i] ?? []).map((id) => members.get(id)?.name ?? '?').join(', '),
           onclick: () => vote(i),
         },
-        h('span', { class: 'poll-bar', style: { width: `${pct}%`, background: i % 2 ? '#FFE0E8' : '#E6DDFB' } }),
-        h('span', { class: 'poll-label' }, `${label}${on ? ' (ton vote)' : ''}`),
+        h('span', { class: `poll-bar${i % 2 ? ' alt' : ''}`, style: { width: `${pct}%` } }),
+        h('span', { class: 'poll-label' }, `${label}${on ? tr(' (ton vote)') : ''}`),
         h('span', { class: 'poll-pct' }, `${pct} %`),
       );
     }),

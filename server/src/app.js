@@ -16,7 +16,7 @@ import { createWhisper } from './whisper.js';
 import { createUpdates } from './updates.js';
 import { HttpError, now } from './util.js';
 
-export const VERSION = '0.5.1';
+export const VERSION = '0.5.2';
 
 export function createServer({
   dataDir,

@@ -51,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
@@ -313,10 +314,11 @@ fun PollBubble(m: Message, members: Map<Long, Member>, meId: Long?, onVote: (Int
                     .clickable(enabled = !closed, role = Role.Button) { onVote(i) }
                     .semantics { contentDescription = "$label : ${pct.roundToInt()} %" + if (on) tr(", ton vote") else "" },
             ) {
-                Box(Modifier.fillMaxWidth(pct / 100f).height(44.dp).background(if (i % 2 == 0) Color(0xFFE6DDFB) else Color(0xFFFFE0E8)))
+                // Tinted from the option's background: pastel in light mode, dark enough for light text in dark mode.
+                Box(Modifier.fillMaxWidth(pct / 100f).height(44.dp).background(if (i % 2 == 0) lerp(c.field, c.primary, 0.18f) else lerp(c.field, Color(0xFFFF7A93), 0.2f)))
                 Row(Modifier.fillMaxWidth().height(44.dp).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(label + if (on) " (ton vote)" else "", Modifier.weight(1f), fontWeight = FontWeight.ExtraBold, color = InkColor, style = MaterialTheme.typography.bodyMedium)
-                    Text("${pct.roundToInt()} %", fontWeight = FontWeight.ExtraBold, color = Color(0xFF5E5474), style = MaterialTheme.typography.bodyMedium)
+                    Text(label + if (on) tr(" (ton vote)") else "", Modifier.weight(1f), fontWeight = FontWeight.ExtraBold, color = c.ink, style = MaterialTheme.typography.bodyMedium)
+                    Text("${pct.roundToInt()} %", fontWeight = FontWeight.ExtraBold, color = c.muted, style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }
