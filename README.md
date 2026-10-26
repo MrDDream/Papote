@@ -26,14 +26,14 @@ A cosy, self-hosted messenger for family and friends: an Android app, an install
 <img src="docs/screens/game.png" width="23%" alt="Mini-games">
 </p>
 
-People join a group with a 6-character invitation code (or a QR code). Messages, photos, voice notes and drawings stay on your server: no account at a third party, no Google services, no tracking.
+Everyone has an account (a username and a password, the same on every device); people join a group when a member adds them, or with an invitation code or QR code. Messages, photos, voice notes and drawings stay on your server: no account at a third party, no Google services, no tracking.
 
 ## Features
 
 - **Chat**: text, photos, **videos and documents**, voice notes with waveform, drawings, emoji (the same Noto emoji everywhere), reactions (built-in + any emoji), **swipe a message to reply**, **read ticks** (sent, read by some, read by everyone), live typing indicators, pinned messages, search (text and transcribed voice notes), a gallery with "one year ago today". Tap a profile picture to see it big.
 - **Share to Papote** from any app (text, links, pictures), and straight to a conversation from Android's share sheet.
 - **French or English**, chosen in Settings (🇫🇷 / 🇬🇧).
-- **Themes for the whole app**: Papote and its colours, plus Starry night, Notebook, Neo-pop, Plain, Arcade and Forest (fonts and shapes change too), each in light and dark. Each group picks its own background: 12 patterns (hearts, stars, waves, leaves, confetti…) or a photo.
+- **Themes for the whole app**: pick a theme (Pastel, the original, or Starry night, Notebook, Neo-pop, Plain, Arcade, Forest: fonts and shapes change too) and its colours separately, each in light and dark. Each group picks its own background: 12 patterns (hearts, stars, waves, leaves, confetti…) or a photo.
 - **The fun bits**: Bubu the mascot reacting to the group (sleepy, happy, excited, party, surprised), 24-hour stories, polls, location sharing *without any map service*, birthday banner and confetti, a monthly recap with medals, group stickers and favourites, GIFs through GIPHY (always relayed by your server).
 - **Drawing**: brush, marker, eraser, bucket, stamps; timelapse replay; "draw over" a photo; a **shared live canvas** everybody paints on at once.
 - **Mini-games**: Tic-tac-toe, Connect 4, Rock-paper-scissors, Hangman, "Who said that?" (from your old messages) and live Pictionary.
@@ -41,8 +41,9 @@ People join a group with a 6-character invitation code (or a QR code). Messages,
 - **Photos**: decorate before sending (text, stickers, drawing, crop, filters), or make them disappear after 24 hours.
 - **Groups**: colours, 20 icons or a picture, background patterns, the group's own quick reactions, roles (owner / admin / member), approval of newcomers, mute, export as `.zip`, two-person conversations.
 - **Standard accounts**: a display name, a username and a password, the same on every device. Sign-up is open to anyone or invitation-only (admin setting); add a contact to a group in one tap, or anyone by their username (they accept an invitation). Account merge, optional 2FA, app lock (PIN or fingerprint) on Android.
-- **Notifications without Google**: the Android app keeps its own connection; browsers and the iPhone PWA get Web Push, encrypted for the browser.
-- **Admin web** (`/admin`): dashboard, server health, storage, **backup & restore**, journal with filters, invitation codes, members, groups with a **30-day trash**, 2FA, IP allowlist, a **new personal code for a member** who lost their phone (all their devices signed out, account 2FA removed), **new version check** (the Android app offers the new APK by itself). The admin never sees group content.
+- **Notifications without Google**: the Android app keeps its own connection and shows conversation notifications like the other messengers (the group's picture, the last messages, a pop-up at the top of the screen, and **bubbles** on Android 11+ to answer without opening the app); browsers and the iPhone PWA get Web Push, encrypted for the browser.
+- **French or English**, chosen in the app's settings.
+- **Admin web** (`/admin`): dashboard, server health, storage, **backup & restore**, journal with filters, invitation codes, members, groups with a **30-day trash**, 2FA, IP allowlist, sign-up **open or invitation-only** with **sign-up links and QR codes** that fill the code in, a **temporary password for a member** who forgot theirs or lost their phone (all their devices signed out, account 2FA removed), **new version check** (the Android app offers the new APK by itself). The admin never sees group content.
 
 ## Quick start (Docker Compose)
 
@@ -122,7 +123,7 @@ docker compose up -d
 docker compose logs papote
 ```
 
-Then open the app and **create an account** (display name, username, password). Sign-up is open by default: in `/admin`, "Inscriptions" switches it to invitation-only (a group's code or the server access code, which the log prints on the first start and the dashboard can regenerate).
+Then open the app and **create an account** (display name, username, password). Sign-up is open by default: in `/admin`, "Inscriptions" switches it to invitation-only (a group's code or the server access code, which the log prints on the first start and the dashboard can regenerate). Each code in `/admin` comes with a **sign-up link** and its **QR code**: they open "Create my account" with the code already filled in.
 
 - Web app: `http://<your-server>:3000/web/` (port and address: `PORT` and `BIND_ADDRESS` in `.env`; by default the port only listens on `127.0.0.1`, for a reverse proxy on the same machine).
 - Admin: `http://<your-server>:3000/admin`
@@ -228,7 +229,7 @@ Admin maintenance: `docker exec papote node src/cli.js admin-reset-2fa` (lost ph
 - **Android** (8.0+): download `Papote-vX.Y.Z-release.apk` from the [releases](https://github.com/MrDDream/Papote/releases) and install it. Later versions install over it, and the app tells you when one is out (Settings → App). To receive messages while the app is closed, allow notifications and turn off battery optimisation for Papote: the app offers it on first launch. Plain `http://` addresses are accepted on a local network (the app warns that the connection isn't encrypted).
 - **iPhone, iPad, computers**: open `https://<your-server>/web/`. On iPhone, Share → *Add to Home Screen* installs it and enables notifications (iOS 16.4+).
 
-The interface is in French for now.
+The interface is in French or English (Settings → Appearance → Language).
 
 ## Build from source
 
@@ -269,7 +270,7 @@ For a signed release, create `android/keystore.properties` (`storeFile`, `storeP
 
 ## API (overview)
 
-Everything under `/api` except `/api/server`, `/api/join` and `/api/link` needs `Authorization: Bearer <token>` (Android) or the session cookie (web, with `X-Papote-Client: web`). Main routes: `POST /api/join`, `POST /api/link`, `GET|PATCH /api/me`, `GET|POST /api/groups`, `GET|PATCH|DELETE /api/groups/:id`, `/api/groups/:id/{members,invites,messages,media,read,settings,pins,search,gallery,polls,location,stories,stickers,sticker,gif,games,live-draw,recap,export}`, `/api/messages/:id/{reactions/:kind,pin,vote,close,location}`, `/api/games/:id[/move]`, `/api/gifs/{trending,search}`, `/api/media/:id`, `/api/qr`.
+Everything under `/api` except `/api/server`, `/api/register`, `/api/login`, `/api/join` and `/api/link` needs `Authorization: Bearer <token>` (Android) or the session cookie (web, with `X-Papote-Client: web`). Main routes: `POST /api/register`, `POST /api/login`, `POST /api/join`, `POST /api/link`, `GET|PATCH /api/me`, `PUT /api/me/account`, `GET /api/me/invitations`, `GET /api/users/lookup`, `GET /api/updates`, `GET|POST /api/groups`, `GET|PATCH|DELETE /api/groups/:id`, `/api/groups/:id/{add,members,invites,messages,media,read,settings,pins,search,gallery,polls,location,stories,stickers,sticker,gif,games,live-draw,recap,export}`, `/api/messages/:id/{reactions/:kind,pin,vote,close,location}`, `/api/games/:id[/move]`, `/api/gifs/{trending,search}`, `/api/media/:id`, `/api/qr`.
 
 WebSocket `/ws`: the server sends `message.new`, `message.updated`, `typing`, `presence`, `member.*`, `group.*`, `user.updated`, `livedraw`, `live`, `story.*`, `sticker.*`, `game.updated`; clients send `typing` and `live` (strokes of the shared canvas and Pictionary).
 

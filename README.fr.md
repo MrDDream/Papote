@@ -26,14 +26,14 @@ Une messagerie douillette et auto-hébergée pour la famille et les amis : une a
 <img src="docs/screens/game.png" width="23%" alt="Mini-jeux">
 </p>
 
-On rejoint un groupe avec un code d'invitation à 6 caractères (ou un QR code). Messages, photos, vocaux et dessins restent sur ton serveur : pas de compte chez un tiers, pas de services Google, aucun pistage.
+Chacun a son compte (un identifiant et un mot de passe, les mêmes sur tous ses appareils) ; on entre dans un groupe quand un membre nous y ajoute, ou avec un code d'invitation ou un QR code. Messages, photos, vocaux et dessins restent sur ton serveur : pas de compte chez un tiers, pas de services Google, aucun pistage.
 
 ## Fonctions
 
 - **Discussion** : texte, photos, **vidéos et documents**, vocaux avec forme d'onde, dessins, emoji (les mêmes emoji Noto partout), réactions (intégrées + n'importe quel emoji), **répondre en glissant un message**, **coches de lecture** (envoyé, lu par une partie, lu par tout le monde), indicateur « écrit… » en direct, messages épinglés, recherche (textes et vocaux transcrits), galerie avec « il y a un an jour pour jour ». Touche une photo de profil pour la voir en grand.
 - **Partager vers Papote** depuis n'importe quelle appli (texte, lien, image), et directement vers une conversation depuis le menu de partage d'Android.
 - **Français ou anglais**, au choix dans les Paramètres (🇫🇷 / 🇬🇧).
-- **Des thèmes pour toute l'appli** : Papote et ses coloris, plus Nuit étoilée, Carnet, Néo-pop, Sobre, Arcade et Forêt (polices et formes comprises), chacun en clair et en sombre. Chaque groupe choisit son fond : 12 motifs (cœurs, étoiles, vagues, feuilles, confettis…) ou une photo.
+- **Des thèmes pour toute l'appli** : un thème (Pastel, l'original, ou Nuit étoilée, Carnet, Néo-pop, Sobre, Arcade, Forêt : polices et formes comprises) et ses couleurs, au choix séparément, chacun en clair et en sombre. Chaque groupe choisit son fond : 12 motifs (cœurs, étoiles, vagues, feuilles, confettis…) ou une photo.
 - **Le côté ludique** : Bubu, la mascotte qui réagit au groupe (endormie, contente, surexcitée, en fête, étonnée), stories de 24 h, sondages, partage de position *sans service de carte*, bandeau et confettis d'anniversaire, récap du mois avec médailles, stickers du groupe et favoris, GIF via GIPHY (toujours relayés par ton serveur).
 - **Dessin** : pinceau, feutre, gomme, pot de peinture, tampons ; timelapse ; « dessiner dessus » une photo ; une **toile commune** où tout le monde dessine en même temps.
 - **Mini-jeux** : Morpion, Puissance 4, Chifoumi, Pendu, « Qui a dit ça ? » (avec vos vieux messages) et Pictionary en direct.
@@ -41,8 +41,9 @@ On rejoint un groupe avec un code d'invitation à 6 caractères (ou un QR code).
 - **Photos** : décorées avant l'envoi (texte, stickers, dessin, recadrage, filtres), ou éphémères (effacées au bout de 24 h).
 - **Groupes** : couleurs, 20 icônes ou une image, motifs de fond, réactions rapides propres au groupe, rôles (créateur·rice / admin / membre), validation des nouveaux, sourdine, export en `.zip`, discussions à deux.
 - **Des comptes classiques** : un pseudo, un identifiant et un mot de passe, les mêmes sur tous tes appareils. Inscriptions ouvertes à tous ou sur invitation (réglage de l'admin) ; on ajoute un contact dans un groupe en un geste, ou n'importe qui par son identifiant (il accepte une invitation). Fusion de comptes, 2FA en option, verrouillage de l'app (code ou empreinte) sur Android.
-- **Notifications sans Google** : l'app Android garde sa propre connexion ; les navigateurs et la PWA iPhone reçoivent du Web Push, chiffré pour le navigateur.
-- **Admin web** (`/admin`) : tableau de bord, santé du serveur, stockage, **sauvegarde & restauration**, journal filtrable, codes d'invitation, membres, groupes avec une **corbeille de 30 jours**, 2FA, liste d'adresses autorisées, **nouveau code personnel pour un membre** qui a perdu son téléphone (tous ses appareils déconnectés, 2FA du compte retirée), **vérification des nouvelles versions** (l'app Android propose elle-même le nouvel APK). L'admin ne voit jamais le contenu des groupes.
+- **Notifications sans Google** : l'app Android garde sa propre connexion et affiche des notifications de conversation comme les autres messageries (photo du groupe, derniers messages, pop-up en haut de l'écran, et **bulles** sur Android 11+ pour répondre sans ouvrir l'app) ; les navigateurs et la PWA iPhone reçoivent du Web Push, chiffré pour le navigateur.
+- **Français ou anglais**, au choix dans les réglages de l'app.
+- **Admin web** (`/admin`) : tableau de bord, santé du serveur, stockage, **sauvegarde & restauration**, journal filtrable, codes d'invitation, membres, groupes avec une **corbeille de 30 jours**, 2FA, liste d'adresses autorisées, inscriptions **ouvertes ou sur invitation** avec des **liens d'inscription et QR codes** qui remplissent le code, un **mot de passe provisoire pour un membre** qui a oublié le sien ou perdu son téléphone (tous ses appareils déconnectés, 2FA du compte retirée), **vérification des nouvelles versions** (l'app Android propose elle-même le nouvel APK). L'admin ne voit jamais le contenu des groupes.
 
 ## Installation rapide (Docker Compose)
 
@@ -122,7 +123,7 @@ docker compose up -d
 docker compose logs papote
 ```
 
-Ouvre ensuite l'app et **crée ton compte** (pseudo, identifiant, mot de passe). Les inscriptions sont ouvertes par défaut : dans `/admin`, « Inscriptions » les passe sur invitation (le code d'un groupe ou le code d'accès au serveur, affiché dans le journal au premier démarrage et régénérable depuis le tableau de bord).
+Ouvre ensuite l'app et **crée ton compte** (pseudo, identifiant, mot de passe). Les inscriptions sont ouvertes par défaut : dans `/admin`, « Inscriptions » les passe sur invitation (le code d'un groupe ou le code d'accès au serveur, affiché dans le journal au premier démarrage et régénérable depuis le tableau de bord). Chaque code de `/admin` a son **lien d'inscription** et son **QR code** : ils ouvrent « Créer mon compte » avec le code déjà rempli.
 
 - App web : `http://<ton-serveur>:3000/web/` (port et adresse : `PORT` et `BIND_ADDRESS` dans `.env` ; par défaut le port n'écoute que sur `127.0.0.1`, pour un reverse proxy sur la même machine).
 - Admin : `http://<ton-serveur>:3000/admin`
@@ -267,7 +268,7 @@ Pour une version signée, crée `android/keystore.properties` (`storeFile`, `sto
 
 ## API (aperçu)
 
-Tout ce qui est sous `/api`, sauf `/api/server`, `/api/join` et `/api/link`, demande `Authorization: Bearer <jeton>` (Android) ou le cookie de session (web, avec `X-Papote-Client: web`). Routes principales : `POST /api/join`, `POST /api/link`, `GET|PATCH /api/me`, `GET|POST /api/groups`, `GET|PATCH|DELETE /api/groups/:id`, `/api/groups/:id/{members,invites,messages,media,read,settings,pins,search,gallery,polls,location,stories,stickers,sticker,gif,games,live-draw,recap,export}`, `/api/messages/:id/{reactions/:kind,pin,vote,close,location}`, `/api/games/:id[/move]`, `/api/gifs/{trending,search}`, `/api/media/:id`, `/api/qr`.
+Tout ce qui est sous `/api`, sauf `/api/server`, `/api/register`, `/api/login`, `/api/join` et `/api/link`, demande `Authorization: Bearer <jeton>` (Android) ou le cookie de session (web, avec `X-Papote-Client: web`). Routes principales : `POST /api/register`, `POST /api/login`, `POST /api/join`, `POST /api/link`, `GET|PATCH /api/me`, `PUT /api/me/account`, `GET /api/me/invitations`, `GET /api/users/lookup`, `GET /api/updates`, `GET|POST /api/groups`, `GET|PATCH|DELETE /api/groups/:id`, `/api/groups/:id/{add,members,invites,messages,media,read,settings,pins,search,gallery,polls,location,stories,stickers,sticker,gif,games,live-draw,recap,export}`, `/api/messages/:id/{reactions/:kind,pin,vote,close,location}`, `/api/games/:id[/move]`, `/api/gifs/{trending,search}`, `/api/media/:id`, `/api/qr`.
 
 WebSocket `/ws` : le serveur envoie `message.new`, `message.updated`, `typing`, `presence`, `member.*`, `group.*`, `user.updated`, `livedraw`, `live`, `story.*`, `sticker.*`, `game.updated` ; les clients envoient `typing` et `live` (traits de la toile commune et du Pictionary).
 
