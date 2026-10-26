@@ -22,7 +22,7 @@ Une messagerie douillette et auto-hébergée pour la famille et les amis : une a
 <p align="center">
 <img src="docs/screens/home.png" width="23%" alt="Groupes">
 <img src="docs/screens/chat.png" width="23%" alt="Discussion">
-<img src="docs/screens/chat-poll.png" width="23%" alt="Sondage et position">
+<img src="docs/screens/themes.png" width="23%" alt="Thèmes">
 <img src="docs/screens/game.png" width="23%" alt="Mini-jeux">
 </p>
 
@@ -139,37 +139,121 @@ Une sauvegarde est faite automatiquement toutes les 24 h. Pour en faire une just
 
 ### Derrière un reverse proxy (HTTPS)
 
-Les navigateurs exigent le HTTPS pour installer l'app web et envoyer des notifications. N'importe quel reverse proxy convient : il doit laisser passer le WebSocket (`/ws`) et des envois un peu plus gros que `MAX_UPLOAD_MB` (25 Mo avec les 20 par défaut).
+Les navigateurs exigent le HTTPS pour installer l'app web et envoyer des notifications : mets un reverse proxy avec un certificat devant Papote. Quel qu'il soit, il doit :
 
-Caddy (WebSocket et en-têtes gérés tout seuls), avec l'admin joignable seulement depuis le réseau local :
+- **garder l'en-tête `Host`** : les liens d'inscription, les QR codes et le contrôle d'origine du WebSocket en dépendent ;
+- **laisser passer le WebSocket** sur `/ws` (c'est par là que les messages arrivent en direct) ;
+- **accepter des envois un peu plus gros que `MAX_UPLOAD_MB`** (25 Mo avec les 20 par défaut) ;
+- **envoyer `X-Forwarded-For` et `X-Forwarded-Proto`**, depuis une adresse listée dans `TRUST_PROXY`.
 
+Garde ces lignes dans `.env` (ce sont les valeurs par défaut) :
+
+```bash
+BIND_ADDRESS=127.0.0.1             # 0.0.0.0 si le proxy est sur une autre machine
+TRUST_PROXY=loopback, uniquelocal  # l'adresse du proxy doit y être
+SECURE_COOKIES=true
 ```
+
+#### Caddy
+
+Le plus simple : Caddy obtient et renouvelle le certificat tout seul, et gère le WebSocket et les en-têtes. `/etc/caddy/Caddyfile` :
+
+```caddy
 papote.example.com {
-    @admin_dehors {
+    # Facultatif : l’admin seulement depuis le réseau local
+    @admin_outside {
         path /admin /admin/*
         not remote_ip 192.168.0.0/16 10.0.0.0/8
     }
-    respond @admin_dehors 404
+    respond @admin_outside 404
+
     reverse_proxy 127.0.0.1:3000
 }
 ```
 
-nginx :
+Puis `sudo systemctl reload caddy`. Le bloc `@admin_outside` est facultatif : il cache `/admin` depuis Internet (tu peux aussi utiliser `ADMIN_ALLOWED_IPS`).
+
+Caddy dans Docker, dans le même `docker-compose.yml` que Papote : ajoute le service ci-dessous et écris `reverse_proxy papote:3000` dans le Caddyfile (les conteneurs partagent un réseau ; son adresse en `172.x` est couverte par `uniquelocal`). `BIND_ADDRESS` peut rester à `127.0.0.1`.
+
+```yaml
+  caddy:
+    image: caddy:2
+    container_name: caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./caddy-data:/data
+```
+
+#### nginx
+
+`/etc/nginx/sites-available/papote`, avec un certificat Let's Encrypt obtenu par certbot :
 
 ```nginx
-location / {
-    proxy_pass http://127.0.0.1:3000;
+# WebSocket (/ws) : on ne passe en WebSocket que si le navigateur le demande
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name papote.example.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;                         # nginx < 1.25.1 : « listen 443 ssl http2; » à la place
+    server_name papote.example.com;
+
+    ssl_certificate     /etc/letsencrypt/live/papote.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/papote.example.com/privkey.pem;
+
+    client_max_body_size 25m;         # un peu plus que MAX_UPLOAD_MB (20)
+
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "upgrade";
-    proxy_set_header Host $host;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header Connection $connection_upgrade;
+    proxy_set_header Host $host;      # liens d’inscription, QR codes, contrôle du WebSocket
+    proxy_set_header X-Forwarded-For $remote_addr;
     proxy_set_header X-Forwarded-Proto $scheme;
-    client_max_body_size 25m;   # un peu plus que MAX_UPLOAD_MB
+    proxy_read_timeout 1h;            # le WebSocket reste ouvert
+
+    # Facultatif : l’admin seulement depuis le réseau local
+    location /admin {
+        allow 192.168.0.0/16;
+        allow 10.0.0.0/8;
+        deny all;
+        proxy_pass http://127.0.0.1:3000;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+    }
 }
 ```
 
-Le serveur ne croit `X-Forwarded-For` que s'il vient d'une adresse de `TRUST_PROXY` (par défaut : adresses locales et privées). Si le proxy est sur une autre machine, mets `BIND_ADDRESS=0.0.0.0` et vérifie que son adresse est couverte par `TRUST_PROXY`.
+Obtiens d'abord le certificat, puis active le site :
+
+```bash
+sudo certbot certonly --nginx -d papote.example.com
+sudo ln -s /etc/nginx/sites-available/papote /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+`X-Forwarded-For $remote_addr` transmet l'adresse que nginx voit vraiment, pas un en-tête que le client pourrait remplir. Si tu changes `MAX_UPLOAD_MB`, change `client_max_body_size` avec.
+
+**Nginx Proxy Manager** : redirige vers `papote:3000` (même réseau Docker) ou vers l'hôte et `PORT`, coche *Websockets Support*, demande un certificat dans l'onglet *SSL* et ajoute `client_max_body_size 25m;` dans *Advanced*.
+
+#### Vérifier
+
+Ouvre `https://papote.example.com/admin` : le **lien d'inscription** du tableau de bord doit commencer par `https://papote.example.com/`. S'il affiche `http://`, `127.0.0.1` ou un port, le proxy ne transmet pas `Host` ou `X-Forwarded-Proto`, ou son adresse n'est pas dans `TRUST_PROXY`. Si les messages n'apparaissent qu'après avoir rechargé la page, le WebSocket (`/ws`) ne passe pas.
 
 ### Configuration (`.env`)
 

@@ -116,3 +116,11 @@ main { overflow-x: clip; }
   .bubu { width: 90px; }
 }
 .phone img, .browser img { height: auto; }
+
+/* HTTPS: Caddy and nginx side by side */
+.proxy { display: grid; grid-template-columns: 2fr 3fr; gap: 24px; align-items: start; }
+.proxy .card { min-width: 0; }
+.proxy .card p { color: var(--muted); margin: 0; }
+.proxy pre { font-size: 13px; }
+.proxy-note { margin: 22px 0 0; color: var(--muted); max-width: 60em; }
+@media (max-width: 860px) { .proxy { grid-template-columns: 1fr; } }
