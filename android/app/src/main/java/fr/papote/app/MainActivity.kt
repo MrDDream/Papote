@@ -9,7 +9,7 @@ import fr.papote.app.data.Session
 import fr.papote.app.service.Notifier
 import fr.papote.app.ui.contacts.ContactsScreen
 import fr.papote.app.ui.lock.LockScreen
-import fr.papote.app.ui.profile.NotificationPrompt
+import fr.papote.app.ui.profile.NotificationPermissionRequest
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
@@ -132,7 +132,7 @@ class MainActivity : FragmentActivity() {
                     PapoteNav(nav, startLoggedIn = session.loggedIn, sharing = sharing.value, onShareTo = { id ->
                         sharing.value?.let { sendShared(nav, id, it) }
                     })
-                    if (session.loggedIn && !locked.value) NotificationPrompt()
+                    if (session.loggedIn && !locked.value) NotificationPermissionRequest()
                     if (locked.value && session.lock != Session.LockMode.None) {
                         LockScreen(session.lock) { locked.value = false }
                     }

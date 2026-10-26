@@ -310,7 +310,7 @@ Maintenance de l'admin : `docker exec papote node src/cli.js admin-reset-2fa` (t
 
 ## Les apps
 
-- **Android** (8.0 ou plus) : télécharge `Papote-vX.Y.Z-release.apk` dans les [versions](https://github.com/MrDDream/Papote/releases) et installe-le. Les versions suivantes s'installent par-dessus, et l'app te prévient quand il y en a une (Paramètres → Application). Pour recevoir les messages app fermée, autorise les notifications et désactive l'optimisation de batterie pour Papote : l'app le propose au premier lancement. Les adresses `http://` sont acceptées sur un réseau local (l'app prévient que la connexion n'est pas chiffrée).
+- **Android** (8.0 ou plus) : télécharge `Papote-vX.Y.Z-release.apk` dans les [versions](https://github.com/MrDDream/Papote/releases) et installe-le. Les versions suivantes s'installent par-dessus, et l'app te prévient quand il y en a une (Paramètres → Application). Les messages arrivent en notification même app fermée, sans services Google : autorise les notifications quand l'app le demande. Android impose alors une notification silencieuse « Papote reste connecté » ; touche-la pour la masquer, la connexion continue (Paramètres → Notifications). Sur certains téléphones, il faut aussi y désactiver l'optimisation de batterie. Les adresses `http://` sont acceptées sur un réseau local (l'app prévient que la connexion n'est pas chiffrée).
 - **iPhone, iPad, ordinateur** : ouvre `https://<ton-serveur>/web/`. Sur iPhone, Partager → *Sur l'écran d'accueil* l'installe et active les notifications (iOS 16.4+).
 
 ## Compiler soi-même

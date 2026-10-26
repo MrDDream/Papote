@@ -28,8 +28,8 @@ class Session(context: Context) {
         val look: ThemeLook = ThemeLook.Pastel,
         /** Colours; null = the theme's own ("D'origine"), Papote's violet with Pastel. */
         val style: ThemeStyle? = null,
-        /** Keep the connection (and notifications) going when the app is closed. */
-        val background: Boolean = false,
+        /** Keep the connection (and notifications) going when the app is closed: on unless turned off. */
+        val background: Boolean = true,
         val lock: LockMode = LockMode.None,
         /** Seconds in the background before the lock comes back. */
         val lockAfter: Int = 0,
@@ -53,7 +53,7 @@ class Session(context: Context) {
         look = ThemeLook.entries.firstOrNull { it.name == prefs.getString("style", null) }
             ?: ThemeLook.entries.firstOrNull { it.name == prefs.getString("look", null) } ?: ThemeLook.Pastel,
         style = ThemeStyle.entries.firstOrNull { it.name == prefs.getString("style", null) },
-        background = prefs.getBoolean("background", false),
+        background = prefs.getBoolean("background", true),
         lock = runCatching { LockMode.valueOf(prefs.getString("lock", null) ?: "None") }.getOrDefault(LockMode.None),
         lockAfter = prefs.getInt("lockAfter", 0),
     )
@@ -98,7 +98,6 @@ class Session(context: Context) {
         _state.value = read()
     }
 
-    /** "Ne plus me demander" for the notifications / battery reminder at launch. */
     /** Voice messages playback speed (×1, ×1,5, ×2). */
     var voiceSpeed: Float
         get() = prefs.getFloat("voiceSpeed", 1f)
@@ -113,9 +112,10 @@ class Session(context: Context) {
         get() = prefs.getString("dismissedUpdate", null)
         set(v) = prefs.edit().putString("dismissedUpdate", v).apply()
 
-    var notificationPromptOff: Boolean
-        get() = prefs.getBoolean("notifPromptOff", false)
-        set(v) = prefs.edit().putBoolean("notifPromptOff", v).apply()
+    /** Android 13+: the system "Autoriser les notifications ?" was shown once already (never asked again). */
+    var notificationPermissionAsked: Boolean
+        get() = prefs.getBoolean("notifPermissionAsked", false)
+        set(v) = prefs.edit().putBoolean("notifPermissionAsked", v).apply()
 
     // --- app lock ------------------------------------------------------------------------
 

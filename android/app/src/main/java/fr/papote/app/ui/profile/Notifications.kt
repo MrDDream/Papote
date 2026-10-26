@@ -9,16 +9,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -56,13 +53,12 @@ private fun rememberReadiness(): Readiness {
 
 /** Turns everything on: notification permission, background connection, then the battery exemption. */
 @Composable
-private fun rememberEnabler(onDone: () -> Unit = {}): () -> Unit {
+private fun rememberEnabler(): () -> Unit {
     val app = PapoteApp.instance
     val context = LocalContext.current
     fun finish() {
         app.session.setBackground(true)
         if (!Notifier.ignoresBatteryOptimizations(context)) context.startActivity(Notifier.batteryIntent(context))
-        onDone()
     }
     val askNotifications = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { finish() }
     return {
@@ -85,8 +81,8 @@ fun NotificationsCard() {
             InfoButton(
                 tr("Recevoir les messages app fermée"),
                 tr("Papote n’utilise pas les services de Google : pour te prévenir des nouveaux messages, l’app garde une connexion ouverte avec ton serveur. ") +
-                    tr("Android affiche alors une petite notification discrète « Papote reste connecté ». ") +
-                    tr("Il faut aussi autoriser Papote à tourner en arrière-plan (optimisation de batterie désactivée), sinon Android coupe la connexion."),
+                    tr("Android impose alors une notification « Papote reste connecté » : tu peux la masquer, la connexion continue. ") +
+                    tr("Sur certains téléphones, il faut aussi désactiver l’optimisation de batterie, sinon Android coupe la connexion."),
             )
         },
     ) {
@@ -126,6 +122,17 @@ fun NotificationsCard() {
             bubbles,
             if (bubbles) tr("Régler") else tr("Activer"),
         ) { context.startActivity(Notifier.bubbleSettingsIntent(context)) }
+        // Android requires it while the connection runs; turning its channel off hides it, the service keeps going.
+        if (r.background) {
+            val hidden = remember(tick) { Notifier.connectionHidden(context) }
+            StatusRow(
+                PIcons.Bell,
+                tr("Notification « Papote reste connecté »"),
+                if (hidden) tr("Masquée : tu ne vois que les nouveaux messages") else tr("Visible en bas de tes notifications"),
+                true,
+                if (hidden) tr("Régler") else tr("Masquer"),
+            ) { context.startActivity(Notifier.connectionSettingsIntent(context)) }
+        }
         StatusRow(
             PIcons.Battery,
             tr("Optimisation de batterie"),
@@ -149,42 +156,20 @@ private fun StatusRow(icon: ImageVector, title: String, detail: String, ok: Bool
     }
 }
 
-private var promptShownThisLaunch = false
-
-/** At launch, once per app start, when something keeps messages from arriving app closed. */
+/**
+ * After signing in, like the other messengers: the system "Autoriser les notifications ?" once (Android 13+),
+ * nothing else. Everything else is in Paramètres → Notifications.
+ */
 @Composable
-fun NotificationPrompt() {
+fun NotificationPermissionRequest() {
+    if (Build.VERSION.SDK_INT < 33) return
     val app = PapoteApp.instance
-    val c = Papote.colors
-    val r = rememberReadiness()
-    var visible by remember { mutableStateOf(!promptShownThisLaunch && !app.session.notificationPromptOff && !r.all) }
-    fun close() {
-        promptShownThisLaunch = true
-        visible = false
+    val context = LocalContext.current
+    val ask = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+    LaunchedEffect(Unit) {
+        if (!app.session.notificationPermissionAsked && !Notifier.canNotify(context)) {
+            app.session.notificationPermissionAsked = true
+            ask.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
     }
-    val enable = rememberEnabler(onDone = ::close)
-    if (!visible) return
-    AlertDialog(
-        onDismissRequest = ::close,
-        containerColor = c.card,
-        icon = { Icon(PIcons.Bell, null, tint = c.primary) },
-        title = { Text(tr("Recevoir tes messages"), style = MaterialTheme.typography.titleLarge, color = c.ink) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(
-                    tr("Pour être prévenu·e des nouveaux messages même quand Papote est fermé, autorise les notifications et laisse Papote tourner en arrière-plan."),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = c.muted,
-                )
-                TextButton(onClick = {
-                    app.session.notificationPromptOff = true
-                    close()
-                }, modifier = Modifier.fillMaxWidth()) {
-                    Text(tr("Ne plus me demander"), style = MaterialTheme.typography.labelLarge, color = c.muted)
-                }
-            }
-        },
-        confirmButton = { TextButton(onClick = enable) { Text(tr("Activer"), style = MaterialTheme.typography.labelLarge, color = c.primary) } },
-        dismissButton = { TextButton(onClick = ::close) { Text(tr("Plus tard"), style = MaterialTheme.typography.labelLarge, color = c.ink) } },
-    )
 }

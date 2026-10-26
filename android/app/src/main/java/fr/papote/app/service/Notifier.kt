@@ -44,7 +44,7 @@ object Notifier {
         )
         nm.createNotificationChannel(
             NotificationChannel(CHANNEL_CONNECTION, tr("Connexion en arrière-plan"), NotificationManager.IMPORTANCE_MIN).apply {
-                description = tr("Indique que Papote reste connecté pour recevoir les messages")
+                description = tr("Imposée par Android pour garder la connexion : tu peux la désactiver, Papote reste connecté")
                 setShowBadge(false)
             },
         )
@@ -148,6 +148,14 @@ object Notifier {
 
     fun channelSettingsIntent(context: Context) =
         Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName).putExtra(Settings.EXTRA_CHANNEL_ID, CHANNEL_MESSAGES)
+
+    /** The "Papote reste connecté" notification turned off by the person: the connection keeps going. */
+    fun connectionHidden(context: Context) =
+        context.getSystemService(NotificationManager::class.java).getNotificationChannel(CHANNEL_CONNECTION)?.importance == NotificationManager.IMPORTANCE_NONE
+
+    /** Where that notification is turned off (its channel's settings). */
+    fun connectionSettingsIntent(context: Context) =
+        Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName).putExtra(Settings.EXTRA_CHANNEL_ID, CHANNEL_CONNECTION)
 
     fun bubbleSettingsIntent(context: Context) =
         if (Build.VERSION.SDK_INT >= 30) Intent(Settings.ACTION_APP_NOTIFICATION_BUBBLE_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)

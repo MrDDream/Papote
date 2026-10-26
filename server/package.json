@@ -1,6 +1,6 @@
 {
   "name": "papote-server",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Papote — serveur auto-hébergé pour petits groupes (API, temps réel, admin web)",
   "type": "module",
   "main": "src/index.js",

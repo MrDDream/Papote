@@ -10,13 +10,13 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
-import fr.papote.app.MainActivity
 import fr.papote.app.PapoteApp
 import fr.papote.app.R
 
 /**
  * Keeps the WebSocket open while the app is closed, so messages arrive as notifications without any
- * Google service. Shown as a quiet, low-priority "Papote reste connecté" notification (Android requires it).
+ * Google service. Android requires a notification for it: silent, at the bottom of the list, and a tap
+ * opens its channel's settings so the person can turn it off (the connection keeps going).
  */
 class LiveService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
@@ -27,16 +27,19 @@ class LiveService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
-        val open = android.app.PendingIntent.getActivity(
-            this, 0, Intent(this, MainActivity::class.java), android.app.PendingIntent.FLAG_IMMUTABLE,
+        val hide = android.app.PendingIntent.getActivity(
+            this, 0, Notifier.connectionSettingsIntent(this).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), android.app.PendingIntent.FLAG_IMMUTABLE,
         )
         val n = NotificationCompat.Builder(this, Notifier.CHANNEL_CONNECTION)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(tr("Papote reste connecté"))
-            .setContentText(tr("Pour recevoir tes messages même app fermée"))
+            .setContentText(tr("Touche ici pour masquer cette notification"))
             .setPriority(NotificationCompat.PRIORITY_MIN)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setSilent(true)
+            .setShowWhen(false)
             .setOngoing(true)
-            .setContentIntent(open)
+            .setContentIntent(hide)
             .build()
         if (Build.VERSION.SDK_INT >= 34) {
             startForeground(ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_REMOTE_MESSAGING)
@@ -60,7 +63,12 @@ class LiveService : Service() {
             val app = context.applicationContext as PapoteApp
             val s = app.session.state.value
             val intent = Intent(context, LiveService::class.java)
-            if (s.loggedIn && s.background) ContextCompat.startForegroundService(context, intent) else context.stopService(intent)
+            if (!(s.loggedIn && s.background)) {
+                context.stopService(intent)
+                return
+            }
+            // Android 12+ refuses a start while the app is in the background: it starts again on the next launch.
+            runCatching { ContextCompat.startForegroundService(context, intent) }
         }
     }
 }

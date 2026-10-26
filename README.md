@@ -310,7 +310,7 @@ Admin maintenance: `docker exec papote node src/cli.js admin-reset-2fa` (lost ph
 
 ## The apps
 
-- **Android** (8.0+): download `Papote-vX.Y.Z-release.apk` from the [releases](https://github.com/MrDDream/Papote/releases) and install it. Later versions install over it, and the app tells you when one is out (Settings → App). To receive messages while the app is closed, allow notifications and turn off battery optimisation for Papote: the app offers it on first launch. Plain `http://` addresses are accepted on a local network (the app warns that the connection isn't encrypted).
+- **Android** (8.0+): download `Papote-vX.Y.Z-release.apk` from the [releases](https://github.com/MrDDream/Papote/releases) and install it. Later versions install over it, and the app tells you when one is out (Settings → App). Messages arrive as notifications even when the app is closed, without Google services: allow notifications when asked. Android then requires a silent “Papote stays connected” notification; tap it to hide it, the connection keeps going (Settings → Notifications). On some phones you also need to turn off battery optimisation there. Plain `http://` addresses are accepted on a local network (the app warns that the connection isn't encrypted).
 - **iPhone, iPad, computers**: open `https://<your-server>/web/`. On iPhone, Share → *Add to Home Screen* installs it and enables notifications (iOS 16.4+).
 
 The interface is in French or English (Settings → Appearance → Language).
