@@ -177,7 +177,22 @@ export function createAdmin({ store, hub, dataDir, adminPassword, allowedIps, re
   // server-access codes and the first-person codes of groups the admin created (still empty).
   const adminMayRead = (i) => !i.group_id || i.by_admin === 1;
 
-  const inviteRows = (invites) =>
+  /** A link that opens account creation with the code already filled in (web app, and the Android app's QR scanner). */
+  const signupLink = (req, code) => `${req.protocol}://${req.get('host')}/web/#/join?code=${String(code).replace('-', '')}`;
+
+  /** The link to copy and its QR code (in a <details>: no script needed). */
+  function linkBlock(req, code, { open = false } = {}) {
+    const link = signupLink(req, code);
+    // uqr's SVG is built from our own link only: safe to inline.
+    const svg = renderSVG(link, { border: 4, whiteColor: '#FFFFFF', blackColor: '#2E2442' });
+    return html`<div class="signup-link">
+<label class="field-label">Lien d’inscription
+<span class="link-row"><input type="text" readonly value="${link}" data-select aria-label="Lien d’inscription avec le code ${code}"><button type="button" class="ghost js-only" data-copy>Copier</button></span></label>
+<details${open ? raw(' open') : ''}><summary>QR code à scanner</summary><div class="qr">${raw(svg)}</div></details>
+</div>`;
+  }
+
+  const inviteRows = (invites, req) =>
     invites.length === 0
       ? html`<p class="empty">Aucun code actif.</p>`
       : html`<div class="table"><table data-filterable>
@@ -185,7 +200,9 @@ export function createAdmin({ store, hub, dataDir, adminPassword, allowedIps, re
 <tbody>
 ${invites.map(
   (i) => html`<tr data-search="${shownCode(i)} ${i.group_name ?? 'Accès au serveur'} ${i.by_name ?? 'Admin'}">
-<td class="code">${adminMayRead(i) ? i.code : html`${i.code.slice(0, 3)}-<span title="Code créé par un membre pour son groupe : masqué">•••</span>`}</td>
+<td class="code">${adminMayRead(i) ? i.code : html`${i.code.slice(0, 3)}-<span title="Code créé par un membre pour son groupe : masqué">•••</span>`}${
+    adminMayRead(i) && req ? html`<details class="row-link"><summary>Lien et QR</summary>${linkBlock(req, i.code)}</details>` : ''
+  }</td>
 <td><b>${i.group_name ?? 'Accès au serveur'}</b></td>
 <td>${i.by_name ?? 'Admin'}</td>
 <td>${i.uses} / ${i.max_uses ?? 'illimité'}</td>
@@ -341,6 +358,8 @@ ${
 </div>
 </div>
 <div class="meta"><span>Créé ${relative(server.created_at)}</span><span>${server.uses} compte(s) créé(s) avec</span><span>Sans date limite</span></div>
+${linkBlock(req, server.code)}
+<p class="empty">Envoie ce lien (ou fais scanner le QR code) : l’app s’ouvre sur « Créer mon compte » avec le code déjà rempli.</p>
 <p class="empty">Avec ce code, n’importe qui peut créer un compte sur le serveur (dans l’app : « Rejoindre »). Il ne donne accès à aucun groupe. Régénère-le s’il a trop circulé : l’ancien cesse de marcher.</p>`
     : html`<p class="empty">Personne ne peut créer de compte sans un code ponctuel. Active un code permanent pour inviter facilement de nouvelles personnes sur le serveur.</p>
 <form method="post" action="/admin/server-code/regenerate"><button type="submit" class="primary">${icon('key')} Créer le code d’accès</button></form>`
@@ -403,7 +422,7 @@ ${sec.events(8).map(
 </section>
 <section class="card" aria-labelledby="codes">
 <div class="card-head"><h2 id="codes">${icon('key')} Codes ponctuels</h2><a href="/admin/codes">Gérer</a></div>
-${otherInvites.length ? inviteRows(otherInvites.slice(0, 5)) : html`<p class="empty">Aucun code ponctuel actif.</p>`}
+${otherInvites.length ? inviteRows(otherInvites.slice(0, 5), req) : html`<p class="empty">Aucun code ponctuel actif.</p>`}
 </section>
 </div>
 </div>`,
@@ -471,7 +490,7 @@ ${filterBar('/admin/codes', {
   count: list.length === all.length ? `${all.length}` : `${list.length} sur ${all.length}`,
   selects: [{ name: 'type', label: 'Type de code', value: type, options: [['all', 'Tous les codes'], ['server', 'Accès au serveur'], ['group', 'Codes de groupe']] }],
 })}
-${inviteRows(list)}</section>`,
+${inviteRows(list, req)}</section>`,
     );
   });
 

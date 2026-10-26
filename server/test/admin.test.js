@@ -199,6 +199,15 @@ describe('admin access', () => {
     expect(signed.body.user).toMatchObject({ id: lou.user.id, username: 'lou.b', hasPassword: true });
   });
 
+  it('shows a sign-up link and its QR code for the server access code', async () => {
+    const { papote, agent } = start();
+    const code = papote.bootstrapCode();
+    const { session } = await login(agent);
+    const page = (await agent.get('/admin').set('Cookie', session)).text;
+    expect(page).toContain(`/web/#/join?code=${code.replace('-', '')}`);
+    expect(page).toMatch(/<details><summary>QR code à scanner<\/summary><div class="qr"><svg/);
+  });
+
   it('opens sign-up to anyone, or only with a code', async () => {
     const { agent } = start();
     const { session } = await login(agent);

@@ -312,3 +312,13 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; gap: 6
 
 .release-notes summary { cursor: pointer; font-weight: 800; }
 .release-notes pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 260px; overflow: auto; background: var(--soft); border-radius: 12px; padding: 10px 12px; font-size: 13px; margin: 8px 0 0; }
+
+/* Sign-up links (server code, one-time codes) */
+.signup-link { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.signup-link .field-label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; font-weight: 800; color: var(--muted); }
+.signup-link .link-row { display: flex; gap: 8px; align-items: center; }
+.signup-link input { flex: 1; min-width: 0; font-size: 13px; }
+.signup-link summary, .row-link summary { cursor: pointer; font-size: 13px; font-weight: 800; color: var(--accent-ink); }
+.row-link { margin-top: 4px; font-family: inherit; letter-spacing: 0; }
+.row-link .signup-link { min-width: 240px; }
+.js-only { display: none; }

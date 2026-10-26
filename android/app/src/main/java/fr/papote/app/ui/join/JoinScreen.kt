@@ -139,7 +139,8 @@ fun JoinScreen(initialServer: String, initialCode: String, onBack: (() -> Unit)?
             return@rememberLauncherForActivityResult
         }
         scanned.server?.let { server = it }
-        if (!loggedIn) mode = if (scanned.personal) "link" else if (mode == "link") "register" else mode
+        // Signed out, an invitation (a group's or the server's sign-up QR) opens account creation, code filled in.
+        if (!loggedIn) mode = if (scanned.personal) "link" else "register"
         code = cleanCode(scanned.code, if (scanned.personal && !loggedIn) 8 else 6)
         error = null
     }

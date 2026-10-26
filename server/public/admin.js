@@ -26,3 +26,18 @@ for (const form of document.querySelectorAll('form[data-live]')) {
   for (const select of form.querySelectorAll('select')) select.addEventListener('change', () => form.requestSubmit());
   form.querySelector('button[type="submit"]')?.classList.add('js-hidden');
 }
+
+// Links to share: a click selects the whole link, "Copier" puts it on the clipboard.
+for (const input of document.querySelectorAll('input[data-select]')) input.addEventListener('focus', () => input.select());
+for (const button of document.querySelectorAll('button[data-copy]')) {
+  button.classList.remove('js-only');
+  button.addEventListener('click', async () => {
+    const input = button.parentElement.querySelector('input');
+    try {
+      await navigator.clipboard.writeText(input.value);
+      button.textContent = 'Copié !';
+    } catch {
+      input.select();
+    }
+  });
+}
